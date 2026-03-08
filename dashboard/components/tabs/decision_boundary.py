@@ -5,12 +5,16 @@ from src.decision_boundary.analysis import DecisionBoundaryDriftAnalyzer
 from src.decision_boundary.visualization import visualize_decision_boundary, plot_categorical_drift_map
 
 
-def _render_ssnp_config():
+def _render_ssnp_config(X_before):
+    is_2d = X_before.shape[1] == 2 if hasattr(X_before, 'shape') and len(X_before.shape) > 1 else False
     with st.expander("SSNP Configuration", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             ssnp_epochs = st.number_input("SSNP Epochs", min_value=1, max_value=200, value=10, step=5,
-                                          help="Number of epochs for training the SSNP projector.")
+                                          help="Number of epochs for training the SSNP projector.",
+                                          disabled=is_2d)
+            if is_2d:
+                st.caption("Data is 2D. SSNP bypassed.")
         with col2:
             grid_size = st.number_input("Grid Resolution", min_value=50, max_value=500, value=200, step=50,
                                         help="Resolution of the grid for visualizing probabilities.")
@@ -69,13 +73,15 @@ def _display_results():
         try:
             st.markdown("### Decision Boundaries (Pre vs Post)")
 
+            res = st.session_state.decision_boundary_results
+            is_2d = res.get('is_2d', False)
+
             # Create and display plot
-            fig = visualize_decision_boundary(st.session_state.decision_boundary_results)
+            fig = visualize_decision_boundary(res)
             st.pyplot(fig)
             plt.close(fig)
 
             # Display Disagreement Analysis
-            res = st.session_state.decision_boundary_results
             if 'disagreement' in res and res['disagreement']['drift_rate'] > 0:
                 st.markdown("### Categorical Drift Map (Disagreement)")
                 st.info(f"Drift Rate (Disagreement): {res['disagreement']['drift_rate']:.1%}")
@@ -83,15 +89,14 @@ def _display_results():
                 col_map, col_table = st.columns([1, 1])
 
                 with col_map:
-                    # Plot Map
-                    # Use bounds from post window
                     grid_bounds = res['post']['grid_bounds']
                     fig_map = plot_categorical_drift_map(
                         ssnp_model=res['ssnp_model'],
                         viz_tree=res['disagreement']['viz_tree'],
                         drift_leaf_ids=res['disagreement']['drift_leaf_ids'],
                         grid_bounds=grid_bounds,
-                        grid_size=res['grid_size']
+                        grid_size=res['grid_size'],
+                        is_2d=is_2d # Pass flag down
                     )
                     st.pyplot(fig_map)
                     plt.close(fig_map)
@@ -106,28 +111,18 @@ def _display_results():
 
         except Exception as e:
             st.error(f"Error displaying visualization: {e}")
-            # In case of stale state or error, allow clearing
             if st.button("Clear Results"):
                 st.session_state.decision_boundary_results = None
                 st.rerun()
 
-
 def _render_decision_boundary_tab_content(X_before, y_before, X_after, y_after, model_class, model_params, feature_names=None):
-    # Configuration for SSNP
-    ssnp_epochs, grid_size = _render_ssnp_config()
-
-    # Run Analysis
+    ssnp_epochs, grid_size = _render_ssnp_config(X_before)
     _run_analysis_if_needed(X_before, y_before, X_after, y_after, model_class,
                             model_params, ssnp_epochs, grid_size, feature_names)
-
-    # Display results
     _display_results()
 
-
 def render_decision_boundary_tab(X_before, y_before, X_after, y_after,
-                                 model_class=None,
-                                 model_params=None,
-                                 feature_names=None):
+                                 model_class=None, model_params=None, feature_names=None):
     """
     Renders the Decision Boundary Analysis tab.
 
@@ -153,12 +148,7 @@ def render_decision_boundary_tab(X_before, y_before, X_after, y_after,
     preserving the separation between classes.
     """)
 
-    # Configuration for SSNP
-    ssnp_epochs, grid_size = _render_ssnp_config()
-
-    # Run Analysis
+    ssnp_epochs, grid_size = _render_ssnp_config(X_before)
     _run_analysis_if_needed(X_before, y_before, X_after, y_after, model_class,
                             model_params, ssnp_epochs, grid_size, feature_names)
-
-    # Display results
     _display_results()

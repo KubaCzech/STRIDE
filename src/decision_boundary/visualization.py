@@ -22,6 +22,11 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
     """
     res_pre = results['pre']
     res_post = results['post']
+    is_2d = results.get('is_2d', False)
+    
+    # Define labels based on dimensionality
+    x_label = "Feature 1" if is_2d else "SSNP Component 1"
+    y_label = "Feature 2" if is_2d else "SSNP Component 2"
 
     # Identify all unique classes to ensure consistent coloring
     y_all = np.concatenate([res_pre['y_train'], res_post['y_train']])
@@ -91,8 +96,8 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
                        edgecolor='white', s=30, alpha=0.9, linewidth=0.5)
 
         ax.set_title(f"{window_name} Drift")
-        ax.set_xlabel("SSNP Component 1")
-        ax.set_ylabel("SSNP Component 2")
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
 
     plot_window(axes[0], res_pre, "Pre")
     plot_window(axes[1], res_post, "Post")
@@ -105,7 +110,7 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
     return fig
 
 
-def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds, grid_size=300):
+def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds, grid_size=300, is_2d=False):
     """
     Plots the Categorical Drift Map showing regions of disagreement in the SSNP latent space.
 
@@ -211,7 +216,7 @@ def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds
         ax.set_ylim(ymin, ymax)
 
     ax.set_title("Categorical Drift Map (Disagreement)")
-    ax.set_xlabel("SSNP Component 1")
-    ax.set_ylabel("SSNP Component 2")
+    ax.set_xlabel("Feature 1" if is_2d else "SSNP Component 1")
+    ax.set_ylabel("Feature 2" if is_2d else "SSNP Component 2")
 
     return fig

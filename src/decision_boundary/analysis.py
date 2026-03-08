@@ -6,6 +6,15 @@ from src.decision_boundary.ssnp import SSNP
 from src.decision_boundary.disagreement import compute_disagreement_analysis
 
 
+class DummyProjector:
+    """Passthrough projector for data that is already 2D."""
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X):
+        return X
+    def inverse_transform(self, X):
+        return X
+
 class DecisionBoundaryDriftAnalyzer:
     def __init__(self, X_before, y_before, X_after, y_after, random_state=42):
         self.random_state = random_state
@@ -41,12 +50,16 @@ class DecisionBoundaryDriftAnalyzer:
         X_before_scaled = scaler.fit_transform(self.X_before)
         X_after_scaled = scaler.transform(self.X_after)
 
-        # 2. Train SSNP on Pre-Drift Data
-        # SSNP is used to find a 2D projection that preserves class structure.
-        ssnp = SSNP(epochs=ssnp_epochs, patience=ssnp_patience, verbose=0)
-        ssnp.fit(X_before_scaled, self.y_before)
+        is_2d = self.X_before.shape[1] == 2
+        
+        if is_2d:
+            ssnp = DummyProjector()
+        else:
+            # SSNP is used to find a 2D projection that preserves class structure.
+            ssnp = SSNP(epochs=ssnp_epochs, patience=ssnp_patience, verbose=0)
+            ssnp.fit(X_before_scaled, self.y_before)
 
-        # Project points to 2D
+        # Project points to 2D (if 2D already, this just returns the scaled data)
         X_before_2d = ssnp.transform(X_before_scaled)
         X_after_2d = ssnp.transform(X_after_scaled)
 
@@ -127,7 +140,7 @@ class DecisionBoundaryDriftAnalyzer:
                 'X_2d': X_2d_train,
                 'grid_probs': prob_grid,
                 'grid_labels': label_grid,
-                'grid_bounds': bounds
+                'grid_bounds': bounds,
             }
 
         # 4. Process Pre and Post
@@ -168,5 +181,6 @@ class DecisionBoundaryDriftAnalyzer:
             'post': result_post,
             'ssnp_model': ssnp,
             'grid_size': grid_size,
-            'disagreement': disagreement_results
+            'disagreement': disagreement_results,
+            'is_2d': is_2d
         }
