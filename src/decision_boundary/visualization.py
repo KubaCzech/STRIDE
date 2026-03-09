@@ -25,8 +25,8 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
     is_2d = results.get('is_2d', False)
     
     # Define labels based on dimensionality
-    x_label = "Feature 1" if is_2d else "SSNP Component 1"
-    y_label = "Feature 2" if is_2d else "SSNP Component 2"
+    x_label = "x1" if is_2d else "SSNP Component 1"
+    y_label = "x2" if is_2d else "SSNP Component 2"
 
     # Identify all unique classes to ensure consistent coloring
     y_all = np.concatenate([res_pre['y_train'], res_post['y_train']])
@@ -216,7 +216,7 @@ def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds
         ax.set_ylim(ymin, ymax)
 
     ax.set_title("Categorical Drift Map (Disagreement)")
-    ax.set_xlabel("Feature 1" if is_2d else "SSNP Component 1")
-    ax.set_ylabel("Feature 2" if is_2d else "SSNP Component 2")
+    ax.set_xlabel("x1" if is_2d else "SSNP Component 1")
+    ax.set_ylabel("x2" if is_2d else "SSNP Component 2")
 
     return fig
