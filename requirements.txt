@@ -10,7 +10,7 @@ flake8
 lime
 shap
 streamlit
-tensorflow
+tensorflow==2.15.0
 seaborn
 hdbscan
 icecream
