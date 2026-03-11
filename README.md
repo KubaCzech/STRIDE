@@ -66,8 +66,8 @@ To get a local copy up and running, follow these simple steps.
 
 1.  **Clone the repository**
     ```sh
-    git clone https://github.com/KubaCzech/DriftDetectionWithExplainableAI.git
-    cd DriftDetectionWithExplainableAI
+    git clone https://github.com/KubaCzech/STRIDE.git
+    cd STRIDE
     ```
 
 2.  **Create a virtual environment (Optional but Recommended)**
