@@ -1,3 +1,4 @@
+import inspect
 import streamlit as st
 import pandas as pd
 from src.datasets import DATASETS, reload_datasets, DatasetRegistry
@@ -110,8 +111,16 @@ def _render_dataset_selection():
             st.rerun()
 
     # Initialize session state for parameters if not exists
-    if 'dataset_params' not in st.session_state:
-        st.session_state.dataset_params = {}
+    if 'dataset_params_by_dataset' not in st.session_state:
+        st.session_state.dataset_params_by_dataset = {}
+
+    # Switch or sync dataset parameters for the selected dataset
+    if 'current_dataset_key' not in st.session_state or st.session_state.current_dataset_key != dataset_key:
+        st.session_state.current_dataset_key = dataset_key
+        st.session_state.dataset_params = st.session_state.dataset_params_by_dataset.get(dataset_key, {}).copy()
+    else:
+        if 'dataset_params' in st.session_state:
+            st.session_state.dataset_params_by_dataset[dataset_key] = st.session_state.dataset_params
 
     with col_ds2:
         if st.button("⚙️", key="dataset_settings_btn", help="Configure dataset settings", width="stretch"):
@@ -139,14 +148,29 @@ def _render_model_selection():
 
     selected_model_class = MODELS[model_key]
 
-    # Initialize session state for model parameters if not exists
-    if 'model_params' not in st.session_state:
-        st.session_state.model_params = {}
+    # Maintain model parameters per model
+    if 'model_params_by_model' not in st.session_state:
+        st.session_state.model_params_by_model = {}
+
+    # Check if model changed or model_params not loaded for this model
+    if 'current_model_key' not in st.session_state or st.session_state.current_model_key != model_key:
+        st.session_state.current_model_key = model_key
+        st.session_state.model_params = st.session_state.model_params_by_model.get(model_key, {}).copy()
+    else:
+        # Keep model_params_by_model in sync with model_params
+        if 'model_params' in st.session_state:
+            st.session_state.model_params_by_model[model_key] = st.session_state.model_params
+
+    # Defensive filtering: pass only parameters accepted by selected_model_class.__init__
+    valid_keys = set(inspect.signature(selected_model_class.__init__).parameters.keys()) - {'self'}
+    filtered_params = {k: v for k, v in st.session_state.model_params.items() if k in valid_keys}
+    st.session_state.model_params = filtered_params
+    st.session_state.model_params_by_model[model_key] = filtered_params
 
     with col_m2:
         if st.button("⚙️", key="model_settings_btn", help="Configure model settings", width="stretch"):
             # Clear temporary settings widgets
-            keys_to_clear = [k for k in st.session_state.keys() if k.startswith("temp_model_param_")]
+            keys_to_clear = [k for k in st.session_state.keys() if k.startswith("temp_model_")]
             for k in keys_to_clear:
                 del st.session_state[k]
             open_model_settings_modal(selected_model_class)

@@ -55,12 +55,33 @@ def _render_feature_selection(selected_dataset, dataset_key, registry, temp_data
         st.session_state[feature_key] = preview_features
 
     if preview_features:
-        selected_feat = st.multiselect(
-            "Include Features",
-            options=preview_features,
-            default=st.session_state[feature_key] if st.session_state[feature_key] else preview_features,
-            key=f"multiselect_{dataset_key}"
-        )
+        multiselect_key = f"multiselect_{dataset_key}"
+
+        # Sanitize currently stored selections so they only contain existing preview features
+        current_selection = st.session_state.get(feature_key, preview_features)
+        valid_selection = [f for f in current_selection if f in preview_features]
+        if not valid_selection:
+            valid_selection = preview_features
+        st.session_state[feature_key] = valid_selection
+
+        # Also sanitize widget state if present to prevent StreamlitAPIException
+        if multiselect_key in st.session_state:
+            widget_val = [f for f in st.session_state[multiselect_key] if f in preview_features]
+            if not widget_val:
+                widget_val = valid_selection
+            st.session_state[multiselect_key] = widget_val
+            selected_feat = st.multiselect(
+                "Include Features",
+                options=preview_features,
+                key=multiselect_key
+            )
+        else:
+            selected_feat = st.multiselect(
+                "Include Features",
+                options=preview_features,
+                default=valid_selection,
+                key=multiselect_key
+            )
         st.session_state[feature_key] = selected_feat
     else:
         st.info("No features available to select.")
@@ -229,4 +250,7 @@ def open_dataset_settings_modal(selected_dataset, window_length, dataset_key):
     if st.button("Apply Dataset Changes"):
         # Update session state directly
         st.session_state.dataset_params = temp_dataset_params.copy()
+        if 'dataset_params_by_dataset' not in st.session_state:
+            st.session_state.dataset_params_by_dataset = {}
+        st.session_state.dataset_params_by_dataset[dataset_key] = temp_dataset_params.copy()
         st.rerun()
