@@ -136,9 +136,11 @@ if selected_features:
         valid_features = X.columns.tolist()
     X = X[valid_features]
     feature_names = valid_features
+    st.session_state[f"selected_features_{dataset_key}"] = valid_features
 else:
     # Just in case
     feature_names = X.columns.tolist()
+    st.session_state[f"selected_features_{dataset_key}"] = feature_names
 
 if not feature_names:
     st.error("No features selected or available.")
