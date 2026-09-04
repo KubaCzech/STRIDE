@@ -214,3 +214,15 @@ __marimo__/
 data/
 
 .vscode/
+
+# AI Assistant Context Directory
+.agents/*
+!.agents/acs.yaml
+!.agents/project_context.md
+!.agents/rules/
+!.agents/context/
+!.agents/skills/
+
+# Ignore transient agent session logs and archives
+.agents/archive/
+.agents/memory.md
