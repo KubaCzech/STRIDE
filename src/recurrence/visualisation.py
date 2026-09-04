@@ -7,8 +7,8 @@ from src.recurrence.full_window_storage import FullWindowStorage
 
 def _compute_global_prototype_range(storage, windows_to_compare, max_prototypes):
     """Compute global min/max across all prototypes for consistent y-axis scaling."""
-    global_min = float('inf')
-    global_max = -float('inf')
+    global_min = float("inf")
+    global_max = -float("inf")
 
     for window_nr in windows_to_compare:
         x, y, prototypes, explainer = storage.get_window_data(window_nr)
@@ -44,20 +44,14 @@ def _plot_class_prototypes(ax, prototypes, class_name, max_prototypes, used_min,
         feature_values = [v for _, v in items]
 
         ax.plot(feature_names, feature_values)
-        ax.tick_params(axis='x', labelrotation=45)
+        ax.tick_params(axis="x", labelrotation=45)
 
     # Show count info
     count_text = f"prototype_count={num_prototypes}"
     if max_prototypes is not None and num_prototypes > max_prototypes:
         count_text += f" (showing {max_prototypes})"
 
-    ax.text(
-        0.02, 0.95,
-        count_text,
-        transform=ax.transAxes,
-        fontsize=9,
-        verticalalignment='top'
-    )
+    ax.text(0.02, 0.95, count_text, transform=ax.transAxes, fontsize=9, verticalalignment="top")
 
     ax.set_ylim(used_min, used_max)
 
@@ -108,10 +102,9 @@ def plot_cluster_timeline(labels, drift_locations=None, title="Cluster Timeline"
     """
     # Create color mapping for clusters
     unique_labels = sorted([x for x in set(labels) if x != -1])
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-              '#8c564b', '#e377c2', '#bcbd22', '#17becf']
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#bcbd22", "#17becf"]
 
-    color_map = {-1: '#000000'}  # Black for outliers
+    color_map = {-1: "#000000"}  # Black for outliers
     for i, label in enumerate(unique_labels):
         color_map[label] = colors[i % len(colors)]
 
@@ -125,44 +118,36 @@ def plot_cluster_timeline(labels, drift_locations=None, title="Cluster Timeline"
 
     for i in range(1, len(labels)):
         if labels[i] != current_label:
-            segments.append({
-                'start': start_idx,
-                'end': i - 1,
-                'label': current_label,
-                'width': i - start_idx
-            })
+            segments.append({"start": start_idx, "end": i - 1, "label": current_label, "width": i - start_idx})
             current_label = labels[i]
             start_idx = i
 
     # Add the last segment
-    segments.append({
-        'start': start_idx,
-        'end': len(labels) - 1,
-        'label': current_label,
-        'width': len(labels) - start_idx
-    })
+    segments.append({"start": start_idx, "end": len(labels) - 1, "label": current_label, "width": len(labels) - start_idx})
 
     # Add bars for each segment
     shown_labels = set()
     for seg in segments:
-        label = seg['label']
-        label_name = 'Outlier' if label == -1 else f'Concept {label}'
+        label = seg["label"]
+        label_name = "Outlier" if label == -1 else f"Concept {label}"
         show_legend = label not in shown_labels
         shown_labels.add(label)
 
         # Calculate center position for the bar
-        center_x = (seg['start'] + seg['end']) / 2
+        center_x = (seg["start"] + seg["end"]) / 2
 
-        fig.add_trace(go.Bar(
-            x=[center_x],
-            y=[1],
-            width=[seg['width']],
-            marker_color=color_map[label],
-            name=label_name,
-            showlegend=show_legend,
-            hovertemplate=f'Windows {seg["start"]}-{seg["end"]}<br>{label_name}<extra></extra>',
-            legendgroup=str(label)
-        ))
+        fig.add_trace(
+            go.Bar(
+                x=[center_x],
+                y=[1],
+                width=[seg["width"]],
+                marker_color=color_map[label],
+                name=label_name,
+                showlegend=show_legend,
+                hovertemplate=f"Windows {seg['start']}-{seg['end']}<br>{label_name}<extra></extra>",
+                legendgroup=str(label),
+            )
+        )
 
     # Add drift markers as shapes (vertical lines)
     shapes = []
@@ -170,25 +155,23 @@ def plot_cluster_timeline(labels, drift_locations=None, title="Cluster Timeline"
     if drift_locations:
         for drift_idx in drift_locations:
             # Add vertical line
-            shapes.append(dict(
-                type="line",
-                x0=drift_idx - 0.5,
-                x1=drift_idx - 0.5,
-                y0=0,
-                y1=1,
-                line=dict(color="red", width=5),
-                yref="y"
-            ))
+            shapes.append(
+                dict(
+                    type="line", x0=drift_idx - 0.5, x1=drift_idx - 0.5, y0=0, y1=1, line=dict(color="red", width=5), yref="y"
+                )
+            )
             # Add annotation
-            annotations.append(dict(
-                x=drift_idx - 0.5,
-                y=1.0,
-                text=f"DRIFT at window {drift_idx}",
-                showarrow=False,
-                font=dict(size=20, color="black"),
-                yref="paper",
-                yanchor="bottom"
-            ))
+            annotations.append(
+                dict(
+                    x=drift_idx - 0.5,
+                    y=1.0,
+                    text=f"DRIFT at window {drift_idx}",
+                    showarrow=False,
+                    font=dict(size=20, color="black"),
+                    yref="paper",
+                    yanchor="bottom",
+                )
+            )
 
     fig.update_layout(
         title=title,
@@ -197,22 +180,22 @@ def plot_cluster_timeline(labels, drift_locations=None, title="Cluster Timeline"
         yaxis_title="",
         showlegend=True,
         height=300,
-        barmode='overlay',
+        barmode="overlay",
         bargap=0,
         yaxis=dict(showticklabels=False, range=[0, 1]),
         xaxis=dict(range=[-0.5, len(labels) - 0.5]),
         shapes=shapes,
         annotations=annotations,
-        plot_bgcolor='white',
-        margin=dict(t=80, b=40, l=40, r=40)
+        plot_bgcolor="white",
+        margin=dict(t=80, b=40, l=40, r=40),
     )
 
     return fig
 
 
-def plot_distance_to_all_windows(storage: FullWindowStorage, window_nr: int,
-                                 drift_locations=None, measure='centroid_displacement',
-                                 k_median=1):
+def plot_distance_to_all_windows(
+    storage: FullWindowStorage, window_nr: int, drift_locations=None, measure="centroid_displacement", k_median=1
+):
     """Plot distance from one window to all other windows.
 
     Args:
@@ -232,19 +215,19 @@ def plot_distance_to_all_windows(storage: FullWindowStorage, window_nr: int,
 
     fig, ax = plt.subplots(figsize=(12, 4))
     ax.plot(data_to_plot, linewidth=2)
-    ax.axvline(x=window_nr, color='red', linestyle='--', linewidth=2, label='Inspected window')
+    ax.axvline(x=window_nr, color="red", linestyle="--", linewidth=2, label="Inspected window")
 
     # Mark drift locations
     if drift_locations:
         for i, drift in enumerate(drift_locations):
             # Only add label to first drift line for legend
-            label = 'Detected drifts' if i == 0 else None
-            ax.axvline(x=drift-0.5, color='orange', linestyle=':', alpha=0.7, linewidth=3, label=label)
+            label = "Detected drifts" if i == 0 else None
+            ax.axvline(x=drift - 0.5, color="orange", linestyle=":", alpha=0.7, linewidth=3, label=label)
 
     ax.set_xticks(range(0, len(data_to_plot), 5))
-    ax.set_xlabel('Window')
-    ax.set_ylabel('Distance')
-    ax.set_title(f'Distance from Window {window_nr} to All Other Windows')
+    ax.set_xlabel("Window")
+    ax.set_ylabel("Distance")
+    ax.set_title(f"Distance from Window {window_nr} to All Other Windows")
     ax.legend()
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -255,7 +238,7 @@ def _find_samples_closest_to_class(x_dicts, y_list, prototypes, class_name):
     """Find samples whose closest prototype is from the specified class."""
     samples_closest_to_this_class = []
     for i, sample in enumerate(x_dicts):
-        min_dist = float('inf')
+        min_dist = float("inf")
         closest_class = None
 
         # Check distance to all prototypes across all classes
@@ -263,7 +246,7 @@ def _find_samples_closest_to_class(x_dicts, y_list, prototypes, class_name):
             for proto in cls_protos:
                 common_features = set(proto.keys()) & set(sample.keys())
                 if common_features:
-                    dist = np.sqrt(sum((proto[f] - sample[f])**2 for f in common_features))
+                    dist = np.sqrt(sum((proto[f] - sample[f]) ** 2 for f in common_features))
                     if dist < min_dist:
                         min_dist = dist
                         closest_class = cls
@@ -285,9 +268,9 @@ def _find_samples_closest_to_prototype(prototype, proto_list, x_dicts, samples_c
         # Calculate distance to current prototype
         common_features = set(prototype.keys()) & set(sample.keys())
         if common_features:
-            dist_to_this = np.sqrt(sum((prototype[f] - sample[f])**2 for f in common_features))
+            dist_to_this = np.sqrt(sum((prototype[f] - sample[f]) ** 2 for f in common_features))
         else:
-            dist_to_this = float('inf')
+            dist_to_this = float("inf")
 
         # Check if this prototype is closest among all prototypes in the same class
         is_closest = True
@@ -296,7 +279,7 @@ def _find_samples_closest_to_prototype(prototype, proto_list, x_dicts, samples_c
                 continue
             common_features = set(other_proto.keys()) & set(sample.keys())
             if common_features:
-                other_dist = np.sqrt(sum((other_proto[f] - sample[f])**2 for f in common_features))
+                other_dist = np.sqrt(sum((other_proto[f] - sample[f]) ** 2 for f in common_features))
                 if other_dist < dist_to_this:
                     is_closest = False
                     break
@@ -319,37 +302,29 @@ def _compute_prototype_feature_statistics(proto_list):
     stats_rows = []
     for feat in sorted(feature_data.keys()):
         values = feature_data[feat]
-        stats_rows.append({
-            'Feature': feat,
-            'Mean': np.mean(values),
-            'Std': np.std(values),
-            'Min': np.min(values),
-            'Max': np.max(values)
-        })
+        stats_rows.append(
+            {"Feature": feat, "Mean": np.mean(values), "Std": np.std(values), "Min": np.min(values), "Max": np.max(values)}
+        )
 
     return pd.DataFrame(stats_rows)
 
 
 def _analyze_class_prototypes(class_name, prototypes, x_dicts, y_list):
     """Analyze prototypes for a specific class."""
-    print(f"\n{'-'*60}")
+    print(f"\n{'-' * 60}")
     print(f"Class {class_name}")
-    print(f"{'-'*60}")
+    print(f"{'-' * 60}")
 
     proto_list = prototypes[class_name]
     print(f"Number of prototypes: {len(proto_list)}")
 
     # Count samples closest to this class
-    samples_closest_to_this_class = _find_samples_closest_to_class(
-        x_dicts, y_list, prototypes, class_name
-    )
+    samples_closest_to_this_class = _find_samples_closest_to_class(x_dicts, y_list, prototypes, class_name)
     print(f"{len(samples_closest_to_this_class)} samples have their closest prototype from class {class_name}\n")
 
     # Analyze each prototype
     for proto_idx, prototype in enumerate(proto_list):
-        closest_samples = _find_samples_closest_to_prototype(
-            prototype, proto_list, x_dicts, samples_closest_to_this_class
-        )
+        closest_samples = _find_samples_closest_to_prototype(prototype, proto_list, x_dicts, samples_closest_to_this_class)
 
         # Count classes of closest samples
         class_counts = {}
@@ -385,9 +360,9 @@ def plot_window_detail(storage: FullWindowStorage, window_nr: int):
 
     y_list = list(y)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Window {window_nr} - Detailed Analysis")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     print(f"Total samples: {len(x_dicts)}")
     print(f"Total prototypes: {sum(len(proto_list) for proto_list in prototypes.values())}")
@@ -397,4 +372,4 @@ def plot_window_detail(storage: FullWindowStorage, window_nr: int):
     for class_name in sorted(set(y_list)):
         _analyze_class_prototypes(class_name, prototypes, x_dicts, y_list)
 
-    print(f"\n{'='*60}\n")
+    print(f"\n{'=' * 60}\n")

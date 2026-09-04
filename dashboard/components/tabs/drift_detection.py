@@ -48,9 +48,9 @@ def run_drift_detection(
     detector_type,
     warning_grace_period,
     rate_calculation_sample_size,
-    lookback_method='gradient',
-    lookforward_method='peak',
-    confidence_level=None
+    lookback_method="gradient",
+    lookforward_method="peak",
+    confidence_level=None,
 ):
     # Create detector
     if detector_type == "DDM":
@@ -69,7 +69,7 @@ def run_drift_detection(
         rate_calculation_sample_size=rate_calculation_sample_size,
         ddm=detector,
         lookback_method=lookback_method,
-        lookforward_method=lookforward_method
+        lookforward_method=lookforward_method,
     )
 
     drift_descriptions = []
@@ -119,10 +119,12 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
 
         # Check if model supports partial_fit
         test_model = model_wrapper.get_model()
-        if not hasattr(test_model, 'partial_fit'):
-            st.warning(f"⚠️ **{model_name}** does not support online learning (partial_fit). "
-                       "This tab requires models that can learn incrementally. "
-                       "Please select MLP Classifier for drift detection analysis.")
+        if not hasattr(test_model, "partial_fit"):
+            st.warning(
+                f"⚠️ **{model_name}** does not support online learning (partial_fit). "
+                "This tab requires models that can learn incrementally. "
+                "Please select MLP Classifier for drift detection analysis."
+            )
             st.stop()
         else:
             st.info(f"Using **{model_name}** for drift detection analysis.")
@@ -137,7 +139,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             "Detector Type",
             ["DDM", "EDDM", "FHDDM", "HDDM_A", "HDDM_W"],
             help="Type of drift detector to use",
-            key="ddm_detector_type"
+            key="ddm_detector_type",
         )
 
         # Detector-specific parameters
@@ -147,7 +149,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                 options=[0.0001, 0.001, 0.01, 0.05, 0.1],
                 value=0.001,
                 help="Confidence level for FHDDM detector",
-                key="ddm_confidence"
+                key="ddm_confidence",
             )
 
     with col2:
@@ -170,36 +172,36 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             value=100,
             step=50,
             help="Window size for calculating error rates",
-            key="ddm_rate_size"
+            key="ddm_rate_size",
         )
 
         lookback_method = st.selectbox(
             "Drift Start Detection Method",
             ["cusum", "threshold", "gradient", "none"],
             help="Method for detecting actual drift start point:\n"
-                 "- CUSUM: Cumulative sum change detection\n"
-                 "- Threshold: Sustained error rate increase\n"
-                 "- Gradient: Error rate slope analysis\n"
-                 "- None: Use warning point as start",
-            key="ddm_lookback_method"
+            "- CUSUM: Cumulative sum change detection\n"
+            "- Threshold: Sustained error rate increase\n"
+            "- Gradient: Error rate slope analysis\n"
+            "- None: Use warning point as start",
+            key="ddm_lookback_method",
         )
 
         lookforward_method = st.selectbox(
             "Drift End Detection Method",
             ["peak", "recovery", "none"],
             help="Method for detecting actual drift end point:\n"
-                 "- Peak: Find maximum error rate after detection\n"
-                 "- Recovery: Detect when error rate starts decreasing\n"
-                 "- None: Use detection point as end",
-            key="ddm_lookforward_method"
+            "- Peak: Find maximum error rate after detection\n"
+            "- Recovery: Detect when error rate starts decreasing\n"
+            "- None: Use detection point as end",
+            key="ddm_lookforward_method",
         )
 
         take_max_for_end = st.checkbox(
-                "Get max value sample as peak",
-                value=True,
-                help="Take the sample with the maximum error rate as our peak, instead of the last sample",
-                key="prototype_fix_outliers"
-            )
+            "Get max value sample as peak",
+            value=True,
+            help="Take the sample with the maximum error rate as our peak, instead of the last sample",
+            key="prototype_fix_outliers",
+        )
 
     st.markdown("---")
 
@@ -208,7 +210,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
     y_np = y.to_numpy() if hasattr(y, "to_numpy") else y
 
     # Check if error stream needs to be generated
-    need_error_stream = 'ddm_error_stream' not in st.session_state
+    need_error_stream = "ddm_error_stream" not in st.session_state
 
     # Button to generate error stream (only if not already done)
     if need_error_stream:
@@ -226,16 +228,14 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                     model = model_wrapper.get_model()
                 else:
                     # Fallback to default MLP
-                    model = MLPClassifier(
-                        hidden_layer_sizes=(10,),
-                        max_iter=1,
-                        random_state=42
-                    )
+                    model = MLPClassifier(hidden_layer_sizes=(10,), max_iter=1, random_state=42)
 
                 # Verify model supports partial_fit
-                if not hasattr(model, 'partial_fit'):
-                    st.error("Selected model does not support online learning (partial_fit). "
-                             "Please select a different model or use the default MLP.")
+                if not hasattr(model, "partial_fit"):
+                    st.error(
+                        "Selected model does not support online learning (partial_fit). "
+                        "Please select a different model or use the default MLP."
+                    )
                     st.stop()
 
                 # Generate error stream using helper function
@@ -244,7 +244,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                 # Calculate sliding window error rate
                 error_array = np.array(error_stream)
                 error_rate = [
-                    np.mean(error_array[i:i + rate_calculation_sample_size])
+                    np.mean(error_array[i : i + rate_calculation_sample_size])
                     for i in range(len(error_stream) - rate_calculation_sample_size + 1)
                 ]
 
@@ -261,6 +261,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             except Exception as e:
                 st.error(f"Error generating error stream: {str(e)}")
                 import traceback
+
                 st.code(traceback.format_exc())
     else:
         st.info("✓ Error stream already generated. You can now run drift detection with different parameters.")
@@ -271,9 +272,9 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             del st.session_state.ddm_predictions
             del st.session_state.ddm_error_rate
             del st.session_state.ddm_sample_size_at_rate_creation
-            if 'ddm_drift_descriptions' in st.session_state:
+            if "ddm_drift_descriptions" in st.session_state:
                 del st.session_state.ddm_drift_descriptions
-            if 'ddm_processing_complete' in st.session_state:
+            if "ddm_processing_complete" in st.session_state:
                 del st.session_state.ddm_processing_complete
             st.rerun()
 
@@ -297,7 +298,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                     rate_calculation_sample_size,
                     lookback_method=lookback_method,
                     lookforward_method=lookforward_method,
-                    confidence_level=confidence
+                    confidence_level=confidence,
                 )
 
                 # Store results in session state
@@ -310,10 +311,11 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             except Exception as e:
                 st.error(f"Error during drift detection: {str(e)}")
                 import traceback
+
                 st.code(traceback.format_exc())
 
     # Display results if processing is complete
-    if 'ddm_processing_complete' in st.session_state and st.session_state.ddm_processing_complete:
+    if "ddm_processing_complete" in st.session_state and st.session_state.ddm_processing_complete:
         st.markdown("---")
 
         error_rate = st.session_state.ddm_error_rate
@@ -327,26 +329,32 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
         fig = go.Figure()
 
         # Add error rate line
-        fig.add_trace(go.Scatter(
-            x=list(range(st.session_state.ddm_sample_size_at_rate_creation,
-                         st.session_state.ddm_sample_size_at_rate_creation + len(error_rate))),
-            y=error_rate,
-            mode='lines',
-            name='Error Rate',
-            line=dict(color='royalblue', width=2),
-            hovertemplate='Index: %{x}<br>Error Rate: %{y:.3f}<extra></extra>'
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=list(
+                    range(
+                        st.session_state.ddm_sample_size_at_rate_creation,
+                        st.session_state.ddm_sample_size_at_rate_creation + len(error_rate),
+                    )
+                ),
+                y=error_rate,
+                mode="lines",
+                name="Error Rate",
+                line=dict(color="royalblue", width=2),
+                hovertemplate="Index: %{x}<br>Error Rate: %{y:.3f}<extra></extra>",
+            )
+        )
 
         # Add drift annotations using ACTUAL drift start and end
         for idx, drift in enumerate(drift_descriptions):
             # Use the actual drift start index
-            if hasattr(drift, 'drift_start_index') and drift.drift_start_index is not None:
+            if hasattr(drift, "drift_start_index") and drift.drift_start_index is not None:
                 start = drift.drift_start_index
             else:
                 start = max(0, drift.detected_at - drift.drift_duration)
 
             # Use the actual drift end index (peak or recovery point)
-            if hasattr(drift, 'drift_end_index') and drift.drift_end_index is not None:
+            if hasattr(drift, "drift_end_index") and drift.drift_end_index is not None:
                 end = drift.drift_end_index
             else:
                 end = drift.detected_at
@@ -362,7 +370,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
 
             if start_idx <= end_idx:
                 if take_max_for_end:
-                    max_idx_in_range = start_idx + np.argmax(error_rate[start_idx:end_idx + 1])
+                    max_idx_in_range = start_idx + np.argmax(error_rate[start_idx : end_idx + 1])
                     end = max_idx_in_range + st.session_state.ddm_sample_size_at_rate_creation
                 else:
                     end = end_idx + st.session_state.ddm_sample_size_at_rate_creation
@@ -374,10 +382,14 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             detection = drift.detected_at
 
             # Make sure they're within the error_rate bounds
-            start_plot = max(st.session_state.ddm_sample_size_at_rate_creation,
-                             min(start, st.session_state.ddm_sample_size_at_rate_creation + len(error_rate) - 1))
-            end_plot = max(st.session_state.ddm_sample_size_at_rate_creation,
-                           min(end, st.session_state.ddm_sample_size_at_rate_creation + len(error_rate) - 1))
+            start_plot = max(
+                st.session_state.ddm_sample_size_at_rate_creation,
+                min(start, st.session_state.ddm_sample_size_at_rate_creation + len(error_rate) - 1),
+            )
+            end_plot = max(
+                st.session_state.ddm_sample_size_at_rate_creation,
+                min(end, st.session_state.ddm_sample_size_at_rate_creation + len(error_rate) - 1),
+            )
 
             # Calculate error_rate array indices
             start_idx = start - st.session_state.ddm_sample_size_at_rate_creation
@@ -397,42 +409,39 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             )
 
             # Add drift line from start to end
-            fig.add_trace(go.Scatter(
-                x=[start_plot, end_plot],
-                y=[error_rate[start_idx], error_rate[end_idx]],
-                mode='lines+markers',
-                name=f'Drift {idx+1}',
-                line=dict(color='#FF6B35', width=3, dash='dash'),
-                marker=dict(size=10, color='#FF6B35', symbol=['circle', 'x']),
-                hovertemplate=(
-                    f'<b>Drift {idx+1}</b><br>'
-                    f'Start Index: {start}<br>'
-                    f'Peak/End Index: {end}<br>'
-                    f'Duration: {end - start}<br>'
-                    f'Error Rate at Start: {error_rate[start_idx]:.3f}<br>'
-                    f'Error Rate at Peak: {error_rate[end_idx]:.3f}<br>'
-                    f'<extra></extra>'
+            fig.add_trace(
+                go.Scatter(
+                    x=[start_plot, end_plot],
+                    y=[error_rate[start_idx], error_rate[end_idx]],
+                    mode="lines+markers",
+                    name=f"Drift {idx + 1}",
+                    line=dict(color="#FF6B35", width=3, dash="dash"),
+                    marker=dict(size=10, color="#FF6B35", symbol=["circle", "x"]),
+                    hovertemplate=(
+                        f"<b>Drift {idx + 1}</b><br>"
+                        f"Start Index: {start}<br>"
+                        f"Peak/End Index: {end}<br>"
+                        f"Duration: {end - start}<br>"
+                        f"Error Rate at Start: {error_rate[start_idx]:.3f}<br>"
+                        f"Error Rate at Peak: {error_rate[end_idx]:.3f}<br>"
+                        f"<extra></extra>"
+                    ),
                 )
-            ))
+            )
 
         # Update layout
         fig.update_layout(
-            title=f'Drift Detection using {detector_type}',
-            xaxis_title='Data Point Index',
-            yaxis_title='Error Rate',
-            hovermode='closest',
+            title=f"Drift Detection using {detector_type}",
+            xaxis_title="Data Point Index",
+            yaxis_title="Error Rate",
+            hovermode="closest",
             height=600,
             showlegend=True,
-            legend=dict(
-                yanchor="top",
-                y=0.99,
-                xanchor="left",
-                x=0.01
-            )
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
         )
 
         # Display plot
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, width="stretch")
 
         # Display statistics
         st.markdown("---")
@@ -457,15 +466,21 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
         with col3:
             if drift_descriptions:
                 # Find average error change
-                avg_error_change = np.mean([
-                    (error_rate[d.drift_end_index - st.session_state.ddm_sample_size_at_rate_creation] if
-                     hasattr(d, 'drift_end_index') and d.drift_end_index is not None
-                        else error_rate[d.drift_end_index - st.session_state.ddm_sample_size_at_rate_creation])
-                    - (error_rate[d.drift_start_index - st.session_state.ddm_sample_size_at_rate_creation]
-                        if hasattr(d, 'drift_start_index') and d.drift_start_index is not None
-                        else error_rate[d.drift_start_index - st.session_state.ddm_sample_size_at_rate_creation])
-                    for d in drift_descriptions
-                ])
+                avg_error_change = np.mean(
+                    [
+                        (
+                            error_rate[d.drift_end_index - st.session_state.ddm_sample_size_at_rate_creation]
+                            if hasattr(d, "drift_end_index") and d.drift_end_index is not None
+                            else error_rate[d.drift_end_index - st.session_state.ddm_sample_size_at_rate_creation]
+                        )
+                        - (
+                            error_rate[d.drift_start_index - st.session_state.ddm_sample_size_at_rate_creation]
+                            if hasattr(d, "drift_start_index") and d.drift_start_index is not None
+                            else error_rate[d.drift_start_index - st.session_state.ddm_sample_size_at_rate_creation]
+                        )
+                        for d in drift_descriptions
+                    ]
+                )
                 st.metric("Avg Error Rate Change", f"{avg_error_change:.3f}")
             else:
                 st.metric("Avg Error Rate Change", "N/A")
@@ -484,12 +499,12 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
 
             for idx, drift in enumerate(drift_descriptions):
                 # Determine actual start and end indices
-                if hasattr(drift, 'drift_start_index') and drift.drift_start_index is not None:
+                if hasattr(drift, "drift_start_index") and drift.drift_start_index is not None:
                     actual_start = drift.drift_start_index
                 else:
                     actual_start = drift.detected_at - drift.drift_duration
 
-                if hasattr(drift, 'drift_end_index') and drift.drift_end_index is not None:
+                if hasattr(drift, "drift_end_index") and drift.drift_end_index is not None:
                     actual_end = drift.drift_end_index
                 else:
                     actual_end = drift.detected_at
@@ -505,13 +520,13 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
 
                 if start_idx <= end_idx:
                     if take_max_for_end:
-                        max_idx_in_range = start_idx + np.argmax(error_rate[start_idx:end_idx + 1])
+                        max_idx_in_range = start_idx + np.argmax(error_rate[start_idx : end_idx + 1])
                         actual_end = max_idx_in_range + st.session_state.ddm_sample_size_at_rate_creation
                     else:
                         actual_end = end_idx + st.session_state.ddm_sample_size_at_rate_creation
                     drift.drift_end_index = actual_end
 
-                with st.expander(f"Drift {idx+1} - Detected at index {actual_start}"):
+                with st.expander(f"Drift {idx + 1} - Detected at index {actual_start}"):
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
@@ -520,21 +535,25 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                         st.metric("Peak/End Index", actual_end)
 
                     with col2:
-                        st.metric("Error Rate at Start",
-                                  f"{error_rate[actual_start - st.session_state.ddm_sample_size_at_rate_creation]:.3f}")
+                        st.metric(
+                            "Error Rate at Start",
+                            f"{error_rate[actual_start - st.session_state.ddm_sample_size_at_rate_creation]:.3f}",
+                        )
                         error_rate_at_peak = error_rate[actual_end - st.session_state.ddm_sample_size_at_rate_creation]
                         st.metric("Error Rate at Peak", f"{error_rate_at_peak:.3f}")
 
                     with col3:
                         # Calculate change from start to peak/end
                         peak_error = error_rate[actual_end - st.session_state.ddm_sample_size_at_rate_creation]
-                        error_change = peak_error - error_rate[actual_start
-                                                               - st.session_state.ddm_sample_size_at_rate_creation]
+                        error_change = (
+                            peak_error - error_rate[actual_start - st.session_state.ddm_sample_size_at_rate_creation]
+                        )
                         st.metric("Total Error Rate Change", f"{error_change:.3f}")
-                        change_pct = (error_change / error_rate[actual_start
-                                                                - st.session_state.ddm_sample_size_at_rate_creation] *
-                                      100) if error_rate[actual_start
-                                                         - st.session_state.ddm_sample_size_at_rate_creation] > 0 else 0
+                        change_pct = (
+                            (error_change / error_rate[actual_start - st.session_state.ddm_sample_size_at_rate_creation] * 100)
+                            if error_rate[actual_start - st.session_state.ddm_sample_size_at_rate_creation] > 0
+                            else 0
+                        )
                         st.metric("Change Percentage", f"{change_pct:.1f}%")
         else:
             st.info("No drifts detected with current configuration. Try adjusting the parameters.")

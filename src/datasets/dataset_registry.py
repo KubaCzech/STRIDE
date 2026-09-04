@@ -19,13 +19,13 @@ class DatasetRegistry:
 
     def _load_registry(self):
         if os.path.exists(self.registry_path):
-            with open(self.registry_path, 'r') as f:
+            with open(self.registry_path, "r") as f:
                 self.registry = json.load(f)
         else:
             self.registry = {}
 
     def _save_registry(self):
-        with open(self.registry_path, 'w') as f:
+        with open(self.registry_path, "w") as f:
             json.dump(self.registry, f, indent=4)
 
     def save_dataset(self, name: str, file_obj, target_column: str, selected_features: List[str] = None):
@@ -50,7 +50,7 @@ class DatasetRegistry:
             "name": name,
             "filename": safe_filename,
             "target_column": target_column,
-            "selected_features": selected_features
+            "selected_features": selected_features,
         }
         self._save_registry()
 

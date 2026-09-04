@@ -19,8 +19,9 @@ class FullWindowStorage:
         self.explainers: dict[int, TExplainer] = {}
         self.drift_detected: dict[int, bool] = {}
 
-    def store_window(self, iteration: int, x: TDataBatch, y: TTarget,
-                     prototypes: TPrototypes, explainer: TExplainer, drift: bool) -> None:
+    def store_window(
+        self, iteration: int, x: TDataBatch, y: TTarget, prototypes: TPrototypes, explainer: TExplainer, drift: bool
+    ) -> None:
         """Store window data for a given iteration."""
         self.windows[iteration] = (deepcopy(x), deepcopy(y))
         self.prototypes[iteration] = deepcopy(prototypes)
@@ -45,15 +46,22 @@ class FullWindowStorage:
         explainer = self.explainers[iteration]
         return x, y, prototypes, explainer
 
-    def compare_two_windows(self,
-                            iter_a: int,
-                            iter_b: int,
-                            measure: Literal[
-                                "mutual_information", "rand_index", "completeness",
-                                "fowlkes_mallows", "centroid_displacement",
-                                "minimal_distance", "prototype_reassignment_impact"] = "centroid_displacement",
-                            strategy: Literal["class", "total"] = "total",
-                            distance: Literal["l2", "tree"] = "l2") -> float:
+    def compare_two_windows(
+        self,
+        iter_a: int,
+        iter_b: int,
+        measure: Literal[
+            "mutual_information",
+            "rand_index",
+            "completeness",
+            "fowlkes_mallows",
+            "centroid_displacement",
+            "minimal_distance",
+            "prototype_reassignment_impact",
+        ] = "centroid_displacement",
+        strategy: Literal["class", "total"] = "total",
+        distance: Literal["l2", "tree"] = "l2",
+    ) -> float:
         """Compare two specific windows.
 
         Args:
@@ -69,17 +77,23 @@ class FullWindowStorage:
         x_a, y_a, proto_a, exp_a = self.get_window_data(iter_a)
         x_b, y_b, proto_b, exp_b = self.get_window_data(iter_b)
 
-        return self._compute_metric(proto_a, proto_b, exp_a, exp_b, x_b, y_b,
-                                    measure, strategy, distance)
+        return self._compute_metric(proto_a, proto_b, exp_a, exp_b, x_b, y_b, measure, strategy, distance)
 
-    def compare_window_to_all(self,
-                              target_iter: int,
-                              measure: Literal[
-                                  "mutual_information", "rand_index", "completeness",
-                                  "fowlkes_mallows", "centroid_displacement",
-                                  "minimal_distance", "prototype_reassignment_impact"] = "centroid_displacement",
-                              strategy: Literal["class", "total"] = "total",
-                              distance: Literal["l2", "tree"] = "l2") -> pd.Series:
+    def compare_window_to_all(
+        self,
+        target_iter: int,
+        measure: Literal[
+            "mutual_information",
+            "rand_index",
+            "completeness",
+            "fowlkes_mallows",
+            "centroid_displacement",
+            "minimal_distance",
+            "prototype_reassignment_impact",
+        ] = "centroid_displacement",
+        strategy: Literal["class", "total"] = "total",
+        distance: Literal["l2", "tree"] = "l2",
+    ) -> pd.Series:
         """Compare one window against all other stored windows.
 
         Args:
@@ -99,20 +113,26 @@ class FullWindowStorage:
         for iter_num in iterations:
             x, y, proto, exp = self.get_window_data(iter_num)
 
-            score = self._compute_metric(proto_target, proto, exp_target, exp, x, y,
-                                         measure, strategy, distance)
+            score = self._compute_metric(proto_target, proto, exp_target, exp, x, y, measure, strategy, distance)
             distances[iter_num] = score
 
         return pd.Series(distances, name=f"distance_from_{target_iter}")
 
-    def compute_distance_matrix(self,
-                                measure: Literal[
-                                    "mutual_information", "rand_index", "completeness",
-                                    "fowlkes_mallows", "centroid_displacement",
-                                    "minimal_distance", "prototype_reassignment_impact"] = "centroid_displacement",
-                                strategy: Literal["class", "total"] = "total",
-                                distance: Literal["l2", "tree"] = "l2",
-                                verbose=False) -> pd.DataFrame:
+    def compute_distance_matrix(
+        self,
+        measure: Literal[
+            "mutual_information",
+            "rand_index",
+            "completeness",
+            "fowlkes_mallows",
+            "centroid_displacement",
+            "minimal_distance",
+            "prototype_reassignment_impact",
+        ] = "centroid_displacement",
+        strategy: Literal["class", "total"] = "total",
+        distance: Literal["l2", "tree"] = "l2",
+        verbose=False,
+    ) -> pd.DataFrame:
         """Compute full distance matrix between all stored windows.
 
         Args:
@@ -149,28 +169,24 @@ class FullWindowStorage:
 
                 x_b, y_b, proto_b, exp_b = self.get_window_data(iter_b)
 
-                score = self._compute_metric(proto_a, proto_b, exp_a, exp_b, x_b, y_b,
-                                             measure, strategy, distance)
+                score = self._compute_metric(proto_a, proto_b, exp_a, exp_b, x_b, y_b, measure, strategy, distance)
                 matrix[i, j] = score
 
         if verbose:
             print("Complete!")
         return pd.DataFrame(matrix, index=iterations, columns=iterations)
 
-    def _compute_metric(self, prototypes_a, prototypes_b, explainer_a, explainer_b,
-                        x, y, measure, strategy, distance) -> float:
+    def _compute_metric(
+        self, prototypes_a, prototypes_b, explainer_a, explainer_b, x, y, measure, strategy, distance
+    ) -> float:
         """Compute similarity metric between two prototype sets."""
 
         if measure in ["mutual_information", "rand_index", "completeness", "fowlkes_mallows"]:
             import src.recurrence.protree.metrics.compare as compare_metrics
+
             metric = getattr(compare_metrics, measure)
 
-            kwargs = {
-                "a": prototypes_a,
-                "b": prototypes_b,
-                "x": x,
-                "assign_to": "prototype"
-            }
+            kwargs = {"a": prototypes_a, "b": prototypes_b, "x": x, "assign_to": "prototype"}
 
             if distance == "tree":
                 kwargs["explainer_a"] = explainer_a
@@ -188,19 +204,23 @@ class FullWindowStorage:
         elif measure == "minimal_distance":
             if strategy == "class":
                 from src.recurrence.protree.metrics.compare import classwise_mean_minimal_distance
+
                 result = classwise_mean_minimal_distance(prototypes_a, prototypes_b)
                 return np.mean(list(result.values()))
             else:
                 from src.recurrence.protree.metrics.compare import mean_minimal_distance
+
                 return mean_minimal_distance(prototypes_a, prototypes_b)
 
         elif measure == "centroid_displacement":
             if strategy == "class":
                 from src.recurrence.protree.metrics.compare import centroids_displacements
+
                 result = centroids_displacements(prototypes_a, prototypes_b)
                 return np.mean(list(result.values()))
             else:
                 from src.recurrence.protree.metrics.compare import mean_centroid_displacement
+
                 return mean_centroid_displacement(prototypes_a, prototypes_b)
 
         return 0.0

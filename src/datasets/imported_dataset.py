@@ -21,7 +21,7 @@ class ImportedCSVDataset(BaseDataset):
         # Params are largely fixed for loaded datasets, but we can return helpful info
         return {
             "target_column": self.registry_info.get("target_column"),
-            "features": self.registry_info.get("selected_features")
+            "features": self.registry_info.get("selected_features"),
         }
 
     def get_settings_schema(self) -> list[dict]:

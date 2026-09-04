@@ -2,10 +2,16 @@ import numpy as np
 from river import drift
 
 
-class DriftDescription():
-    def __init__(self, error_rate_at_warning=None, error_rate_at_detection=None,
-                 drift_duration=None, drift_start_index=None, drift_end_index=None,
-                 error_rate_at_peak=None):
+class DriftDescription:
+    def __init__(
+        self,
+        error_rate_at_warning=None,
+        error_rate_at_detection=None,
+        drift_duration=None,
+        drift_start_index=None,
+        drift_end_index=None,
+        error_rate_at_peak=None,
+    ):
         self.error_rate_at_warning = error_rate_at_warning
         self.error_rate_at_detection = error_rate_at_detection
         self.error_rate_at_peak = error_rate_at_peak  # Error rate at actual peak/end
@@ -16,7 +22,7 @@ class DriftDescription():
         self.detected_at = None
 
 
-class BinaryErrorDriftDescriptor():
+class BinaryErrorDriftDescriptor:
     """
     Binary Error Drift Descriptor creates descriptions of drifts identified by detectors
     from BinaryDriftAndWarningDetector family of river.
@@ -37,8 +43,14 @@ class BinaryErrorDriftDescriptor():
     - The error rate at the time of the drift being detected
     """
 
-    def __init__(self, warning_grace_period=3, rate_calculation_sample_size=100,
-                 ddm=drift.binary.DDM(), lookback_method='cusum', lookforward_method='peak'):
+    def __init__(
+        self,
+        warning_grace_period=3,
+        rate_calculation_sample_size=100,
+        ddm=drift.binary.DDM(),
+        lookback_method="cusum",
+        lookforward_method="peak",
+    ):
         self.warning_grace_period = warning_grace_period
         self.rate_calculation_sample_size = rate_calculation_sample_size
         self.ddm = ddm
@@ -116,7 +128,7 @@ class BinaryErrorDriftDescriptor():
             if window_size_local < 10:
                 continue
 
-            window = self.complete_error_history[i:i + window_size_local]
+            window = self.complete_error_history[i : i + window_size_local]
             current_rate = np.mean(window)
 
             if current_rate > baseline_rate * increase_threshold:
@@ -141,7 +153,7 @@ class BinaryErrorDriftDescriptor():
         # Calculate moving average of error rate
         error_rates = []
         for i in range(start_idx, detection_idx - window_size):
-            window = self.complete_error_history[i:i + window_size]
+            window = self.complete_error_history[i : i + window_size]
             error_rates.append(np.mean(window))
 
         if len(error_rates) < 2:
@@ -176,7 +188,7 @@ class BinaryErrorDriftDescriptor():
 
         # Calculate initial error rate at detection
         if current_idx + window_size <= max_idx:
-            current_window = self.complete_error_history[current_idx:current_idx + window_size]
+            current_window = self.complete_error_history[current_idx : current_idx + window_size]
             previous_error_rate = np.mean(current_window)
         else:
             return detection_idx
@@ -188,7 +200,7 @@ class BinaryErrorDriftDescriptor():
         current_idx += step_size
 
         while current_idx + window_size <= end_idx:
-            window = self.complete_error_history[current_idx:current_idx + window_size]
+            window = self.complete_error_history[current_idx : current_idx + window_size]
             current_error_rate = np.mean(window)
 
             # If error rate decreased, previous window was the peak
@@ -216,7 +228,7 @@ class BinaryErrorDriftDescriptor():
 
         # Calculate baseline high error rate around detection
         window_size = min(20, end_idx - detection_idx)
-        baseline_window = self.complete_error_history[detection_idx:detection_idx + window_size]
+        baseline_window = self.complete_error_history[detection_idx : detection_idx + window_size]
         baseline_high = np.mean(baseline_window)
 
         # Look for sustained decrease from baseline
@@ -253,17 +265,17 @@ class BinaryErrorDriftDescriptor():
         self.error_history.append(x)
 
         if not self.assume_warning and not self.ddm.drift_detected:
-            self.error_history = self.error_history[-self.rate_calculation_sample_size:]
+            self.error_history = self.error_history[-self.rate_calculation_sample_size :]
 
         if self.ddm.drift_detected:
             detection_idx = self.current_index
 
             # Find actual drift start using selected method
-            if self.lookback_method == 'cusum':
+            if self.lookback_method == "cusum":
                 drift_start_idx = self.find_drift_start_cusum(detection_idx)
-            elif self.lookback_method == 'threshold':
+            elif self.lookback_method == "threshold":
                 drift_start_idx = self.find_drift_start_threshold(detection_idx)
-            elif self.lookback_method == 'gradient':
+            elif self.lookback_method == "gradient":
                 drift_start_idx = self.find_drift_start_gradient(detection_idx)
             else:  # 'none'
                 drift_start_idx = max(0, detection_idx - len(self.error_history))
@@ -295,7 +307,7 @@ class BinaryErrorDriftDescriptor():
                 drift_duration=drift_duration,
                 drift_start_index=drift_start_idx,
                 drift_end_index=detection_idx,  # Temporary, will be updated
-                error_rate_at_peak=error_rate_at_detection  # Temporary, will be updated
+                error_rate_at_peak=error_rate_at_detection,  # Temporary, will be updated
             )
 
             self.drift_detected = True
@@ -324,16 +336,16 @@ class BinaryErrorDriftDescriptor():
         list of DriftDescription
             Updated drift descriptions with corrected end points
         """
-        if self.lookforward_method == 'none':
+        if self.lookforward_method == "none":
             return drift_descriptions
 
         for drift_description in drift_descriptions:
             detection_idx = drift_description.detected_at
 
             # Find actual drift end using selected method
-            if self.lookforward_method == 'peak':
+            if self.lookforward_method == "peak":
                 drift_end_idx = self.find_drift_end_peak(detection_idx)
-            elif self.lookforward_method == 'recovery':
+            elif self.lookforward_method == "recovery":
                 drift_end_idx = self.find_drift_end_recovery(detection_idx)
             else:
                 drift_end_idx = detection_idx

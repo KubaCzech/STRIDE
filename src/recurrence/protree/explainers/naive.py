@@ -15,32 +15,42 @@ from src.recurrence.protree.utils import get_x_belonging_to_cls, iloc
 
 class KMeans(IExplainer):
     def __init__(
-            self,
-            model: TModel,
-            n_prototypes: int = 3,
-            init: str = "k-means++",
-            n_init: str = "auto",
-            max_iter: int = 300,
-            tol: float = 0.0001,
-            verbose: int = 0,
-            random_state: int | None = RANDOM_SEED,
-            copy_x: bool = True,
-            algorithm: str = "lloyd",
-            *args,
-            **kwargs
+        self,
+        model: TModel,
+        n_prototypes: int = 3,
+        init: str = "k-means++",
+        n_init: str = "auto",
+        max_iter: int = 300,
+        tol: float = 0.0001,
+        verbose: int = 0,
+        random_state: int | None = RANDOM_SEED,
+        copy_x: bool = True,
+        algorithm: str = "lloyd",
+        *args,
+        **kwargs,
     ) -> None:
         self.model = ModelAdapterBuilder(model)()
         self.prototypes = {}
         self._kmeans = {}
-        self._kwargs = dict(n_clusters=n_prototypes, init=init, n_init=n_init, max_iter=max_iter, tol=tol, verbose=verbose,
-                            random_state=random_state, copy_x=copy_x, algorithm=algorithm)
+        self._kwargs = dict(
+            n_clusters=n_prototypes,
+            init=init,
+            n_init=n_init,
+            max_iter=max_iter,
+            tol=tol,
+            verbose=verbose,
+            random_state=random_state,
+            copy_x=copy_x,
+            algorithm=algorithm,
+        )
 
     def _fit_select_prototypes(self, x: TDataBatch, y: TTarget) -> None:
         classes = self.get_classes(y)
         for c in classes:
             x_partial = get_x_belonging_to_cls(x, y, c)
-            x_partial_np = x_partial.values if isinstance(x_partial, pd.DataFrame) else pd.DataFrame.from_records(
-                x_partial).values
+            x_partial_np = (
+                x_partial.values if isinstance(x_partial, pd.DataFrame) else pd.DataFrame.from_records(x_partial).values
+            )
 
             c_kwargs = self._kwargs.copy()
             c_kwargs["n_clusters"] = min(int(c_kwargs["n_clusters"]), len(x_partial_np))
@@ -80,8 +90,9 @@ class KMeans(IExplainer):
         distance = np.ones((len(x))) * np.inf
         for cls in prototypes:
             for _, cluster_centers in prototypes[cls].iterrows():
-                distances = np.linalg.norm(x.values[:, np.newaxis, :] - cluster_centers.values[np.newaxis, :],
-                                           axis=2).squeeze()
+                distances = np.linalg.norm(
+                    x.values[:, np.newaxis, :] - cluster_centers.values[np.newaxis, :], axis=2
+                ).squeeze()
                 mask = distances < distance
                 predictions[mask] = cls
                 distance = np.minimum(distances, distance)

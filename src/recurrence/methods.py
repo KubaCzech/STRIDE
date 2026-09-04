@@ -11,9 +11,7 @@ from scipy.optimize import linear_sum_assignment
 from src.recurrence.full_window_storage import FullWindowStorage
 
 
-def visualize_distance_matrix(matrix: pd.DataFrame,
-                              drift_positions: list[int] = None,
-                              title: str = "Window Distance Matrix"):
+def visualize_distance_matrix(matrix: pd.DataFrame, drift_positions: list[int] = None, title: str = "Window Distance Matrix"):
     """Visualize the distance matrix as a heatmap.
 
     Args:
@@ -25,9 +23,7 @@ def visualize_distance_matrix(matrix: pd.DataFrame,
     fig, ax = plt.subplots(figsize=(14, 12))
 
     # Create heatmap
-    sns.heatmap(matrix, cmap='RdYlGn_r', square=True,
-                linewidths=0, cbar_kws={'label': 'Distance'},
-                ax=ax)
+    sns.heatmap(matrix, cmap="RdYlGn_r", square=True, linewidths=0, cbar_kws={"label": "Distance"}, ax=ax)
 
     # Mark drift positions if provided
     if drift_positions:
@@ -35,12 +31,12 @@ def visualize_distance_matrix(matrix: pd.DataFrame,
             if drift_iter in matrix.index:
                 idx = list(matrix.index).index(drift_iter)
                 # Draw lines to mark drifts
-                ax.axhline(y=idx, color='blue', linewidth=3, alpha=0.8)
-                ax.axvline(x=idx, color='blue', linewidth=3, alpha=0.8)
+                ax.axhline(y=idx, color="blue", linewidth=3, alpha=0.8)
+                ax.axvline(x=idx, color="blue", linewidth=3, alpha=0.8)
 
     ax.set_title(title)
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Iteration')
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel("Iteration")
 
     plt.tight_layout()
     plt.show()
@@ -51,7 +47,7 @@ def median_mask(arr, k=3):
     pad = k // 2
 
     # Same/edge padding
-    padded = np.pad(arr, pad_width=pad, mode='edge')
+    padded = np.pad(arr, pad_width=pad, mode="edge")
 
     # Sliding window view
     windows = np.lib.stride_tricks.sliding_window_view(padded, k)
@@ -59,7 +55,7 @@ def median_mask(arr, k=3):
     return np.median(windows, axis=1).astype(arr.dtype)
 
 
-def show_distance_median(storage: FullWindowStorage, window_nr, k=3, measure='centroid_displacement'):
+def show_distance_median(storage: FullWindowStorage, window_nr, k=3, measure="centroid_displacement"):
     data_to_plot = storage.compare_window_to_all(window_nr, measure=measure)
     data_to_plot = [float(x) for x in data_to_plot]
     data_to_plot = median_mask(data_to_plot, k)
@@ -71,7 +67,7 @@ def show_distance_median(storage: FullWindowStorage, window_nr, k=3, measure='ce
 
 def cluster_windows(matrix: pd.DataFrame, fix_outliers=True, median_mask_width=1):
     clusterer = hdbscan.HDBSCAN(
-        metric='precomputed',
+        metric="precomputed",
         min_cluster_size=3,
     )
 
@@ -84,8 +80,8 @@ def cluster_windows(matrix: pd.DataFrame, fix_outliers=True, median_mask_width=1
         # If both left and right neighbours are the same, replace the middle label with their value
         # in order to denoise
         for i, label in enumerate(labels[1:-1]):
-            if labels[i] == labels[i+2] and labels[i] != -1:
-                labels[i+1] = labels[i]
+            if labels[i] == labels[i + 2] and labels[i] != -1:
+                labels[i + 1] = labels[i]
 
     return labels
 
@@ -126,7 +122,7 @@ def clustered_labels_accuracy(labels, true_concept, outliers_included=True):
 
     n_outliers = sum([x == -1 for x in labels])
     # assume outliers are always incorrectly classified
-    accuracy_with_outliers = accuracy_no_outliers * (1-(n_outliers/len(labels)))
+    accuracy_with_outliers = accuracy_no_outliers * (1 - (n_outliers / len(labels)))
 
     if outliers_included:
         return accuracy_with_outliers
@@ -150,11 +146,7 @@ def median_mask_2d(arr, ky=3, kx=3):
     py = ky // 2
     px = kx // 2
 
-    padded = np.pad(
-        arr,
-        pad_width=((py, py), (px, px)),
-        mode="edge"
-    )
+    padded = np.pad(arr, pad_width=((py, py), (px, px)), mode="edge")
 
     windows = np.lib.stride_tricks.sliding_window_view(padded, (ky, kx))
     return np.median(windows, axis=(2, 3))
@@ -162,9 +154,9 @@ def median_mask_2d(arr, ky=3, kx=3):
 
 def evaluate_threshold(concepts_same, distance, threshold):
     if concepts_same:
-        return distance < threshold   # predict similar
+        return distance < threshold  # predict similar
     else:
-        return distance > threshold   # predict different
+        return distance > threshold  # predict different
 
 
 def threshold_test(M: pd.DataFrame, true_concept: list, median_mask_dimensions=(1, 1)):
@@ -180,7 +172,7 @@ def threshold_test(M: pd.DataFrame, true_concept: list, median_mask_dimensions=(
         TP = FP = TN = FN = 0
 
         for i in range(len(M)):
-            for j in range(i-1):
+            for j in range(i - 1):
                 concepts_same = true_concept[i] == true_concept[j]
                 distance = M[i][j]
 
@@ -207,30 +199,32 @@ def threshold_test(M: pd.DataFrame, true_concept: list, median_mask_dimensions=(
         fnr = FN / (FN + TP) if (FN + TP) > 0 else 0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
-        results.append({
-            'threshold': threshold,
-            'accuracy': accuracy,
-            'precision': precision,
-            'recall': recall,
-            'fpr': fpr,
-            'fnr': fnr,
-            'f1': f1
-        })
+        results.append(
+            {
+                "threshold": threshold,
+                "accuracy": accuracy,
+                "precision": precision,
+                "recall": recall,
+                "fpr": fpr,
+                "fnr": fnr,
+                "f1": f1,
+            }
+        )
 
     return results
 
 
 def plot_threshold_analysis_results(results):
     # Plot All Metrics
-    thresholds = sorted([x['threshold'] for x in results])
+    thresholds = sorted([x["threshold"] for x in results])
 
     plt.figure(figsize=(10, 6))
-    plt.plot(thresholds, [r['accuracy'] for r in results], label="Accuracy")
-    plt.plot(thresholds, [r['precision'] for r in results], label="Precision")
-    plt.plot(thresholds, [r['recall'] for r in results], label="Recall")
-    plt.plot(thresholds, [r['f1'] for r in results], label="F1 Score")
-    plt.plot(thresholds, [r['fpr'] for r in results], label="FPR")
-    plt.plot(thresholds, [r['fnr'] for r in results], label="FNR")
+    plt.plot(thresholds, [r["accuracy"] for r in results], label="Accuracy")
+    plt.plot(thresholds, [r["precision"] for r in results], label="Precision")
+    plt.plot(thresholds, [r["recall"] for r in results], label="Recall")
+    plt.plot(thresholds, [r["f1"] for r in results], label="F1 Score")
+    plt.plot(thresholds, [r["fpr"] for r in results], label="FPR")
+    plt.plot(thresholds, [r["fnr"] for r in results], label="FNR")
 
     plt.title("Threshold Performance Metrics (Median Distance)")
     plt.xlabel("Threshold")
@@ -240,7 +234,7 @@ def plot_threshold_analysis_results(results):
     plt.show()
 
     # Best Threshold by F1
-    best = max(results, key=lambda x: x['f1'])
+    best = max(results, key=lambda x: x["f1"])
     print("Best Threshold by F1:")
     print(best)
 
@@ -257,7 +251,7 @@ def create_prototypes_for_stream(model, storage, dataset, verbose=True):
 
     for i in range(len(dataset)):
         if verbose and i % 10 == 0:
-            print(f'{i}/{len(dataset)}')
+            print(f"{i}/{len(dataset)}")
 
         x_block, y_block = dataset[i]
 
@@ -267,6 +261,7 @@ def create_prototypes_for_stream(model, storage, dataset, verbose=True):
 
         # Create fresh prototype selector with current model state
         from src.recurrence.protree.explainers import APete
+
         current_explainer = APete(model=model, alpha=0.01)
 
         # Select prototypes independently for this window only
@@ -286,7 +281,7 @@ def create_prototypes_for_stream(model, storage, dataset, verbose=True):
                     if y == class_name:
                         x_block_missing_class.append(x)
 
-                y_block_missing_class = tuple([class_name]*len(x_block_missing_class))
+                y_block_missing_class = tuple([class_name] * len(x_block_missing_class))
                 x_block_missing_class = tuple(x_block_missing_class)
 
                 missing_prototypes = current_explainer.select_prototypes(x_block_missing_class, y_block_missing_class)
@@ -299,7 +294,7 @@ def create_prototypes_for_stream(model, storage, dataset, verbose=True):
             y=y_block,
             prototypes=current_prototypes,
             explainer=None,
-            drift=False  # No drift detection being used
+            drift=False,  # No drift detection being used
         )
 
     if verbose:
@@ -335,12 +330,12 @@ def prepare_dataset_from_generator(X, y, window_size):
             feature_names = list(X.columns) if hasattr(X, "columns") else [f"f{k}" for k in range(X.shape[1])]
             x_dicts = []
             for row in x_block:
-                if hasattr(row, 'tolist'):
+                if hasattr(row, "tolist"):
                     row = row.tolist()
                 row_dict = {feature_names[k]: v for k, v in enumerate(row)}
                 x_dicts.append(row_dict)
 
-            y_list = y_block.tolist() if hasattr(y_block, 'tolist') else list(y_block)
+            y_list = y_block.tolist() if hasattr(y_block, "tolist") else list(y_block)
 
             dataset.append([tuple(x_dicts), tuple(y_list)])
 

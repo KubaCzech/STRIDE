@@ -14,13 +14,15 @@ class SineMultiWindowDataset(BaseDataset):
 
     def get_params(self) -> dict:
         params = super().get_params()
-        params.update({
-            "num_windows": 100,
-            "drift_positions": [28000, 52000, 70000],
-            "drift_duration": 1,
-            "informative_attr_0": 3,
-            "informative_attr_1": 2
-        })
+        params.update(
+            {
+                "num_windows": 100,
+                "drift_positions": [28000, 52000, 70000],
+                "drift_duration": 1,
+                "informative_attr_0": 3,
+                "informative_attr_1": 2,
+            }
+        )
         return params
 
     def get_settings_schema(self) -> list[dict]:
@@ -32,14 +34,14 @@ class SineMultiWindowDataset(BaseDataset):
                 "default": 100,
                 "min_value": 2,
                 "step": 1,
-                "help": "Total number of windows to generate."
+                "help": "Total number of windows to generate.",
             },
             {
                 "name": "drift_positions",
                 "type": "text",
                 "label": "Drift Positions (comma-separated sample numbers)",
                 "default": "28000, 52000, 70000",
-                "help": "Enter sample positions where drifts occur, e.g., '28000, 52000, 70000'. Leave empty for no drifts."
+                "help": "Enter sample positions where drifts occur, e.g., '28000, 52000, 70000'. Leave empty for no drifts.",
             },
             {
                 "name": "drift_duration",
@@ -48,7 +50,7 @@ class SineMultiWindowDataset(BaseDataset):
                 "default": 1,
                 "min_value": 1,
                 "step": 100,
-                "help": "Duration of each drift transition in samples."
+                "help": "Duration of each drift transition in samples.",
             },
             {
                 "name": "informative_attr_0",
@@ -57,7 +59,7 @@ class SineMultiWindowDataset(BaseDataset):
                 "default": 3,
                 "min_value": 0,
                 "step": 1,
-                "help": "First informative attribute index."
+                "help": "First informative attribute index.",
             },
             {
                 "name": "informative_attr_1",
@@ -66,14 +68,21 @@ class SineMultiWindowDataset(BaseDataset):
                 "default": 2,
                 "min_value": 0,
                 "step": 1,
-                "help": "Second informative attribute index."
-            }
+                "help": "Second informative attribute index.",
+            },
         ]
 
-    def generate(self, num_windows=100, window_length=1000,
-                 drift_positions=None, drift_duration=1,
-                 informative_attr_0=3, informative_attr_1=2,
-                 random_seed=42, **kwargs):
+    def generate(
+        self,
+        num_windows=100,
+        window_length=1000,
+        drift_positions=None,
+        drift_duration=1,
+        informative_attr_0=3,
+        informative_attr_1=2,
+        random_seed=42,
+        **kwargs,
+    ):
         """
         Generate synthetic data stream using protree's Sine generator.
 
@@ -98,7 +107,7 @@ class SineMultiWindowDataset(BaseDataset):
         # Parse drift positions if string
         if isinstance(drift_positions, str):
             if drift_positions.strip():
-                drift_positions = [int(x.strip()) for x in drift_positions.split(',')]
+                drift_positions = [int(x.strip()) for x in drift_positions.split(",")]
             else:
                 drift_positions = []
         elif drift_positions is None:
@@ -109,7 +118,7 @@ class SineMultiWindowDataset(BaseDataset):
             drift_position=drift_positions if drift_positions else 500,
             drift_duration=drift_duration,
             seed=random_seed,
-            informative_attrs=(informative_attr_0, informative_attr_1)
+            informative_attrs=(informative_attr_0, informative_attr_1),
         )
 
         # Generate all windows
@@ -124,6 +133,6 @@ class SineMultiWindowDataset(BaseDataset):
         # Convert to DataFrame and Series
         # The x_block items are dictionaries with feature names as keys
         X = pd.DataFrame(all_x)
-        y = pd.Series(all_y, name='target')
+        y = pd.Series(all_y, name="target")
 
         return X, y

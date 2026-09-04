@@ -29,7 +29,7 @@ class FeatureImportanceDriftAnalyzer:
             List of feature names. If None and input is DataFrame, columns are used.
         """
         # Prepare features and labels
-        if feature_names is None and hasattr(X_before, 'columns'):
+        if feature_names is None and hasattr(X_before, "columns"):
             feature_names = X_before.columns.tolist()
 
         self.feature_names = feature_names
@@ -62,7 +62,7 @@ class FeatureImportanceDriftAnalyzer:
         time_labels = np.array([0] * n_samples_before + [1] * n_samples_after)
 
         if include_target:
-            feature_names_for_calc = (self.feature_names + ['Y']) if self.feature_names else None
+            feature_names_for_calc = (self.feature_names + ["Y"]) if self.feature_names else None
             if feature_names_for_calc is None:
                 feature_names_for_calc = [f"Feature {i}" for i in range(X_features.shape[1])]
         else:
@@ -75,19 +75,20 @@ class FeatureImportanceDriftAnalyzer:
     def _filter_importance_results(self, fi_result, include_target, feature_names_for_calc):
         if include_target:
             # 1. Update arrays in fi_result
-            if 'importances_mean' in fi_result:
-                fi_result['importances_mean'] = fi_result['importances_mean'][:-1]
+            if "importances_mean" in fi_result:
+                fi_result["importances_mean"] = fi_result["importances_mean"][:-1]
 
-            if 'importances_std' in fi_result:
-                fi_result['importances_std'] = fi_result['importances_std'][:-1]
+            if "importances_std" in fi_result:
+                fi_result["importances_std"] = fi_result["importances_std"][:-1]
 
-            if 'importances' in fi_result:
+            if "importances" in fi_result:
                 # Check shape to determine axis to slice
-                if fi_result['importances'].shape[0] == len(feature_names_for_calc):
-                    fi_result['importances'] = fi_result['importances'][:-1]
-                elif (len(fi_result['importances'].shape) > 1 and
-                      fi_result['importances'].shape[1] == len(feature_names_for_calc)):
-                    fi_result['importances'] = fi_result['importances'][:, :-1]
+                if fi_result["importances"].shape[0] == len(feature_names_for_calc):
+                    fi_result["importances"] = fi_result["importances"][:-1]
+                elif len(fi_result["importances"].shape) > 1 and fi_result["importances"].shape[1] == len(
+                    feature_names_for_calc
+                ):
+                    fi_result["importances"] = fi_result["importances"][:, :-1]
 
             # Features to return (exclude Y)
             feature_names_returned = self.feature_names if self.feature_names else feature_names_for_calc[:-1]
@@ -96,8 +97,9 @@ class FeatureImportanceDriftAnalyzer:
 
         return fi_result, feature_names_returned
 
-    def compute_drift_importance(self, importance_method="permutation", include_target=True,
-                                 model_class=None, model_params=None):
+    def compute_drift_importance(
+        self, importance_method="permutation", include_target=True, model_class=None, model_params=None
+    ):
         """
         Compute drift analysis (data drift or concept drift) importance.
 
@@ -134,6 +136,7 @@ class FeatureImportanceDriftAnalyzer:
         # Train Model
         if model_class is None:
             from src.models.mlp import MLPModel
+
             model_class = MLPModel
 
         if model_params is None:
@@ -145,26 +148,22 @@ class FeatureImportanceDriftAnalyzer:
 
         # Calculate Feature Importance
         fi_result = calculate_feature_importance(
-            model, X_features, time_labels,
-            method=importance_method,
-            feature_names=feature_names_for_calc
+            model, X_features, time_labels, method=importance_method, feature_names=feature_names_for_calc
         )
 
         # Filter results
-        fi_result, feature_names_returned = self._filter_importance_results(
-            fi_result, include_target, feature_names_for_calc
-        )
+        fi_result, feature_names_returned = self._filter_importance_results(fi_result, include_target, feature_names_for_calc)
 
-        importance_mean = fi_result['importances_mean']
-        importance_std = fi_result['importances_std']
+        importance_mean = fi_result["importances_mean"]
+        importance_std = fi_result["importances_std"]
 
         return {
-            'model': model,
-            'accuracy': accuracy,
-            'importance_result': fi_result,
-            'importance_mean': importance_mean,
-            'importance_std': importance_std,
-            'feature_names': feature_names_returned
+            "model": model,
+            "accuracy": accuracy,
+            "importance_result": fi_result,
+            "importance_mean": importance_mean,
+            "importance_std": importance_std,
+            "feature_names": feature_names_returned,
         }
 
     def compute_predictive_importance_shift(self, importance_method="permutation", model_class=None, model_params=None):
@@ -202,6 +201,7 @@ class FeatureImportanceDriftAnalyzer:
         # Train Models
         if model_class is None:
             from src.models.mlp import MLPModel
+
             model_class = MLPModel
 
         if model_params is None:
@@ -219,23 +219,19 @@ class FeatureImportanceDriftAnalyzer:
 
         # Feature Importance for BEFORE drift
         fi_before = calculate_feature_importance(
-            model_before, X_features_before, self.y_before,
-            method=importance_method,
-            feature_names=self.feature_names
+            model_before, X_features_before, self.y_before, method=importance_method, feature_names=self.feature_names
         )
 
         # Feature Importance for AFTER drift
         fi_after = calculate_feature_importance(
-            model_after, X_features_after, self.y_after,
-            method=importance_method,
-            feature_names=self.feature_names
+            model_after, X_features_after, self.y_after, method=importance_method, feature_names=self.feature_names
         )
 
         return {
-            'model_before': model_before,
-            'model_after': model_after,
-            'accuracy_before': acc_before,
-            'accuracy_after': acc_after,
-            'fi_before': fi_before,
-            'fi_after': fi_after
+            "model_before": model_before,
+            "model_after": model_after,
+            "accuracy_before": acc_before,
+            "accuracy_after": acc_after,
+            "fi_before": fi_before,
+            "fi_after": fi_after,
         }

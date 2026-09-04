@@ -14,13 +14,15 @@ class RandomTreeMultiWindowDataset(BaseDataset):
 
     def get_params(self) -> dict:
         params = super().get_params()
-        params.update({
-            "num_windows": 100,
-            "drift_positions": [28000, 52000, 70000],
-            "drift_duration": 1,
-            "n_informative": 4,
-            "n_redundant": 2
-        })
+        params.update(
+            {
+                "num_windows": 100,
+                "drift_positions": [28000, 52000, 70000],
+                "drift_duration": 1,
+                "n_informative": 4,
+                "n_redundant": 2,
+            }
+        )
         return params
 
     def get_settings_schema(self) -> list[dict]:
@@ -32,14 +34,14 @@ class RandomTreeMultiWindowDataset(BaseDataset):
                 "default": 100,
                 "min_value": 2,
                 "step": 1,
-                "help": "Total number of windows to generate."
+                "help": "Total number of windows to generate.",
             },
             {
                 "name": "drift_positions",
                 "type": "text",
                 "label": "Drift Positions (comma-separated sample numbers)",
                 "default": "28000, 52000, 70000",
-                "help": "Enter sample positions where drifts occur, e.g., '28000, 52000, 70000'. Leave empty for no drifts."
+                "help": "Enter sample positions where drifts occur, e.g., '28000, 52000, 70000'. Leave empty for no drifts.",
             },
             {
                 "name": "drift_duration",
@@ -48,7 +50,7 @@ class RandomTreeMultiWindowDataset(BaseDataset):
                 "default": 1,
                 "min_value": 1,
                 "step": 100,
-                "help": "Duration of each drift transition in samples."
+                "help": "Duration of each drift transition in samples.",
             },
             {
                 "name": "n_informative",
@@ -57,7 +59,7 @@ class RandomTreeMultiWindowDataset(BaseDataset):
                 "default": 4,
                 "min_value": 1,
                 "step": 1,
-                "help": "Number of informative features in the dataset."
+                "help": "Number of informative features in the dataset.",
             },
             {
                 "name": "n_redundant",
@@ -66,14 +68,21 @@ class RandomTreeMultiWindowDataset(BaseDataset):
                 "default": 2,
                 "min_value": 0,
                 "step": 1,
-                "help": "Number of redundant features in the dataset."
-            }
+                "help": "Number of redundant features in the dataset.",
+            },
         ]
 
-    def generate(self, num_windows=100, window_length=1000,
-                 drift_positions=None, drift_duration=1,
-                 n_informative=4, n_redundant=2,
-                 random_seed=42, **kwargs):
+    def generate(
+        self,
+        num_windows=100,
+        window_length=1000,
+        drift_positions=None,
+        drift_duration=1,
+        n_informative=4,
+        n_redundant=2,
+        random_seed=42,
+        **kwargs,
+    ):
         """
         Generate synthetic data stream using protree's RandomTree generator.
 
@@ -98,7 +107,7 @@ class RandomTreeMultiWindowDataset(BaseDataset):
         # Parse drift positions if string
         if isinstance(drift_positions, str):
             if drift_positions.strip():
-                drift_positions = [int(x.strip()) for x in drift_positions.split(',')]
+                drift_positions = [int(x.strip()) for x in drift_positions.split(",")]
             else:
                 drift_positions = []
         elif drift_positions is None:
@@ -110,7 +119,7 @@ class RandomTreeMultiWindowDataset(BaseDataset):
             drift_duration=drift_duration,
             seed=random_seed,
             n_informative=n_informative,
-            n_redundant=n_redundant
+            n_redundant=n_redundant,
         )
 
         # Generate all windows
@@ -125,6 +134,6 @@ class RandomTreeMultiWindowDataset(BaseDataset):
         # Convert to DataFrame and Series
         # The x_block items are dictionaries with feature names as keys
         X = pd.DataFrame(all_x)
-        y = pd.Series(all_y, name='target')
+        y = pd.Series(all_y, name="target")
 
         return X, y

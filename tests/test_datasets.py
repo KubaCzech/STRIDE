@@ -5,7 +5,7 @@ import pandas as pd
 
 
 # Add src to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from datasets.hyperplane_drift import HyperplaneDriftDataset  # noqa: E402
 from datasets.linear_weight_inversion_drift import LinearWeightInversionDriftDataset  # noqa: E402
@@ -41,16 +41,22 @@ class TestSyntheticDatasets(unittest.TestCase):
         """Test Linear Weight Inversion Drift dataset generation."""
         ds = LinearWeightInversionDriftDataset()
         n_features = 11
-        X, y = ds.generate(n_samples_before=self.n_before, n_samples_after=self.n_after,
-                           n_features=n_features, drift_width=200)
+        X, y = ds.generate(
+            n_samples_before=self.n_before, n_samples_after=self.n_after, n_features=n_features, drift_width=200
+        )
         self._verify_shape(X, y, n_features)
 
     def test_hyperplane_drift_generation(self):
         """Test Hyperplane Drift dataset generation."""
         ds = HyperplaneDriftDataset()
         n_features = 5
-        X, y = ds.generate(n_samples_before=self.n_before, n_samples_after=self.n_after,
-                           n_features=n_features, n_drift_features=2, drift_width=200)
+        X, y = ds.generate(
+            n_samples_before=self.n_before,
+            n_samples_after=self.n_after,
+            n_features=n_features,
+            n_drift_features=2,
+            drift_width=200,
+        )
         self._verify_shape(X, y, n_features)
 
     def test_drift_width_parameter_overflow(self):
@@ -59,10 +65,10 @@ class TestSyntheticDatasets(unittest.TestCase):
         OverflowError (specifically checks the sigmoid fix/workaround).
         """
         datasets = [
-            (SeaDriftDataset(), {'n_features': 3}),
+            (SeaDriftDataset(), {"n_features": 3}),
             (RBFDriftDataset(), {}),
-            (LinearWeightInversionDriftDataset(), {'n_features': 11}),
-            (HyperplaneDriftDataset(), {'n_features': 5, 'n_drift_features': 2})
+            (LinearWeightInversionDriftDataset(), {"n_features": 11}),
+            (HyperplaneDriftDataset(), {"n_features": 5, "n_drift_features": 2}),
         ]
 
         widths_to_test = [1, 50, 500, 5000]
@@ -80,19 +86,17 @@ class TestSyntheticDatasets(unittest.TestCase):
     def test_reproducibility(self):
         """Test that random_seed ensures reproducibility."""
         datasets = [
-            (SeaDriftDataset(), {'n_features': 3}),
+            (SeaDriftDataset(), {"n_features": 3}),
             (RBFDriftDataset(), {}),
-            (LinearWeightInversionDriftDataset(), {'n_features': 11}),
-            (HyperplaneDriftDataset(), {'n_features': 5, 'n_drift_features': 2})
+            (LinearWeightInversionDriftDataset(), {"n_features": 11}),
+            (HyperplaneDriftDataset(), {"n_features": 5, "n_drift_features": 2}),
         ]
 
         seed = 42
         for ds, kwargs in datasets:
             with self.subTest(dataset=ds.name):
-                X1, y1 = ds.generate(n_samples_before=100, n_samples_after=100,
-                                     drift_width=100, random_seed=seed, **kwargs)
-                X2, y2 = ds.generate(n_samples_before=100, n_samples_after=100,
-                                     drift_width=100, random_seed=seed, **kwargs)
+                X1, y1 = ds.generate(n_samples_before=100, n_samples_after=100, drift_width=100, random_seed=seed, **kwargs)
+                X2, y2 = ds.generate(n_samples_before=100, n_samples_after=100, drift_width=100, random_seed=seed, **kwargs)
 
                 pd.testing.assert_frame_equal(X1, X2)
                 pd.testing.assert_series_equal(y1, y2)
@@ -108,5 +112,5 @@ class TestSyntheticDatasets(unittest.TestCase):
             ds.generate(n_features=5, n_drift_features=6)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

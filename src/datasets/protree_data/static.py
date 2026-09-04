@@ -20,19 +20,38 @@ categorical_columns: dict[TStationaryDataset, list[str]] = {
     "compass": ["age_cat", "priors_count", "c_charge_degree"],
     "diabetes": [],
     "mnist": [],
-    "rhc": ["ca", "death", "sex", "dth30", "swang1", "dnr1", "ninsclas", "resp", "card", "neuro", "gastr", "renal", "meta",
-            "hema", "seps", "trauma", "ortho", "race", "income"],
+    "rhc": [
+        "ca",
+        "death",
+        "sex",
+        "dth30",
+        "swang1",
+        "dnr1",
+        "ninsclas",
+        "resp",
+        "card",
+        "neuro",
+        "gastr",
+        "renal",
+        "meta",
+        "hema",
+        "seps",
+        "trauma",
+        "ortho",
+        "race",
+        "income",
+    ],
 }
 
 
 class StationaryDataset:
     def __init__(
-            self,
-            name: TStationaryDataset,
-            directory: str = DEFAULT_DATA_DIR,
-            encode_categorical_variables: bool = True,
-            normalise: bool = False,
-            lazy: bool = True
+        self,
+        name: TStationaryDataset,
+        directory: str = DEFAULT_DATA_DIR,
+        encode_categorical_variables: bool = True,
+        normalise: bool = False,
+        lazy: bool = True,
     ) -> None:
         """Dataset is a class designed to handle datasets for machine learning tasks. It provides functionalities for loading,
          transforming, and accessing training, validation, and test datasets.
@@ -67,15 +86,9 @@ class StationaryDataset:
         if self.encode_categorical_variables and categorical_columns[self.name]:
             if not self._x_encoder:
                 self._x_encoder = OrdinalEncoder(
-                    handle_unknown="use_encoded_value",
-                    unknown_value=-1,
-                    encoded_missing_value=-1,
-                    dtype=int
+                    handle_unknown="use_encoded_value", unknown_value=-1, encoded_missing_value=-1, dtype=int
                 ).fit(x)
-            x = pd.DataFrame(
-                data=self._x_encoder.transform(x),
-                columns=columns
-            )
+            x = pd.DataFrame(data=self._x_encoder.transform(x), columns=columns)
         if self.normalise:
             if not self._x_scaler:
                 self._x_scaler = MinMaxScaler().fit(x)
@@ -141,22 +154,18 @@ class StationaryDataset:
         return self.train[1].columns.tolist()
 
 
-def _save_dataframe(
-        df: pd.DataFrame,
-        dataset_name: str,
-        directory: str = DEFAULT_DATA_DIR
-) -> None:
+def _save_dataframe(df: pd.DataFrame, dataset_name: str, directory: str = DEFAULT_DATA_DIR) -> None:
     path = Path(directory) / f"{dataset_name}.csv"
     df.reset_index(drop=True).to_csv(path)
 
 
 def _split_dataframe_and_save(
-        df: pd.DataFrame,
-        dataset_name: str,
-        directory: str = DEFAULT_DATA_DIR,
-        train_size: float = 0.6,
-        valid_size: float = 0.2,
-        test_size: float = 0.2
+    df: pd.DataFrame,
+    dataset_name: str,
+    directory: str = DEFAULT_DATA_DIR,
+    train_size: float = 0.6,
+    valid_size: float = 0.2,
+    test_size: float = 0.2,
 ) -> None:
     if train_size + valid_size + test_size != 1.0:
         raise ValueError("Sum of train, valid, and test sizes have to sum up to 1.0")
@@ -165,17 +174,9 @@ def _split_dataframe_and_save(
 
     y_column = [col for col in df.columns if "target" in col][0]
 
-    train, valid_test = train_test_split(
-        df,
-        stratify=df[[y_column]],
-        train_size=train_size,
-        random_state=RANDOM_SEED
-    )
+    train, valid_test = train_test_split(df, stratify=df[[y_column]], train_size=train_size, random_state=RANDOM_SEED)
     valid, test = train_test_split(
-        valid_test,
-        stratify=valid_test[[y_column]],
-        train_size=valid_size / (valid_size + test_size),
-        random_state=RANDOM_SEED
+        valid_test, stratify=valid_test[[y_column]], train_size=valid_size / (valid_size + test_size), random_state=RANDOM_SEED
     )
 
     _save_dataframe(df=train, dataset_name=f"{dataset_name}_train", directory=directory)
@@ -183,93 +184,89 @@ def _split_dataframe_and_save(
     _save_dataframe(df=test, dataset_name=f"{dataset_name}_test", directory=directory)
 
 
-def _download_diabetes(
-        directory: str = DEFAULT_DATA_DIR
-) -> None:
+def _download_diabetes(directory: str = DEFAULT_DATA_DIR) -> None:
     from io import StringIO
     from requests import get
 
     response = get(
-        url="https://raw.githubusercontent.com/plotly/datasets/master/diabetes.csv",
-        params={
-            "downloadformat": "csv"
-        }
+        url="https://raw.githubusercontent.com/plotly/datasets/master/diabetes.csv", params={"downloadformat": "csv"}
     )
 
     df = pd.read_csv(StringIO(response.content.decode("utf-8")))
-    df = df.rename(columns={
-        "Outcome": "target"
-    })
+    df = df.rename(columns={"Outcome": "target"})
     _split_dataframe_and_save(df=df, dataset_name="diabetes", directory=directory)
 
 
-def _download_breast_cancer(
-        directory: str = DEFAULT_DATA_DIR
-) -> None:
+def _download_breast_cancer(directory: str = DEFAULT_DATA_DIR) -> None:
     from sklearn.datasets import load_breast_cancer
 
     breast_cancer = load_breast_cancer(as_frame=True)
     _split_dataframe_and_save(df=breast_cancer.frame, dataset_name="breast_cancer", directory=directory)
 
 
-def _download_rhc(
-        directory: str = DEFAULT_DATA_DIR
-) -> None:
+def _download_rhc(directory: str = DEFAULT_DATA_DIR) -> None:
     from io import StringIO
     from requests import get
 
-    response = get(
-        url="https://hbiostat.org/data/repo/rhc.csv",
-        params={
-            "downloadformat": "csv"
-        }
-    )
+    response = get(url="https://hbiostat.org/data/repo/rhc.csv", params={"downloadformat": "csv"})
 
     df = pd.read_csv(StringIO(response.content.decode("utf-8")), index_col=[0])
     df.insert(df.shape[1] - 1, "target", df.pop("cat1"))
     _split_dataframe_and_save(df=df, dataset_name="rhc", directory=directory)
 
 
-def _download_compass(
-        directory: str = DEFAULT_DATA_DIR
-) -> None:
+def _download_compass(directory: str = DEFAULT_DATA_DIR) -> None:
     from io import StringIO
     from requests import get
 
     response = get(
         url="https://raw.githubusercontent.com/propublica/compas-analysis/master/compas-scores-two-years.csv",
-        params={
-            "downloadformat": "csv"
-        }
+        params={"downloadformat": "csv"},
     )
     df = pd.read_csv(StringIO(response.content.decode("utf-8")))
-    df = df[["age", "c_charge_degree", "race", "age_cat", "score_text", "sex", "priors_count", "days_b_screening_arrest",
-             "decile_score", "is_recid", "two_year_recid", "c_jail_in", "c_jail_out"]]
+    df = df[
+        [
+            "age",
+            "c_charge_degree",
+            "race",
+            "age_cat",
+            "score_text",
+            "sex",
+            "priors_count",
+            "days_b_screening_arrest",
+            "decile_score",
+            "is_recid",
+            "two_year_recid",
+            "c_jail_in",
+            "c_jail_out",
+        ]
+    ]
 
-    ix = (df["days_b_screening_arrest"] <= 30 & (df["days_b_screening_arrest"] >= -30) & (df["is_recid"] != -1) &
-          (df["c_charge_degree"] != "O") & (df["score_text"] != "N/A"))
+    ix = df["days_b_screening_arrest"] <= 30 & (df["days_b_screening_arrest"] >= -30) & (df["is_recid"] != -1) & (
+        df["c_charge_degree"] != "O"
+    ) & (df["score_text"] != "N/A")
     df = df.loc[ix]
     df["length_of_stay"] = (pd.to_datetime(df["c_jail_out"]) - pd.to_datetime(df["c_jail_in"])).apply(lambda x: x.days)
 
     df_cut = df.loc[~df["race"].isin(["Native American", "Hispanic", "Asian", "Other"]), :]
-    df_cut_q = df_cut[["sex", "race", "age_cat", "c_charge_degree", "score_text", "priors_count", "is_recid",
-                       "two_year_recid"]].copy()
+    df_cut_q = df_cut[
+        ["sex", "race", "age_cat", "c_charge_degree", "score_text", "priors_count", "is_recid", "two_year_recid"]
+    ].copy()
     df_cut_q["priors_count"] = df_cut_q["priors_count"].apply(
-        lambda x: "0" if x <= 0 else ("1 to 3" if 1 <= x <= 3 else "More than 3"))
+        lambda x: "0" if x <= 0 else ("1 to 3" if 1 <= x <= 3 else "More than 3")
+    )
     df_cut_q["score_text"] = df_cut_q["score_text"].apply(lambda x: "MediumHigh" if (x == "High") | (x == "Medium") else x)
     df_cut_q["age_cat"] = df_cut_q["age_cat"].replace({"25 - 45": "25 to 45"})
     df_cut_q["sex"] = df_cut_q["sex"].replace({"Female": 1.0, "Male": 0.0})
     df_cut_q["race"] = df_cut_q["race"].apply(lambda x: 1.0 if x == "Caucasian" else 0.0)
 
-    df = df_cut_q[["two_year_recid", "sex", "race", "age_cat", "priors_count", "c_charge_degree"]].rename(columns={
-        "two_year_recid": "target"
-    })
+    df = df_cut_q[["two_year_recid", "sex", "race", "age_cat", "priors_count", "c_charge_degree"]].rename(
+        columns={"two_year_recid": "target"}
+    )
     _split_dataframe_and_save(df=df, dataset_name="compass", directory=directory)
 
 
-def _download_mnist(
-        directory: str = DEFAULT_DATA_DIR
-) -> None:
+def _download_mnist(directory: str = DEFAULT_DATA_DIR) -> None:
     import gzip
     from tempfile import TemporaryDirectory
 
@@ -297,29 +294,24 @@ def _download_mnist(
         test = mnist.load_testing()
         test_df = pd.DataFrame(
             data=[pixels + [label] for pixels, label in zip(test[0], test[1]) if label in (4, 9)],
-            columns=[f"x{i}" for i in range(784)] + ["target"]
+            columns=[f"x{i}" for i in range(784)] + ["target"],
         )
         _save_dataframe(df=test_df, dataset_name="mnist_test", directory=directory)
 
         train_valid = mnist.load_training()
         train_valid_df = pd.DataFrame(
             data=[pixels + [label] for pixels, label in zip(train_valid[0], train_valid[1]) if label in (4, 9)],
-            columns=[f"x{i}" for i in range(784)] + ["target"]
+            columns=[f"x{i}" for i in range(784)] + ["target"],
         )
 
         train, valid = train_test_split(
-            train_valid_df,
-            stratify=train_valid_df[["target"]],
-            test_size=test_df.shape[0],
-            random_state=RANDOM_SEED
+            train_valid_df, stratify=train_valid_df[["target"]], test_size=test_df.shape[0], random_state=RANDOM_SEED
         )
         _save_dataframe(df=train, dataset_name="mnist_train", directory=directory)
         _save_dataframe(df=valid, dataset_name="mnist_valid", directory=directory)
 
 
-def _download_caltech(
-        directory: str = DEFAULT_DATA_DIR
-) -> None:
+def _download_caltech(directory: str = DEFAULT_DATA_DIR) -> None:
     from tempfile import TemporaryDirectory
 
     import torch
@@ -336,21 +328,13 @@ def _download_caltech(
         return torch.stack(images, dim=0), labels
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
-    ])
+    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
 
     resnet = resnet50(ResNet50_Weights.IMAGENET1K_V2).to(device)
 
     with TemporaryDirectory() as _tmp_dir:
         caltech = Caltech256(root=_tmp_dir, transform=transform, download=True)
-        dataloader = torch.utils.data.DataLoader(
-            caltech,
-            batch_size=32,
-            shuffle=False,
-            collate_fn=collate_fn
-        )
+        dataloader = torch.utils.data.DataLoader(caltech, batch_size=32, shuffle=False, collate_fn=collate_fn)
 
         x = []
         y = []
@@ -367,9 +351,7 @@ def _download_caltech(
 
 
 def download_all(
-        directory: str = DEFAULT_DATA_DIR,
-        dataset_names: list[Literal["all"] | TStationaryDataset] = "all",
-        verbose: bool = True
+    directory: str = DEFAULT_DATA_DIR, dataset_names: list[Literal["all"] | TStationaryDataset] = "all", verbose: bool = True
 ) -> None:
     path = Path(directory)
     path.mkdir(parents=True, exist_ok=True)

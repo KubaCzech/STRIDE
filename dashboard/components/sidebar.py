@@ -9,6 +9,7 @@ from dashboard.components.modals.model_settings import open_model_settings_modal
 
 def _render_import_dataset_modal(dataset_key):
     if dataset_key == "➕ Import dataset...":
+
         @st.dialog("Import Dataset")
         def open_import_dataset_modal():
             st.write("Upload a CSV file to import a new dataset.")
@@ -33,7 +34,7 @@ def _render_import_dataset_modal(dataset_key):
                     "Target Variable",
                     options=columns,
                     index=default_target_idx,
-                    help="Select the column containing the target variable."
+                    help="Select the column containing the target variable.",
                 )
 
                 # Default features are all except target
@@ -42,7 +43,7 @@ def _render_import_dataset_modal(dataset_key):
                     "Features to Include",
                     options=available_features,
                     default=available_features,
-                    help="Select the features to be used for the dataset."
+                    help="Select the features to be used for the dataset.",
                 )
 
                 if st.button("Import Dataset"):
@@ -81,7 +82,7 @@ def _render_dataset_selection():
 
     # Check if we should select a specific dataset (e.g. after import)
     index = 0
-    if 'selected_dataset_key' in st.session_state and st.session_state.selected_dataset_key in dataset_options:
+    if "selected_dataset_key" in st.session_state and st.session_state.selected_dataset_key in dataset_options:
         index = dataset_options.index(st.session_state.selected_dataset_key)
 
     col_ds1, col_ds2 = st.columns([0.75, 0.25], vertical_alignment="bottom")
@@ -91,7 +92,7 @@ def _render_dataset_selection():
             options=dataset_options,
             index=index,
             format_func=lambda x: x if x == IMPORT_OPTION else DATASETS[x].display_name,
-            help="Select the synthetic dataset to analyze or import a new one."
+            help="Select the synthetic dataset to analyze or import a new one.",
         )
 
     # Handle import modal
@@ -111,15 +112,15 @@ def _render_dataset_selection():
             st.rerun()
 
     # Initialize session state for parameters if not exists
-    if 'dataset_params_by_dataset' not in st.session_state:
+    if "dataset_params_by_dataset" not in st.session_state:
         st.session_state.dataset_params_by_dataset = {}
 
     # Switch or sync dataset parameters for the selected dataset
-    if 'current_dataset_key' not in st.session_state or st.session_state.current_dataset_key != dataset_key:
+    if "current_dataset_key" not in st.session_state or st.session_state.current_dataset_key != dataset_key:
         st.session_state.current_dataset_key = dataset_key
         st.session_state.dataset_params = st.session_state.dataset_params_by_dataset.get(dataset_key, {}).copy()
     else:
-        if 'dataset_params' in st.session_state:
+        if "dataset_params" in st.session_state:
             st.session_state.dataset_params_by_dataset[dataset_key] = st.session_state.dataset_params
 
     with col_ds2:
@@ -128,7 +129,7 @@ def _render_dataset_selection():
             keys_to_clear = [k for k in st.session_state.keys() if k.startswith("temp_dataset_param_")]
             for k in keys_to_clear:
                 del st.session_state[k]
-            open_dataset_settings_modal(selected_dataset, st.session_state.get('window_length', 1000), dataset_key)
+            open_dataset_settings_modal(selected_dataset, st.session_state.get("window_length", 1000), dataset_key)
 
     return dataset_key, selected_dataset, st.session_state.dataset_params
 
@@ -143,26 +144,26 @@ def _render_model_selection():
             "Choose a Model",
             options=list(MODELS.keys()),
             format_func=lambda x: MODELS[x]().display_name,
-            help="Select the machine learning model to use for drift detection."
+            help="Select the machine learning model to use for drift detection.",
         )
 
     selected_model_class = MODELS[model_key]
 
     # Maintain model parameters per model
-    if 'model_params_by_model' not in st.session_state:
+    if "model_params_by_model" not in st.session_state:
         st.session_state.model_params_by_model = {}
 
     # Check if model changed or model_params not loaded for this model
-    if 'current_model_key' not in st.session_state or st.session_state.current_model_key != model_key:
+    if "current_model_key" not in st.session_state or st.session_state.current_model_key != model_key:
         st.session_state.current_model_key = model_key
         st.session_state.model_params = st.session_state.model_params_by_model.get(model_key, {}).copy()
     else:
         # Keep model_params_by_model in sync with model_params
-        if 'model_params' in st.session_state:
+        if "model_params" in st.session_state:
             st.session_state.model_params_by_model[model_key] = st.session_state.model_params
 
     # Defensive filtering: pass only parameters accepted by selected_model_class.__init__
-    valid_keys = set(inspect.signature(selected_model_class.__init__).parameters.keys()) - {'self'}
+    valid_keys = set(inspect.signature(selected_model_class.__init__).parameters.keys()) - {"self"}
     filtered_params = {k: v for k, v in st.session_state.model_params.items() if k in valid_keys}
     st.session_state.model_params = filtered_params
     st.session_state.model_params_by_model[model_key] = filtered_params
@@ -191,10 +192,7 @@ def render_sidebar_datasource_config():
         # 1. Global Window Settings
         st.subheader("Global Settings")
         window_length = st.number_input(
-            "Window Length (Samples)",
-            min_value=1,
-            value=1000,
-            help="Length of the analysis window in samples."
+            "Window Length (Samples)", min_value=1, value=1000, help="Length of the analysis window in samples."
         )
 
         st.session_state.window_length = window_length  # Store for modal usage
@@ -211,7 +209,7 @@ def render_sidebar_datasource_config():
         "dataset_params": dataset_params,
         "selected_model_class": selected_model_class,
         "model_params": model_params,
-        "selected_features": st.session_state.get(f"selected_features_{dataset_key}", [])
+        "selected_features": st.session_state.get(f"selected_features_{dataset_key}", []),
     }
 
 
@@ -277,7 +275,7 @@ def render_sidebar_window_selection(max_samples, window_length):
                 max_value=abs_max_before,
                 # value=curr_before,  <-- Removed to avoid warning
                 key=curr_before_key,
-                help="Starting index for the first analysis window (in number of windows)."
+                help="Starting index for the first analysis window (in number of windows).",
             )
 
         with col_w2:
@@ -287,7 +285,7 @@ def render_sidebar_window_selection(max_samples, window_length):
                 max_value=abs_max_after,
                 # value=curr_after,  <-- Removed to avoid warning
                 key=curr_after_key,
-                help="Starting index for the second analysis window (in number of windows)."
+                help="Starting index for the second analysis window (in number of windows).",
             )
 
         # Force constraint verification (visual warning just in case, though logic handles it)

@@ -12,11 +12,7 @@ class CSVDataset(BaseDataset):
         return "Load from CSV"
 
     def get_params(self) -> dict:
-        return {
-            "file_path": None,
-            "target_column": "target",
-            "drift_point": None
-        }
+        return {"file_path": None, "target_column": "target", "drift_point": None}
 
     def get_settings_schema(self) -> list[dict]:
         return [
@@ -25,15 +21,15 @@ class CSVDataset(BaseDataset):
                 "type": "file",
                 "label": "Upload CSV File",
                 "allowed_types": ["csv"],
-                "help": "Upload a CSV file containing the dataset."
+                "help": "Upload a CSV file containing the dataset.",
             },
             {
                 "name": "target_column",
                 "type": "text",
                 "label": "Target Column Name",
                 "default": "target",
-                "help": "Name of the column containing the target variable."
-            }
+                "help": "Name of the column containing the target variable.",
+            },
         ]
 
     def generate(self, file_path=None, target_column="target", drift_point=None, **kwargs):

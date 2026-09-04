@@ -5,14 +5,19 @@ import streamlit as st
 
 
 @st.cache_data(show_spinner="Generating data stream visualizations...")
-def generate_plots(X, y, window_before_start, window_after_start, window_length, feature_names, viz_type='violin'):
+def generate_plots(X, y, window_before_start, window_after_start, window_length, feature_names, viz_type="violin"):
     """Generates all visualization plots."""
     return visualize_data_stream(
-        X, y, window_before_start, window_after_start, window_length, feature_names,
+        X,
+        y,
+        window_before_start,
+        window_after_start,
+        window_length,
+        feature_names,
         title_feat_target=None,
         title_class_dist=None,
         title_feat_space=None,
-        viz_type=viz_type
+        viz_type=viz_type,
     )
 
 
@@ -36,8 +41,7 @@ def _render_metrics(n_before, n_after, class_bal_before, class_bal_after):
             delta = 0
             if not class_bal_before.empty:
                 delta = c1_perc_after - class_bal_before.to_dict().get(1, 0.0)
-            st.metric("Label 1 Frequency (After)", f"{c1_perc_after:.1%}",
-                      delta=f"{delta:.1%}", delta_color="off")
+            st.metric("Label 1 Frequency (After)", f"{c1_perc_after:.1%}", delta=f"{delta:.1%}", delta_color="off")
         else:
             st.metric("Label 1 Frequency (After)", "N/A")
 
@@ -92,40 +96,41 @@ def _calculate_statistics_styled(X_before, y_before, X_after, y_after, feature_n
     # Transpose so rows are (Period, Feature, Stat)
     stats_T = stats_combined.T
     if stats_T.index.nlevels == 3:
-        stats_T.index.names = ['Period', 'Feature', 'Stat']
+        stats_T.index.names = ["Period", "Feature", "Stat"]
         stats_tidy = stats_T.reset_index()
         # Pivot: Index=[Feature, Stat], Columns=Period, Values=0
-        stats_pivot = stats_tidy.pivot(index=['Feature', 'Stat'], columns='Period', values=0)
+        stats_pivot = stats_tidy.pivot(index=["Feature", "Stat"], columns="Period", values=0)
 
         # Handle column renaming safer
         rename_map = {}
-        if 'old' in stats_pivot.columns:
-            rename_map['old'] = 'Before'
-        if 'new' in stats_pivot.columns:
-            rename_map['new'] = 'After'
+        if "old" in stats_pivot.columns:
+            rename_map["old"] = "Before"
+        if "new" in stats_pivot.columns:
+            rename_map["new"] = "After"
 
         stats_pivot = stats_pivot.rename(columns=rename_map)
 
         # Ensure columns exist before selecting
         cols_to_show = []
-        if 'Before' in stats_pivot.columns:
-            cols_to_show.append('Before')
-        if 'After' in stats_pivot.columns:
-            cols_to_show.append('After')
+        if "Before" in stats_pivot.columns:
+            cols_to_show.append("Before")
+        if "After" in stats_pivot.columns:
+            cols_to_show.append("After")
 
         stats_pivot = stats_pivot[cols_to_show]
 
         # Calculate percent change if both exist
-        if 'Before' in stats_pivot.columns and 'After' in stats_pivot.columns:
-            stats_pivot['Change (%)'] = ((stats_pivot['After'] - stats_pivot['Before']) / stats_pivot['Before']) * 100
+        if "Before" in stats_pivot.columns and "After" in stats_pivot.columns:
+            stats_pivot["Change (%)"] = ((stats_pivot["After"] - stats_pivot["Before"]) / stats_pivot["Before"]) * 100
 
         return stats_pivot.style.format("{:.4f}")
     else:
         return stats_combined
 
 
-def render_data_visualization_tab(X, y, X_before, y_before, X_after, y_after,
-                                  feature_names, window_before_start, window_after_start, window_length):
+def render_data_visualization_tab(
+    X, y, X_before, y_before, X_after, y_after, feature_names, window_before_start, window_after_start, window_length
+):
     """
     Renders the Data Stream Visualization tab.
 
@@ -167,10 +172,10 @@ def render_data_visualization_tab(X, y, X_before, y_before, X_after, y_after,
         with col_viz_options:
             viz_type = st.selectbox(
                 "Feature vs Target Visualization Type",
-                options=['violin', 'box', 'scatter'],
+                options=["violin", "box", "scatter"],
                 index=0,  # Default to violin
-                key='viz_type_selector',
-                help="Choose how the relationship between features and target is visualized for each class in the windows."
+                key="viz_type_selector",
+                help="Choose how the relationship between features and target is visualized for each class in the windows.",
             )
 
     all_figs = generate_plots(X, y, window_before_start, window_after_start, window_length, feature_names, viz_type=viz_type)
@@ -180,7 +185,7 @@ def render_data_visualization_tab(X, y, X_before, y_before, X_after, y_after,
     st.markdown("---")
     with st.expander("🔢 Descriptive Statistics (Detailed table)", expanded=False):
         stats_display = _calculate_statistics_styled(X_before, y_before, X_after, y_after, feature_names)
-        if hasattr(stats_display, 'format') or isinstance(stats_display, (pd.DataFrame, pd.io.formats.style.Styler)):
+        if hasattr(stats_display, "format") or isinstance(stats_display, (pd.DataFrame, pd.io.formats.style.Styler)):
             # If explicit width is necessary, st.dataframe handles Styler objects too
             st.dataframe(stats_display, width="stretch")
         else:

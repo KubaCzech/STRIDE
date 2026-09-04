@@ -74,9 +74,14 @@ def _get_nearest_prototypes(x: TDataBatch, prototypes: TPrototypes, explainer: I
     return get_euclidean_prototype_assignment(x, prototypes)
 
 
-def _get_assignment(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: IExplainer | None = None,
-                    explainer_b: IExplainer | None = None, assign_to: Literal["prototype", "class"] = "class"
-                    ) -> tuple[np.ndarray, np.ndarray]:
+def _get_assignment(
+    a: TPrototypes,
+    b: TPrototypes,
+    x: TDataBatch,
+    explainer_a: IExplainer | None = None,
+    explainer_b: IExplainer | None = None,
+    assign_to: Literal["prototype", "class"] = "class",
+) -> tuple[np.ndarray, np.ndarray]:
     if explainer_a and not explainer_b:
         explainer_b = explainer_a
 
@@ -93,8 +98,14 @@ def _get_assignment(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: 
     return assignment_a.reshape(len(assignment_a)), assignment_b.reshape(len(assignment_b))
 
 
-def mutual_information(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: IExplainer | None = None,
-                       explainer_b: IExplainer | None = None, assign_to: Literal["prototype", "class"] = "class") -> float:
+def mutual_information(
+    a: TPrototypes,
+    b: TPrototypes,
+    x: TDataBatch,
+    explainer_a: IExplainer | None = None,
+    explainer_b: IExplainer | None = None,
+    assign_to: Literal["prototype", "class"] = "class",
+) -> float:
     """Calculate the similarity metric based on mutual information between two sets of prototypes, with respect to the input
     data. If an explainer is provided, the predictions are based on the explainer, otherwise, the predictions are based on
     Euclidean distance.
@@ -125,8 +136,14 @@ def mutual_information(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_
     return adjusted_mutual_info_score(assignment_a, assignment_b, average_method="arithmetic")
 
 
-def rand_index(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: IExplainer | None = None,
-               explainer_b: IExplainer | None = None, assign_to: Literal["prototype", "class"] = "class") -> float:
+def rand_index(
+    a: TPrototypes,
+    b: TPrototypes,
+    x: TDataBatch,
+    explainer_a: IExplainer | None = None,
+    explainer_b: IExplainer | None = None,
+    assign_to: Literal["prototype", "class"] = "class",
+) -> float:
     """Calculate the similarity metric based on the Rand index between two sets of prototypes, with respect to the input
     data. If an explainer is provided, the predictions are based on the explainer, otherwise, the predictions are based on
     Euclidean distance.
@@ -157,8 +174,14 @@ def rand_index(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: IExpl
     return adjusted_rand_score(assignment_a, assignment_b)
 
 
-def fowlkes_mallows(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: IExplainer | None = None,
-                    explainer_b: IExplainer | None = None, assign_to: Literal["prototype", "class"] = "class") -> float:
+def fowlkes_mallows(
+    a: TPrototypes,
+    b: TPrototypes,
+    x: TDataBatch,
+    explainer_a: IExplainer | None = None,
+    explainer_b: IExplainer | None = None,
+    assign_to: Literal["prototype", "class"] = "class",
+) -> float:
     """Calculate the similarity metric based on the Fowlkes-Mallows index between two sets of prototypes, with respect to the
     input data. If an explainer is provided, the predictions are based on the explainer, otherwise, the predictions are based
     on Euclidean distance.
@@ -192,8 +215,14 @@ def fowlkes_mallows(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: 
     return fowlkes_mallows_score(assignment_a, assignment_b)
 
 
-def completeness(a: TPrototypes, b: TPrototypes, x: TDataBatch, explainer_a: IExplainer | None = None,
-                 explainer_b: IExplainer | None = None, assign_to: Literal["prototype", "class"] = "class") -> float:
+def completeness(
+    a: TPrototypes,
+    b: TPrototypes,
+    x: TDataBatch,
+    explainer_a: IExplainer | None = None,
+    explainer_b: IExplainer | None = None,
+    assign_to: Literal["prototype", "class"] = "class",
+) -> float:
     """Calculate the similarity metric based on the completeness score between two sets of prototypes, with respect to the
     input data. If an explainer is provided, the predictions are based on the explainer, otherwise, the predictions are based
     on Euclidean distance.
@@ -378,8 +407,9 @@ def _get_accuracy(prototypes: TPrototypes, x: TDataBatch, y: TTarget, explainer:
     return accuracy_score(y, predictions)
 
 
-def _one_way_swap_delta(prototypes_a: TPrototypes, prototypes_b: TPrototypes, x: TDataBatch, y: TTarget,
-                        explainer: IExplainer | None = None) -> float:
+def _one_way_swap_delta(
+    prototypes_a: TPrototypes, prototypes_b: TPrototypes, x: TDataBatch, y: TTarget, explainer: IExplainer | None = None
+) -> float:
     baseline_accuracy = _get_accuracy(prototypes_b, x, y, explainer)
 
     prototypes_a = parse_prototypes(prototypes_a)
@@ -408,8 +438,9 @@ def _one_way_swap_delta(prototypes_a: TPrototypes, prototypes_b: TPrototypes, x:
         return 0.0
 
 
-def prototype_reassignment_impact(prototypes_a: TPrototypes, prototypes_b: TPrototypes, x: TDataBatch, y: TTarget,
-                                  explainer: IExplainer | None = None) -> float:
+def prototype_reassignment_impact(
+    prototypes_a: TPrototypes, prototypes_b: TPrototypes, x: TDataBatch, y: TTarget, explainer: IExplainer | None = None
+) -> float:
     """
     Calculate a distance metric between two sets of prototypes by measuring the change in accuracy when prototypes from
     one set are temporarily added to the other set. This metrics is symmetric as it calculates changes in accuracy in both

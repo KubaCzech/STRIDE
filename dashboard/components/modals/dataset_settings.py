@@ -70,17 +70,10 @@ def _render_feature_selection(selected_dataset, dataset_key, registry, temp_data
             if not widget_val:
                 widget_val = valid_selection
             st.session_state[multiselect_key] = widget_val
-            selected_feat = st.multiselect(
-                "Include Features",
-                options=preview_features,
-                key=multiselect_key
-            )
+            selected_feat = st.multiselect("Include Features", options=preview_features, key=multiselect_key)
         else:
             selected_feat = st.multiselect(
-                "Include Features",
-                options=preview_features,
-                default=valid_selection,
-                key=multiselect_key
+                "Include Features", options=preview_features, default=valid_selection, key=multiselect_key
             )
         st.session_state[feature_key] = selected_feat
     else:
@@ -110,10 +103,10 @@ def _get_cleaned_available_settings(selected_dataset):
 
     if available_settings:
         for name, params in available_settings.items():
-            if params.get('default'):
+            if params.get("default"):
                 default_preset_name = name
             cleaned_params = params.copy()
-            cleaned_params.pop('default', None)
+            cleaned_params.pop("default", None)
             cleaned_available_settings[name] = cleaned_params
 
     return cleaned_available_settings, default_preset_name
@@ -147,10 +140,11 @@ def _check_preset_modification(cleaned_available_settings):
     """
     Early detection of modifications to preset.
     """
-    if (st.session_state.selected_setting and
-            st.session_state.selected_setting in cleaned_available_settings and
-            not st.session_state.force_update_widgets):
-
+    if (
+        st.session_state.selected_setting
+        and st.session_state.selected_setting in cleaned_available_settings
+        and not st.session_state.force_update_widgets
+    ):
         current_preset_params = cleaned_available_settings[st.session_state.selected_setting]
         is_modified = False
 
@@ -179,7 +173,7 @@ def _render_preset_selectbox(cleaned_available_settings):
         setting_options = ["Not selected"] + setting_options
 
     # Initialize the selectbox session state if not exists
-    if 'setting_selectbox' not in st.session_state:
+    if "setting_selectbox" not in st.session_state:
         st.session_state.setting_selectbox = "Not selected"
 
     # Update selectbox value based on selected_setting
@@ -191,10 +185,10 @@ def _render_preset_selectbox(cleaned_available_settings):
     st.selectbox(
         "Select Preset Settings",
         options=setting_options,
-        key='setting_selectbox',
+        key="setting_selectbox",
         on_change=_on_setting_change_handler,
         args=(cleaned_available_settings,),
-        help="Choose a preset configuration or customize parameters manually."
+        help="Choose a preset configuration or customize parameters manually.",
     )
 
 
@@ -206,7 +200,7 @@ def open_dataset_settings_modal(selected_dataset, window_length, dataset_key):
     cleaned_available_settings, default_preset_name = _get_cleaned_available_settings(selected_dataset)
 
     # Initialize session state for selected setting if not exists
-    if 'selected_setting' not in st.session_state:
+    if "selected_setting" not in st.session_state:
         st.session_state.selected_setting = None
 
     _sync_selected_setting_with_params(cleaned_available_settings)
@@ -218,7 +212,7 @@ def open_dataset_settings_modal(selected_dataset, window_length, dataset_key):
         st.session_state.force_update_widgets = True
 
     # Track if we need to force update the widgets (when preset changes)
-    if 'force_update_widgets' not in st.session_state:
+    if "force_update_widgets" not in st.session_state:
         st.session_state.force_update_widgets = False
 
     _check_preset_modification(cleaned_available_settings)
@@ -234,7 +228,7 @@ def open_dataset_settings_modal(selected_dataset, window_length, dataset_key):
         schema_to_render,
         initial_values=initial_dataset_params,
         key_prefix="temp_dataset_",
-        force_update=st.session_state.force_update_widgets
+        force_update=st.session_state.force_update_widgets,
     )
 
     # Reset force update flag
@@ -250,7 +244,7 @@ def open_dataset_settings_modal(selected_dataset, window_length, dataset_key):
     if st.button("Apply Dataset Changes"):
         # Update session state directly
         st.session_state.dataset_params = temp_dataset_params.copy()
-        if 'dataset_params_by_dataset' not in st.session_state:
+        if "dataset_params_by_dataset" not in st.session_state:
             st.session_state.dataset_params_by_dataset = {}
         st.session_state.dataset_params_by_dataset[dataset_key] = temp_dataset_params.copy()
         st.rerun()

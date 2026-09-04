@@ -15,13 +15,20 @@ from src.recurrence.protree.explainers import TExplainer, APete
 class RaceP(DriftDetector):
     """RACE-P: Real-time Analysis of Concept Evolution with Prototypes"""
 
-    def __init__(self, model: RandomForestClassifier | ARFClassifier, prototype_selector: Type[TExplainer] = APete,
-                 prototype_selector_kwargs: dict | None = None,
-                 measure: Literal[
-                     "mutual_information", "rand_index", "completeness", "fowlkes_mallows", "centroid_displacement",
-                     "minimal_distance"] = "centroid_displacement", strategy: Literal["class", "total"] = "total",
-                 distance: Literal["l2", "tree"] = "l2", assign_to: Literal["class", "prototype"] = "prototype",
-                 grace_period: int = 20, const: float = 3.0) -> None:
+    def __init__(
+        self,
+        model: RandomForestClassifier | ARFClassifier,
+        prototype_selector: Type[TExplainer] = APete,
+        prototype_selector_kwargs: dict | None = None,
+        measure: Literal[
+            "mutual_information", "rand_index", "completeness", "fowlkes_mallows", "centroid_displacement", "minimal_distance"
+        ] = "centroid_displacement",
+        strategy: Literal["class", "total"] = "total",
+        distance: Literal["l2", "tree"] = "l2",
+        assign_to: Literal["class", "prototype"] = "prototype",
+        grace_period: int = 20,
+        const: float = 3.0,
+    ) -> None:
         super().__init__()
         self.assign_to = assign_to
         self.grace_period = grace_period
@@ -71,13 +78,13 @@ class RaceP(DriftDetector):
     def _update_explainers(self) -> None:
         self.explainers = (
             deepcopy(self.explainers[1]),
-            self.prototype_selector(deepcopy(self.model), **self.prototype_selector_kwargs)
+            self.prototype_selector(deepcopy(self.model), **self.prototype_selector_kwargs),
         )
 
     def _find_prototypes(self) -> None:
         self.prototypes = (
             deepcopy(self.prototypes[1]),
-            self.explainers[1].select_prototypes(self.x_blocks[1], self.y_blocks[1])
+            self.explainers[1].select_prototypes(self.x_blocks[1], self.y_blocks[1]),
         )
 
     def _update_metric_stats(self, metric: float | dict[str | int, float]) -> None:
@@ -134,8 +141,9 @@ class RaceP(DriftDetector):
 
             self._direction = "increase"
             if self.distance == "tree":
-                return prototype_reassignment_impact(*self.prototypes, self.x_blocks[1], self.y_blocks[1],
-                                                     explainer=self.explainers[1])
+                return prototype_reassignment_impact(
+                    *self.prototypes, self.x_blocks[1], self.y_blocks[1], explainer=self.explainers[1]
+                )
             return prototype_reassignment_impact(*self.prototypes, self.x_blocks[1], self.y_blocks[1])
 
         elif self.measure == "minimal_distance":
@@ -165,12 +173,7 @@ class RaceP(DriftDetector):
                 return self._compute_spatial_metric(mean_centroid_displacement)
 
     def _build_cluster_kwargs(self) -> dict:
-        kwargs = {
-            "a": self.prototypes[0],
-            "b": self.prototypes[1],
-            "x": self.x_blocks[1],
-            "assign_to": self.assign_to
-        }
+        kwargs = {"a": self.prototypes[0], "b": self.prototypes[1], "x": self.x_blocks[1], "assign_to": self.assign_to}
 
         if self.distance == "tree":
             kwargs["explainer_a"] = self.explainers[0]
