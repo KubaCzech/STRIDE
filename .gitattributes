@@ -1,0 +1,3 @@
+# GitHub Linguist overrides
+# Exclude Jupyter Notebooks from repository language statistics so Python is accurately represented
+*.ipynb linguist-detectable=false
