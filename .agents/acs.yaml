@@ -1,0 +1,44 @@
+name: "STRIDE"
+version: "1.0"
+description: "xAI and Data Analysis Tools for Drift Detection, Characterization, and Explanation"
+entrypoint: "../AGENTS.md"
+layers:
+  rules:
+    - path: "./rules/dashboard_standards.md"
+      description: "Streamlit UI standards, session state isolation, and responsive layout rules."
+      trigger_paths:
+        - "dashboard/**"
+        - "streamlit_app.py"
+    - path: "./rules/ml_and_drift_standards.md"
+      description: "Machine learning, drift generation, and xAI explainer standards."
+      trigger_paths:
+        - "src/**"
+    - path: "./rules/ci_standards.md"
+      description: "Local CI validation equivalents and failure resolution protocols."
+      trigger_paths:
+        - ".github/workflows/**"
+        - "requirements.txt"
+        - "tests/**"
+    - path: "./rules/agent_maintenance_standards.md"
+      description: "Autonomous self-maintenance triggers and procedure."
+      trigger_paths:
+        - ".agents/**"
+        - "AGENTS.md"
+  context:
+    - path: "./context/architecture.md"
+      description: "Detailed architecture of src/ modules, data flow, and dashboard layout."
+      trigger_paths:
+        - "src/**"
+        - "dashboard/**"
+  skills:
+    - path: "./skills/developing-with-streamlit/SKILL.md"
+      description: "Official Streamlit skill for dashboard creation, styling, and performance."
+      trigger_paths:
+        - "dashboard/**"
+    - path: "./skills/agent-maintenance/SKILL.md"
+      description: "Autonomous .agents/ context maintenance workflow."
+      trigger_paths:
+        - ".agents/**"
+metadata:
+  primary_agent: "Antigravity"
+  objective: "Provide explainable artificial intelligence (xAI) tools for concept drift detection and an interactive Streamlit dashboard."
