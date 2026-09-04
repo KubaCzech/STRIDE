@@ -20,7 +20,7 @@ Before writing or modifying any code, identify your target area and **read the c
 | :--- | :--- | :--- | :--- |
 | **Streamlit Dashboard & UI** | `dashboard/**`, `streamlit_app.py` | [`.agents/rules/dashboard_standards.md`](.agents/rules/dashboard_standards.md)<br>[`.agents/skills/developing-with-streamlit/SKILL.md`](.agents/skills/developing-with-streamlit/SKILL.md) | • Isolate model/dataset state per key<br>• Use `width="stretch"` (no `use_container_width`)<br>• Gating expensive computation with `st.fragment`/`st.form` |
 | **ML Models, Drift & xAI** | `src/**` | [`.agents/rules/ml_and_drift_standards.md`](.agents/rules/ml_and_drift_standards.md)<br>[`.agents/context/architecture.md`](.agents/context/architecture.md) | • Fixed random seeds for stream reproducibility<br>• Consistent interface for data generators (`X, y`)<br>• Handle high-dimensional projections cleanly |
-| **CI, Linting & Testing** | `.github/workflows/**`, `tests/**` | [`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Pass flake8 with zero syntax/name errors<br>• All tests pass via `unittest discover tests` |
+| **CI, Linting & Testing** | `.github/workflows/**`, `tests/**` | [`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Pass ruff check and ruff format with zero errors<br>• All tests pass via `unittest discover tests` |
 | **Agent Context & Config** | `.agents/**`, `AGENTS.md` | [`.agents/rules/agent_maintenance_standards.md`](.agents/rules/agent_maintenance_standards.md)<br>[`.agents/skills/agent-maintenance/SKILL.md`](.agents/skills/agent-maintenance/SKILL.md) | • Update `acs.yaml` triggers on new paths<br>• Maintain roadmap status in `project_context.md` |
 | **Git & Version Control** | Repository root / Git | [`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Atomic Conventional Commits (`feat`, `fix`, `test`, `chore`)<br>• Mandatory pre-push local CI validation |
 
@@ -36,7 +36,7 @@ Every task must progress sequentially through these 5 lifecycle gates:
 
 1. **Gate 1: Rule & Contract Intake (MANDATORY)**: Identify target files. Read required rule and reference files from the *Rule Routing Matrix* using `view_file`. Inspect underlying interfaces before invocation.
 2. **Gate 2: Implementation**: Write clean, modular Python adhering strictly to golden patterns in `.agents/rules/`.
-3. **Gate 3: Local CI Verification**: Execute all local verification commands (flake8 and unittest) to verify clean status.
+3. **Gate 3: Local CI Verification**: Execute all local verification commands (ruff and unittest) to verify clean status.
 4. **Gate 4: Context Self-Maintenance**: Update `.agents/context/` or `.agents/project_context.md` if components, models, or dependencies evolved.
 5. **Gate 5: Git & PR Protocol**: Follow atomic Conventional Commits; verify branch ancestry before pushing.
 
@@ -49,7 +49,8 @@ Always run these commands with the project virtual environment activated (`.venv
 | Purpose | Working Directory | Command |
 | :--- | :--- | :--- |
 | **Run Dashboard** | Root | `streamlit run dashboard/app.py` |
-| **Lint (Flake8)** | Root | `flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude .venv,sdbm` |
+| **Lint (Ruff)** | Root | `ruff check .` |
+| **Format Check (Ruff)** | Root | `ruff format --check .` |
 | **Run Tests** | Root | `python -m unittest discover tests` |
 
 ---
@@ -58,7 +59,7 @@ Always run these commands with the project virtual environment activated (`.venv
 
 - **Always**:
   - Consult the *Mandatory Rule Routing Matrix* before editing code.
-  - Run full local verification commands (flake8, tests) prior to committing or pushing.
+  - Run full local verification commands (ruff check/format, tests) prior to committing or pushing.
   - Keep commits atomic with standard Conventional Commits.
 - **Ask First (Human Escalation Gateways)**:
   - Adding heavy machine learning dependencies (e.g. PyTorch, TensorFlow) or changing `requirements.txt`.

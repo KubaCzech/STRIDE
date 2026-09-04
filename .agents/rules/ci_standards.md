@@ -10,16 +10,17 @@ To maintain high code quality and prevent CI build failures, all changes must be
 
 Execute these commands from the repository root:
 
-1. **Flake8 Syntax & Critical Error Linting**:
+1. **Ruff Linting**:
    ```bash
-   flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude .venv,sdbm
+   ruff check .
    ```
    *Requirement: Must exit with 0 errors.*
 
-2. **Flake8 Extended Style Check**:
+2. **Ruff Format Check**:
    ```bash
-   flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude .venv,sdbm
+   ruff format --check .
    ```
+   *Requirement: All files must already be formatted.*
 
 3. **Automated Test Suite**:
    ```bash
@@ -31,7 +32,7 @@ Execute these commands from the repository root:
 
 ## Pre-Push Verification Protocol
 
-Under no circumstances execute `git push` without running the above checks. If a test fails:
+Under no circumstances execute `git push` without running the above checks. If a test or check fails:
 1. Investigate the failure log and identify the root cause.
-2. Fix the regression in application/test code.
-3. Re-run both Flake8 and Unittest to ensure complete green status.
+2. Fix the regression in application/test code or run `ruff format .` / `ruff check --fix .`.
+3. Re-run Ruff and Unittest to ensure complete green status.

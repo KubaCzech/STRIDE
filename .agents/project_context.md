@@ -22,5 +22,5 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 ## Critical Requirements & Developer Guidelines
 1. **Local Setup**: Python 3.10-3.12 with `.venv`. Run dashboard via `streamlit run dashboard/app.py`.
 2. **Deterministic Rules**: Always consult `AGENTS.md` and read the matching `.agents/rules/*.md` before modifying code.
-3. **Quality & Verification**: Execute local flake8 and `python -m unittest discover tests` before committing.
+3. **Quality & Verification**: Execute local `ruff check .`, `ruff format --check .`, and `python -m unittest discover tests` before committing.
 4. **Self-Maintenance**: Update `.agents/` when completing features or changing dependencies using `.agents/skills/agent-maintenance/SKILL.md`.

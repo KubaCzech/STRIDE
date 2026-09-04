@@ -36,8 +36,28 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "flake8"
+    "ruff"
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 127
+exclude = [
+    ".venv",
+    "sdbm",
+    "notebooks",
+    ".agents"
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # line length handled flexibly / up to 127 chars
+    "E402",  # module level import not at top of file
+    "E741",  # ambiguous variable name (e.g. l)
+    "F401",  # imported but unused (common in package init files)
+    "F841",  # local variable assigned but never used
+]
