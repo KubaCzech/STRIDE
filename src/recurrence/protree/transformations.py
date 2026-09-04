@@ -42,10 +42,7 @@ class MultilabelHotEncoder:
 
         :return: A new DataFrame with binary-encoded columns.
         """
-        y_transformed = pd.DataFrame(
-            data=np.zeros((y.shape[0], len(self.columns)), dtype=int),
-            columns=self.columns
-        )
+        y_transformed = pd.DataFrame(data=np.zeros((y.shape[0], len(self.columns)), dtype=int), columns=self.columns)
         for col in self.columns:
             y_transformed[col] = (y == col).any(axis=1).astype(int)
         return y_transformed

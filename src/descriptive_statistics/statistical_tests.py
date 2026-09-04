@@ -15,13 +15,13 @@ from src.common import DataScaler, ScalingType
 
 
 class StatisticalTestType(Enum):
-    KolmogorovSmirnov = 'kolmogorov_smirnov'
-    KullbackLeibler = 'kullback_leibler'
-    WassersteinDistance = 'wasserstein'
-    JensenShannon = 'jensen_shannon'
-    Spearman = 'spearman'
-    AD = 'anderson_darling'
-    All = 'all'
+    KolmogorovSmirnov = "kolmogorov_smirnov"
+    KullbackLeibler = "kullback_leibler"
+    WassersteinDistance = "wasserstein"
+    JensenShannon = "jensen_shannon"
+    Spearman = "spearman"
+    AD = "anderson_darling"
+    All = "all"
 
 
 class StatisticalTestsDriftDetector:
@@ -62,9 +62,9 @@ class StatisticalTestsDriftDetector:
 
         self.labels = sorted(list(set(self.y_before).union(set(self.y_after))))
 
-        assert sorted(self.X_before.columns.values) == sorted(
-            self.X_after.columns.values
-        ), "Columns must be the same between data blocks"
+        assert sorted(self.X_before.columns.values) == sorted(self.X_after.columns.values), (
+            "Columns must be the same between data blocks"
+        )
 
         self._scale_data()
 
@@ -102,30 +102,23 @@ class StatisticalTestsDriftDetector:
 
     def _kolmogorov_smirnov_test(self):
         details = {
-            l: {col: {'drift': False, 'p_value': None, 'stat': None} for col in self.X_before.columns}
-            for l in self.labels
+            l: {col: {"drift": False, "p_value": None, "stat": None} for col in self.X_before.columns} for l in self.labels
         }
 
         for l in self.labels:
             for column in self.X_before.columns:
-                stat, p_value = ks_2samp(
-                    self.X_before[self.y_before == l][column], self.X_after[self.y_after == l][column]
-                )
-                details[l][column]['p_value'] = p_value
-                details[l][column]['stat'] = stat
+                stat, p_value = ks_2samp(self.X_before[self.y_before == l][column], self.X_after[self.y_after == l][column])
+                details[l][column]["p_value"] = p_value
+                details[l][column]["stat"] = stat
                 if p_value < self.alpha:
-                    details[l][column]['drift'] = True
+                    details[l][column]["drift"] = True
 
-        drift_flag = (
-            np.mean([details[l][col]['drift'] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
-        )
+        drift_flag = np.mean([details[l][col]["drift"] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
         return drift_flag, details
 
     def _kullback_leibler_test(self):
         eps = 1e-10
-        details = {
-            l: {col: {'drift': False, 'kl_div': None} for col in self.X_before_scaled.columns} for l in self.labels
-        }
+        details = {l: {col: {"drift": False, "kl_div": None} for col in self.X_before_scaled.columns} for l in self.labels}
 
         for l in self.labels:
             for column in self.X_before_scaled.columns:
@@ -141,38 +134,34 @@ class StatisticalTestsDriftDetector:
                 new_dist /= new_dist.sum()
 
                 kl_div = np.sum(rel_entr(old_dist, new_dist))
-                details[l][column]['kl_div'] = kl_div
+                details[l][column]["kl_div"] = kl_div
                 if kl_div > self.kl_thr:
-                    details[l][column]['drift'] = True
+                    details[l][column]["drift"] = True
 
         drift_flag = (
-            np.mean([details[l][col]['drift'] for col in self.X_before_scaled.columns for l in self.labels])
-            > self.drift_thr
+            np.mean([details[l][col]["drift"] for col in self.X_before_scaled.columns for l in self.labels]) > self.drift_thr
         )
         return drift_flag, details
 
     def _wasserstein_test(self):
-        details = {l: {col: {'drift': False, 'wd': None} for col in self.X_before_scaled.columns} for l in self.labels}
+        details = {l: {col: {"drift": False, "wd": None} for col in self.X_before_scaled.columns} for l in self.labels}
 
         for l in self.labels:
             for column in self.X_before_scaled.columns:
                 wd = wasserstein_distance(
                     self.X_before_scaled[self.y_before == l][column], self.X_after_scaled[self.y_after == l][column]
                 )
-                details[l][column]['wd'] = wd
+                details[l][column]["wd"] = wd
                 if wd > self.wasserstein_thr:
-                    details[l][column]['drift'] = True
+                    details[l][column]["drift"] = True
         drift_flag = (
-            np.mean([details[l][col]['drift'] for col in self.X_before_scaled.columns for l in self.labels])
-            > self.drift_thr
+            np.mean([details[l][col]["drift"] for col in self.X_before_scaled.columns for l in self.labels]) > self.drift_thr
         )
         return drift_flag, details
 
     def _jensen_shannon_test(self):
         eps = 1e-10
-        details = {
-            l: {col: {'drift': False, 'js_div': None} for col in self.X_before_scaled.columns} for l in self.labels
-        }
+        details = {l: {col: {"drift": False, "js_div": None} for col in self.X_before_scaled.columns} for l in self.labels}
 
         for l in self.labels:
             for column in self.X_before_scaled.columns:
@@ -181,28 +170,23 @@ class StatisticalTestsDriftDetector:
                 )
                 old_dist += eps
 
-                new_dist = (
-                    np.histogram(self.X_after_scaled[self.y_after == l][column], bins=bin_edges, density=True)[0] + eps
-                )
+                new_dist = np.histogram(self.X_after_scaled[self.y_after == l][column], bins=bin_edges, density=True)[0] + eps
 
                 old_dist /= old_dist.sum()
                 new_dist /= new_dist.sum()
 
                 js_div = jensenshannon(old_dist, new_dist) ** 2
-                details[l][column]['js_div'] = js_div
+                details[l][column]["js_div"] = js_div
 
                 if js_div > self.js_thr:
-                    details[l][column]['drift'] = True
+                    details[l][column]["drift"] = True
         drift_flag = (
-            np.mean([details[l][col]['drift'] for col in self.X_before_scaled.columns for l in self.labels])
-            > self.drift_thr
+            np.mean([details[l][col]["drift"] for col in self.X_before_scaled.columns for l in self.labels]) > self.drift_thr
         )
         return drift_flag, details
 
     def _spearman_test(self):
-        details = {
-            l: {col: {'drift': False, 'spearman_coeff': None} for col in self.X_before.columns} for l in self.labels
-        }
+        details = {l: {col: {"drift": False, "spearman_coeff": None} for col in self.X_before.columns} for l in self.labels}
 
         for l in self.labels:
             for column in self.X_before.columns:
@@ -213,17 +197,15 @@ class StatisticalTestsDriftDetector:
                 new_sample = self.X_after[self.y_after == l][column].values[:min_len]
 
                 corr, _ = spearmanr(old_sample, new_sample)
-                details[l][column]['spearman_coeff'] = corr
+                details[l][column]["spearman_coeff"] = corr
                 if abs(corr) < self.spearman_thr:
-                    details[l][column]['drift'] = True
-        drift_flag = (
-            np.mean([details[l][col]['drift'] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
-        )
+                    details[l][column]["drift"] = True
+        drift_flag = np.mean([details[l][col]["drift"] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
         return drift_flag, details
 
     def _anderson_darling_test(self):
         details = {
-            l: {col: {'drift': False, 'p_value': None, 'stat': None, 'critical': None} for col in self.X_before.columns}
+            l: {col: {"drift": False, "p_value": None, "stat": None, "critical": None} for col in self.X_before.columns}
             for l in self.labels
         }
 
@@ -233,11 +215,9 @@ class StatisticalTestsDriftDetector:
                     [self.X_before[self.y_before == l][column], self.X_after[self.y_after == l][column]]
                 )
                 if p_value < self.alpha:
-                    details[l][column]['drift'] = True
-                details[l][column]['p_value'] = p_value
-                details[l][column]['stat'] = stat
-                details[l][column]['critical'] = critical
-        drift_flag = (
-            np.mean([details[l][col]['drift'] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
-        )
+                    details[l][column]["drift"] = True
+                details[l][column]["p_value"] = p_value
+                details[l][column]["stat"] = stat
+                details[l][column]["critical"] = critical
+        drift_flag = np.mean([details[l][col]["drift"] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
         return drift_flag, details

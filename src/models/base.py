@@ -52,10 +52,10 @@ class BaseModel(BaseEstimator, ClassifierMixin, ABC):
         """
         Return available named settings for this model.
         """
-        settings_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+        settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
 
         try:
-            with open(settings_path, 'r') as f:
+            with open(settings_path, "r") as f:
                 all_settings = json.load(f)
             return all_settings.get(self.name, {})
         except FileNotFoundError:

@@ -6,9 +6,7 @@ from scipy.stats import entropy
 
 
 class BinaryScaler:
-    def __init__(
-            self
-    ) -> None:
+    def __init__(self) -> None:
         self.mapper: dict[str, float] = {}
 
     def fit(self, x: pd.DataFrame, y: pd.DataFrame) -> BinaryScaler:

@@ -72,7 +72,7 @@ class SeaDriftDataset(BaseDataset):
             # Sudden drift workaround for River overflow bug at small widths
             stream_SEA = itertools.chain(
                 itertools.islice(synth.SEA(seed=random_seed, variant=0), n_samples_before),
-                itertools.islice(synth.SEA(seed=random_seed, variant=3), n_samples_after)
+                itertools.islice(synth.SEA(seed=random_seed, variant=3), n_samples_after),
             )
         else:
             stream_SEA = synth.ConceptDriftStream(

@@ -14,22 +14,22 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 
 class ScalingType(Enum):
-    MinMax = 'min_max'
-    Standard = 'standard'
+    MinMax = "min_max"
+    Standard = "standard"
 
 
 class ReducerType(Enum):
     # For linear data
-    PCA = 'PCA'
-    ICA = 'ICA'
-    FA = 'FA'
-    LDA = 'LDA'
+    PCA = "PCA"
+    ICA = "ICA"
+    FA = "FA"
+    LDA = "LDA"
 
     # Non-linear
-    TSNE = 't_SNE'
-    UMAP = 'UMAP'
-    LLE = 'LLE'
-    MDS = 'MDS'
+    TSNE = "t_SNE"
+    UMAP = "UMAP"
+    LLE = "LLE"
+    MDS = "MDS"
     # Autoencoders/Isomap/kernel PCA could be added here
 
 
@@ -183,7 +183,7 @@ class DataDimensionsReducer:
         elif self.reducer_type == ReducerType.LLE:
             return LocallyLinearEmbedding(n_components=self.n_components, n_neighbors=max(5, self.n_components + 1))
         elif self.reducer_type == ReducerType.MDS:
-            return MDS(n_components=self.n_components, n_init=4, init='classical_mds', random_state=42)
+            return MDS(n_components=self.n_components, n_init=4, init="classical_mds", random_state=42)
         else:
             raise ValueError(f"Unsupported reducer type: {self.reducer_type}")
 
@@ -224,7 +224,7 @@ class DataDimensionsReducer:
 
         self._is_fitted = True
         if return_df:
-            return pd.DataFrame(reduced_data, columns=[f'component_{i+1}' for i in range(self.n_components)])
+            return pd.DataFrame(reduced_data, columns=[f"component_{i + 1}" for i in range(self.n_components)])
         return reduced_data
 
     def transform(self, X: pd.DataFrame, return_df: bool = False) -> Union[np.ndarray, pd.DataFrame]:
@@ -260,5 +260,5 @@ class DataDimensionsReducer:
 
         reduced_data = self.reducer.transform(X)
         if return_df:
-            return pd.DataFrame(reduced_data, columns=[f'component_{i+1}' for i in range(self.n_components)])
+            return pd.DataFrame(reduced_data, columns=[f"component_{i + 1}" for i in range(self.n_components)])
         return reduced_data

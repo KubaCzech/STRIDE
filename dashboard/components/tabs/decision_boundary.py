@@ -6,18 +6,30 @@ from src.decision_boundary.visualization import visualize_decision_boundary, plo
 
 
 def _render_ssnp_config(X_before):
-    is_2d = X_before.shape[1] == 2 if hasattr(X_before, 'shape') and len(X_before.shape) > 1 else False
+    is_2d = X_before.shape[1] == 2 if hasattr(X_before, "shape") and len(X_before.shape) > 1 else False
     with st.expander("SSNP Configuration", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
-            ssnp_epochs = st.number_input("SSNP Epochs", min_value=1, max_value=200, value=10, step=5,
-                                          help="Number of epochs for training the SSNP projector.",
-                                          disabled=is_2d)
+            ssnp_epochs = st.number_input(
+                "SSNP Epochs",
+                min_value=1,
+                max_value=200,
+                value=10,
+                step=5,
+                help="Number of epochs for training the SSNP projector.",
+                disabled=is_2d,
+            )
             if is_2d:
                 st.caption("Data is 2D. SSNP bypassed.")
         with col2:
-            grid_size = st.number_input("Grid Resolution", min_value=50, max_value=500, value=200, step=50,
-                                        help="Resolution of the grid for visualizing probabilities.")
+            grid_size = st.number_input(
+                "Grid Resolution",
+                min_value=50,
+                max_value=500,
+                value=200,
+                step=50,
+                help="Resolution of the grid for visualizing probabilities.",
+            )
     return ssnp_epochs, grid_size
 
 
@@ -25,23 +37,23 @@ def _run_analysis_if_needed(
     X_before, y_before, X_after, y_after, model_class, model_params, ssnp_epochs, grid_size, feature_names=None
 ):
     # Initialize session state for results if not exists
-    if 'decision_boundary_results' not in st.session_state:
+    if "decision_boundary_results" not in st.session_state:
         st.session_state.decision_boundary_results = None
 
     # Define current run parameters to detect changes
     current_run_params = {
-        'ssnp_epochs': ssnp_epochs,
-        'grid_size': grid_size,
-        'model_class': getattr(model_class, '__name__', str(model_class)),
-        'model_params': str(model_params),
-        'X_shape': X_before.shape if hasattr(X_before, 'shape') else None
+        "ssnp_epochs": ssnp_epochs,
+        "grid_size": grid_size,
+        "model_class": getattr(model_class, "__name__", str(model_class)),
+        "model_params": str(model_params),
+        "X_shape": X_before.shape if hasattr(X_before, "shape") else None,
     }
 
     # Determine if analysis needs to be run
     should_run = False
     if st.session_state.decision_boundary_results is None:
         should_run = True
-    elif 'decision_boundary_last_params' not in st.session_state:
+    elif "decision_boundary_last_params" not in st.session_state:
         should_run = True
     elif st.session_state.decision_boundary_last_params != current_run_params:
         should_run = True
@@ -55,7 +67,7 @@ def _run_analysis_if_needed(
                     model_params=model_params,
                     ssnp_epochs=ssnp_epochs,
                     grid_size=grid_size,
-                    feature_names=feature_names
+                    feature_names=feature_names,
                 )
                 # Store results and params in session state
                 st.session_state.decision_boundary_results = results
@@ -74,7 +86,7 @@ def _display_results():
             st.markdown("### Decision Boundaries (Pre vs Post)")
 
             res = st.session_state.decision_boundary_results
-            is_2d = res.get('is_2d', False)
+            is_2d = res.get("is_2d", False)
 
             # Create and display plot
             fig = visualize_decision_boundary(res)
@@ -82,31 +94,31 @@ def _display_results():
             plt.close(fig)
 
             # Display Disagreement Analysis
-            if 'disagreement' in res and res['disagreement']['drift_rate'] > 0:
+            if "disagreement" in res and res["disagreement"]["drift_rate"] > 0:
                 st.markdown("### Categorical Drift Map (Disagreement)")
                 st.info(f"Drift Rate (Disagreement): {res['disagreement']['drift_rate']:.1%}")
 
                 col_map, col_table = st.columns([1, 1])
 
                 with col_map:
-                    grid_bounds = res['post']['grid_bounds']
+                    grid_bounds = res["post"]["grid_bounds"]
                     fig_map = plot_categorical_drift_map(
-                        ssnp_model=res['ssnp_model'],
-                        viz_tree=res['disagreement']['viz_tree'],
-                        drift_leaf_ids=res['disagreement']['drift_leaf_ids'],
+                        ssnp_model=res["ssnp_model"],
+                        viz_tree=res["disagreement"]["viz_tree"],
+                        drift_leaf_ids=res["disagreement"]["drift_leaf_ids"],
                         grid_bounds=grid_bounds,
-                        grid_size=res['grid_size'],
-                        is_2d=is_2d # Pass flag down
+                        grid_size=res["grid_size"],
+                        is_2d=is_2d,  # Pass flag down
                     )
                     st.pyplot(fig_map)
                     plt.close(fig_map)
 
                 with col_table:
                     st.markdown("#### Disagreement Rules")
-                    rules_df = res['disagreement']['disagreement_table'].copy()
+                    rules_df = res["disagreement"]["disagreement_table"].copy()
                     rules_df.index = rules_df.index + 1
-                    st.dataframe(rules_df, width='stretch')
-            elif 'disagreement' in res:
+                    st.dataframe(rules_df, width="stretch")
+            elif "disagreement" in res:
                 st.success("No significant disagreement (drift) detected between pre-drift and post-drift models.")
 
         except Exception as e:
@@ -115,14 +127,18 @@ def _display_results():
                 st.session_state.decision_boundary_results = None
                 st.rerun()
 
+
 def _render_decision_boundary_tab_content(X_before, y_before, X_after, y_after, model_class, model_params, feature_names=None):
     ssnp_epochs, grid_size = _render_ssnp_config(X_before)
-    _run_analysis_if_needed(X_before, y_before, X_after, y_after, model_class,
-                            model_params, ssnp_epochs, grid_size, feature_names)
+    _run_analysis_if_needed(
+        X_before, y_before, X_after, y_after, model_class, model_params, ssnp_epochs, grid_size, feature_names
+    )
     _display_results()
 
-def render_decision_boundary_tab(X_before, y_before, X_after, y_after,
-                                 model_class=None, model_params=None, feature_names=None):
+
+def render_decision_boundary_tab(
+    X_before, y_before, X_after, y_after, model_class=None, model_params=None, feature_names=None
+):
     """
     Renders the Decision Boundary Analysis tab.
 
@@ -149,6 +165,7 @@ def render_decision_boundary_tab(X_before, y_before, X_after, y_after,
     """)
 
     ssnp_epochs, grid_size = _render_ssnp_config(X_before)
-    _run_analysis_if_needed(X_before, y_before, X_after, y_after, model_class,
-                            model_params, ssnp_epochs, grid_size, feature_names)
+    _run_analysis_if_needed(
+        X_before, y_before, X_after, y_after, model_class, model_params, ssnp_epochs, grid_size, feature_names
+    )
     _display_results()

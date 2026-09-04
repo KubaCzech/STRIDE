@@ -1,11 +1,8 @@
-
 def get_dataset_settings_schema(dataset, window_len):
     """
     Get the settings schema for a dataset, adapting it for the dashboard if necessary.
     """
-    if (dataset.name != "custom_normal" and
-            dataset.name != "custom_3d_drift" and
-            dataset.name != "sea_drift"):
+    if dataset.name != "custom_normal" and dataset.name != "custom_3d_drift" and dataset.name != "sea_drift":
         return dataset.get_settings_schema()
 
     original_schema = dataset.get_settings_schema()

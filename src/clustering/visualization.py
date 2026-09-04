@@ -123,14 +123,14 @@ def _plot_clusters(X: pd.DataFrame, labels: Sequence[Union[float, int]], title: 
         labels = labels.values
 
     # Ensure labels are integers
-    if labels.dtype.kind == 'f':
+    if labels.dtype.kind == "f":
         labels = labels.astype(int)
 
     unique_labels = sorted(np.unique(labels))
 
     for ul in unique_labels:
         color = color_map.get(ul, "#333333")  # Default to dark gray if missing
-        plt.scatter(X[labels == ul, 0], X[labels == ul, 1], color=color, label=f'Cluster {ul}', s=30)
+        plt.scatter(X[labels == ul, 0], X[labels == ul, 1], color=color, label=f"Cluster {ul}", s=30)
 
     plt.title(title)
     plt.xlabel("Component 1")
@@ -178,9 +178,9 @@ def plot_drift_clustered(
     if hasattr(labels_after, "values"):
         labels_after = labels_after.values
 
-    if labels_before.dtype.kind == 'f':
+    if labels_before.dtype.kind == "f":
         labels_before = labels_before.astype(int)
-    if labels_after.dtype.kind == 'f':
+    if labels_after.dtype.kind == "f":
         labels_after = labels_after.astype(int)
 
     # First data block
@@ -249,9 +249,7 @@ def plot_clusters_by_class(
         plt.sca(ax_before)
 
         mask_before = np.array(y_before) == cl
-        _plot_clusters(
-            X_before[mask_before], cluster_labels_before[mask_before], title=f"Before Drift – Class {int(cl)}"
-        )
+        _plot_clusters(X_before[mask_before], cluster_labels_before[mask_before], title=f"Before Drift – Class {int(cl)}")
 
         # second data block
         ax_after = axes[row, 1]
@@ -308,8 +306,8 @@ def plot_centers_shift(
     plt.figure(figsize=(8, 8))
 
     # For legend purposes
-    plt.scatter([], [], marker='x', color='black', label='Center (before)')
-    plt.scatter([], [], marker='o', color='black', label='Center (after)')
+    plt.scatter([], [], marker="x", color="black", label="Center (before)")
+    plt.scatter([], [], marker="o", color="black", label="Center (after)")
 
     for label in all_labels:
         plt.scatter([], [], marker="o", color=color_map[label], label=f"Cluster {label}")
@@ -330,7 +328,7 @@ def plot_centers_shift(
                 [center_old[0], center_new[0]],
                 [center_old[1], center_new[1]],
                 linewidth=2,
-                linestyle='--',
+                linestyle="--",
                 color=color_map[label],
             )
             plt.scatter(*center_old, marker="x", color=color_map[label], s=60)

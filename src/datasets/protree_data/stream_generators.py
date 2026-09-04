@@ -14,9 +14,10 @@ TStreamGenerator: TypeAlias = Literal["sine", "plane", "random_tree", "rbf", "mi
 
 class StreamGeneratorFactory:
     @staticmethod
-    def create(name: TStreamGenerator, drift_position: int | list[int] = 500, drift_duration: int = 5, seed: int = RANDOM_SEED
-               ) -> IStreamGenerator:
-        name = ''.join([n.capitalize() for n in name.split('_')])
+    def create(
+        name: TStreamGenerator, drift_position: int | list[int] = 500, drift_duration: int = 5, seed: int = RANDOM_SEED
+    ) -> IStreamGenerator:
+        name = "".join([n.capitalize() for n in name.split("_")])
         if name in globals():
             return globals()[f"{name}"](drift_position=drift_position, drift_duration=drift_duration, seed=seed)
         else:
@@ -52,8 +53,13 @@ class IStreamGenerator(ABC):
 
 
 class Sine(IStreamGenerator):
-    def __init__(self, drift_position: int | list[int] = 500, drift_duration: int = 1, seed: int = 42,
-                 informative_attrs: tuple[int, int] = (3, 2)) -> None:
+    def __init__(
+        self,
+        drift_position: int | list[int] = 500,
+        drift_duration: int = 1,
+        seed: int = 42,
+        informative_attrs: tuple[int, int] = (3, 2),
+    ) -> None:
         super().__init__(drift_position, drift_duration, seed)
         self.informative_attrs_0 = informative_attrs
         self.informative_attrs_1 = (None, None)
@@ -151,16 +157,21 @@ class Plane(IStreamGenerator):
 
     def _rotate_vector(self, vector: np.ndarray, angle_degrees: float) -> np.ndarray:
         angle_radians = np.radians(angle_degrees)
-        rotation_matrix = np.array([
-            [np.cos(angle_radians), -np.sin(angle_radians)],
-            [np.sin(angle_radians), np.cos(angle_radians)]
-        ])
+        rotation_matrix = np.array(
+            [[np.cos(angle_radians), -np.sin(angle_radians)], [np.sin(angle_radians), np.cos(angle_radians)]]
+        )
         return rotation_matrix @ vector
 
 
 class RandomTree(IStreamGenerator):
-    def __init__(self, drift_position: int | list[int] = 500, drift_duration: int = 1, seed: int = 42,
-                 n_informative: int = 4, n_redundant: int = 2) -> None:
+    def __init__(
+        self,
+        drift_position: int | list[int] = 500,
+        drift_duration: int = 1,
+        seed: int = 42,
+        n_informative: int = 4,
+        n_redundant: int = 2,
+    ) -> None:
         super().__init__(drift_position, drift_duration, seed)
         self.n_informative = n_informative
         self.n_redundant = n_redundant
@@ -171,8 +182,10 @@ class RandomTree(IStreamGenerator):
         result = []
         for i in range(n):
             self.update_drift()
-            x = {f"x{i}": np.clip(np.random.normal(loc=0.5, scale=0.2), 0, 1).item() for i in
-                 range(self.n_informative + self.n_redundant)}
+            x = {
+                f"x{i}": np.clip(np.random.normal(loc=0.5, scale=0.2), 0, 1).item()
+                for i in range(self.n_informative + self.n_redundant)
+            }
             y = self.y(x)
             result.append((x, y))
             self._iter_counter += 1
@@ -186,11 +199,12 @@ class RandomTree(IStreamGenerator):
         self._iter_drift_remaining -= 1
 
     def _grow_tree(self) -> None:
-        self._tree = DecisionTreeClassifier(max_depth=3).fit(np.random.rand(80, self.n_informative),
-                                                             np.random.randint(0, 2, 80))
+        self._tree = DecisionTreeClassifier(max_depth=3).fit(
+            np.random.rand(80, self.n_informative), np.random.randint(0, 2, 80)
+        )
 
     def y(self, x: dict[str, float]) -> int:
         if not self._tree:
             self._grow_tree()
-        tree_prediction = self._tree.predict(np.array([list(x.values())[:self.n_informative]]))[0]
+        tree_prediction = self._tree.predict(np.array([list(x.values())[: self.n_informative]]))[0]
         return int(self._flip != tree_prediction)

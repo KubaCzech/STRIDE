@@ -4,7 +4,7 @@ import os
 import inspect
 
 # Add repo root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.models import MLPModel, RandomForestModel  # noqa: E402
 from src.datasets.linear_weight_inversion_drift import LinearWeightInversionDriftDataset  # noqA: E402
@@ -12,22 +12,16 @@ from streamlit.testing.v1 import AppTest  # noqA: E402
 
 
 class TestDashboardState(unittest.TestCase):
-
     def test_model_parameter_filtering(self):
         """
         Verify that model parameter filtering strips unexpected keyword arguments
         and allows seamless model instantiation without TypeError.
         """
-        mlp_params = {
-            "hidden_layer_sizes": [10, 10],
-            "max_iter": 500,
-            "alpha": 0.00001,
-            "random_state": 42
-        }
+        mlp_params = {"hidden_layer_sizes": [10, 10], "max_iter": 500, "alpha": 0.00001, "random_state": 42}
 
         # Filtering MLP params for RandomForestModel
         rf_cls = RandomForestModel
-        rf_valid_keys = set(inspect.signature(rf_cls.__init__).parameters.keys()) - {'self'}
+        rf_valid_keys = set(inspect.signature(rf_cls.__init__).parameters.keys()) - {"self"}
         rf_filtered = {k: v for k, v in mlp_params.items() if k in rf_valid_keys}
 
         self.assertNotIn("hidden_layer_sizes", rf_filtered)
@@ -40,14 +34,9 @@ class TestDashboardState(unittest.TestCase):
         self.assertIsInstance(rf_model, RandomForestModel)
 
         # Filtering RF params for MLPModel
-        rf_params = {
-            "n_estimators": 100,
-            "max_depth": 5,
-            "min_samples_split": 2,
-            "random_state": 42
-        }
+        rf_params = {"n_estimators": 100, "max_depth": 5, "min_samples_split": 2, "random_state": 42}
         mlp_cls = MLPModel
-        mlp_valid_keys = set(inspect.signature(mlp_cls.__init__).parameters.keys()) - {'self'}
+        mlp_valid_keys = set(inspect.signature(mlp_cls.__init__).parameters.keys()) - {"self"}
         mlp_filtered = {k: v for k, v in rf_params.items() if k in mlp_valid_keys}
 
         self.assertNotIn("n_estimators", mlp_filtered)
@@ -126,14 +115,14 @@ class TestDashboardState(unittest.TestCase):
 
         at = AppTest.from_string(script)
         at.run()
-        self.assertFalse(at.exception, f'Initial run raised exception: {at.exception}')
-        self.assertEqual(len(at.multiselect(key='multiselect_linear_weight_inversion_drift').value), 11)
+        self.assertFalse(at.exception, f"Initial run raised exception: {at.exception}")
+        self.assertEqual(len(at.multiselect(key="multiselect_linear_weight_inversion_drift").value), 11)
 
         # Decrease n_features to 10
-        at.number_input(key='n_feat').set_value(10)
+        at.number_input(key="n_feat").set_value(10)
         at.run()
-        self.assertFalse(at.exception, f'Reducing features raised exception: {at.exception}')
-        self.assertEqual(len(at.multiselect(key='multiselect_linear_weight_inversion_drift').value), 10)
+        self.assertFalse(at.exception, f"Reducing features raised exception: {at.exception}")
+        self.assertEqual(len(at.multiselect(key="multiselect_linear_weight_inversion_drift").value), 10)
 
     def test_streamlit_model_switching_regression(self):
         """
@@ -165,36 +154,29 @@ class TestDashboardState(unittest.TestCase):
 
         at = AppTest.from_string(script)
         at.run()
-        self.assertFalse(at.exception, f'Initial run raised exception: {at.exception}')
+        self.assertFalse(at.exception, f"Initial run raised exception: {at.exception}")
 
         # Simulate applying custom MLP params
-        at.session_state['model_params_by_model']['mlp'] = {
-            'hidden_layer_sizes': [50, 50],
-            'max_iter': 1000,
-            'alpha': 0.001
-        }
-        at.session_state['model_params'] = at.session_state['model_params_by_model']['mlp'].copy()
+        at.session_state["model_params_by_model"]["mlp"] = {"hidden_layer_sizes": [50, 50], "max_iter": 1000, "alpha": 0.001}
+        at.session_state["model_params"] = at.session_state["model_params_by_model"]["mlp"].copy()
 
         # Switch to random_forest without entering modal
-        at.selectbox(key='model_choice').select('random_forest')
+        at.selectbox(key="model_choice").select("random_forest")
         at.run()
-        self.assertFalse(at.exception, f'Switching to random_forest raised exception: {at.exception}')
-        self.assertIsInstance(at.session_state['model_instance'], RandomForestModel)
+        self.assertFalse(at.exception, f"Switching to random_forest raised exception: {at.exception}")
+        self.assertIsInstance(at.session_state["model_instance"], RandomForestModel)
 
         # Simulate applying custom RF params
-        at.session_state['model_params_by_model']['random_forest'] = {
-            'n_estimators': 250,
-            'max_depth': 10
-        }
-        at.session_state['model_params'] = at.session_state['model_params_by_model']['random_forest'].copy()
+        at.session_state["model_params_by_model"]["random_forest"] = {"n_estimators": 250, "max_depth": 10}
+        at.session_state["model_params"] = at.session_state["model_params_by_model"]["random_forest"].copy()
 
         # Switch back to mlp
-        at.selectbox(key='model_choice').select('mlp')
+        at.selectbox(key="model_choice").select("mlp")
         at.run()
-        self.assertFalse(at.exception, f'Switching back to mlp raised exception: {at.exception}')
-        self.assertIsInstance(at.session_state['model_instance'], MLPModel)
-        self.assertEqual(at.session_state['model_params'].get('hidden_layer_sizes'), [50, 50])
+        self.assertFalse(at.exception, f"Switching back to mlp raised exception: {at.exception}")
+        self.assertIsInstance(at.session_state["model_instance"], MLPModel)
+        self.assertEqual(at.session_state["model_params"].get("hidden_layer_sizes"), [50, 50])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

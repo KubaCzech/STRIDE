@@ -20,25 +20,25 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
     matplotlib.figure.Figure
         The generated figure
     """
-    res_pre = results['pre']
-    res_post = results['post']
-    is_2d = results.get('is_2d', False)
-    
+    res_pre = results["pre"]
+    res_post = results["post"]
+    is_2d = results.get("is_2d", False)
+
     # Define labels based on dimensionality
     x_label = "x1" if is_2d else "SSNP Component 1"
     y_label = "x2" if is_2d else "SSNP Component 2"
 
     # Identify all unique classes to ensure consistent coloring
-    y_all = np.concatenate([res_pre['y_train'], res_post['y_train']])
+    y_all = np.concatenate([res_pre["y_train"], res_post["y_train"]])
     classes = np.unique(y_all)
     n_classes = len(classes)
 
     # Create color map
     # Using tab20 or tab10 depending on n_classes
     if n_classes <= 10:
-        cmap = plt.get_cmap('tab10')
+        cmap = plt.get_cmap("tab10")
     else:
-        cmap = plt.get_cmap('tab20')
+        cmap = plt.get_cmap("tab20")
 
     class_to_idx = {c: i for i, c in enumerate(classes)}
 
@@ -47,8 +47,8 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
 
     def plot_window(ax, res, window_name):
         # 1. Prepare Grid Image from HSV Logic
-        grid_labels = res['grid_labels']
-        grid_probs = res['grid_probs']
+        grid_labels = res["grid_labels"]
+        grid_probs = res["grid_probs"]
 
         # Determine the RGB baselines for each pixel based on class
         idx_grid = np.zeros_like(grid_labels, dtype=int)
@@ -59,7 +59,7 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
         # normalize index for cmap
         norm_indices = idx_grid / max(1, n_classes - 1) if n_classes > 1 else np.zeros_like(idx_grid, dtype=float)
         rgba_grid = cmap(norm_indices)  # Shape: (H, W, 4)
-        rgb_grid = rgba_grid[..., :3]   # Shape: (H, W, 3)
+        rgb_grid = rgba_grid[..., :3]  # Shape: (H, W, 3)
 
         # Convert to HSV
         hsv_grid = mcolors.rgb_to_hsv(rgb_grid)
@@ -74,16 +74,16 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
         final_rgb = mcolors.hsv_to_rgb(hsv_grid)
 
         # 2. Plot Image
-        extent = res['grid_bounds']  # (xmin, xmax, ymin, ymax)
+        extent = res["grid_bounds"]  # (xmin, xmax, ymin, ymax)
 
-        ax.imshow(final_rgb, extent=extent, origin='lower', aspect='auto')
+        ax.imshow(final_rgb, extent=extent, origin="lower", aspect="auto")
 
         # 3. Plot Data Points (Optional but requested to show them on plot)
-        X_2d = res['X_2d']
-        y_train = res['y_train']
+        X_2d = res["X_2d"]
+        y_train = res["y_train"]
 
         for c in classes:
-            mask = (y_train == c)
+            mask = y_train == c
             if not np.any(mask):
                 continue
 
@@ -91,9 +91,16 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
             # Solid color for points
             c_color = cmap(idx / max(1, n_classes - 1) if n_classes > 1 else 0)
 
-            ax.scatter(X_2d[mask, 0], X_2d[mask, 1],
-                       c=[c_color], label=f"Class {c}",
-                       edgecolor='white', s=30, alpha=0.9, linewidth=0.5)
+            ax.scatter(
+                X_2d[mask, 0],
+                X_2d[mask, 1],
+                c=[c_color],
+                label=f"Class {c}",
+                edgecolor="white",
+                s=30,
+                alpha=0.9,
+                linewidth=0.5,
+            )
 
         ax.set_title(f"{window_name} Drift")
         ax.set_xlabel(x_label)
@@ -104,7 +111,7 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
 
     # Add legend (using handles from one of the plots)
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='lower center', ncol=min(n_classes, 5), bbox_to_anchor=(0.5, 0.0))
+    fig.legend(handles, labels, loc="lower center", ncol=min(n_classes, 5), bbox_to_anchor=(0.5, 0.0))
 
     fig.tight_layout(rect=[0, 0.05, 1, 0.95])  # Adjust for legend
     return fig
@@ -152,7 +159,7 @@ def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds
     leaves_list = []
 
     for i in range(0, n_pts, batch_size):
-        batch_pts = pts[i:i+batch_size]
+        batch_pts = pts[i : i + batch_size]
         # Inverse transform: 2D -> High Dim Scaled
         batch_high_dim = ssnp_model.inverse_transform(batch_pts)
         # Apply tree to get leaf IDs
@@ -175,7 +182,7 @@ def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds
     final_grid = np.zeros_like(leaves_grid, dtype=int)
 
     # Map drift leaves specific indices
-    leaf_to_plot_idx = {leaf: i+1 for i, leaf in enumerate(drift_leaf_ids)}
+    leaf_to_plot_idx = {leaf: i + 1 for i, leaf in enumerate(drift_leaf_ids)}
 
     # Use numpy vectorize or mask for speed
     # But leaf IDs are sparse, so iteration over unique leaves in grid is okay
@@ -194,23 +201,28 @@ def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds
         # Create Colormap
         # 0: Light Grey (Stable)
         # 1..N: Colors from tab10/tab20
-        cmap_base = plt.get_cmap('tab10' if num_rules <= 10 else 'tab20', num_rules)
-        colors = ['#f0f0f0'] + [mcolors.rgb2hex(cmap_base(i)) for i in range(num_rules)]
+        cmap_base = plt.get_cmap("tab10" if num_rules <= 10 else "tab20", num_rules)
+        colors = ["#f0f0f0"] + [mcolors.rgb2hex(cmap_base(i)) for i in range(num_rules)]
         cmap = mcolors.ListedColormap(colors)
 
         bounds_norm = np.arange(-0.5, num_rules + 1.5, 1)
         norm = mcolors.BoundaryNorm(bounds_norm, cmap.N)
 
-        img = ax.imshow(final_grid, cmap=cmap, norm=norm,
-                        extent=[xmin, xmax, ymin, ymax],
-                        origin='lower', aspect='auto', interpolation='nearest')
+        img = ax.imshow(
+            final_grid,
+            cmap=cmap,
+            norm=norm,
+            extent=[xmin, xmax, ymin, ymax],
+            origin="lower",
+            aspect="auto",
+            interpolation="nearest",
+        )
 
         cbar = plt.colorbar(img, ticks=np.arange(0, num_rules + 1), fraction=0.046, pad=0.04)
-        cbar.ax.set_yticklabels(['Stable'] + [f'Rule {i+1}' for i in range(num_rules)])
+        cbar.ax.set_yticklabels(["Stable"] + [f"Rule {i + 1}" for i in range(num_rules)])
     else:
         # No drift
-        ax.text(0.5, 0.5, "No Drift / Disagreement Detected",
-                ha='center', va='center', transform=ax.transAxes)
+        ax.text(0.5, 0.5, "No Drift / Disagreement Detected", ha="center", va="center", transform=ax.transAxes)
         # Show empty grid
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)

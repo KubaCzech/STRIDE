@@ -36,11 +36,7 @@ class BaseDataset(ABC):
         Return default parameters for the dataset.
         Can be overridden by subclasses to provide specific parameters for the UI.
         """
-        return {
-            "n_samples_before": 1000,
-            "n_samples_after": 1000,
-            "random_seed": 42
-        }
+        return {"n_samples_before": 1000, "n_samples_after": 1000, "random_seed": 42}
 
     def get_settings_schema(self) -> list[dict]:
         """
@@ -77,10 +73,10 @@ class BaseDataset(ABC):
         import json
         import os
 
-        settings_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+        settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
 
         try:
-            with open(settings_path, 'r') as f:
+            with open(settings_path, "r") as f:
                 all_settings = json.load(f)
             return all_settings.get(self.name, {})
         except FileNotFoundError:

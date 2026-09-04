@@ -31,10 +31,7 @@ class Sea(IStreamGenerator):
 
     def update_drift(self) -> None:
         if self._iter_counter in self.drift_position:
-            self._data_streams = (
-                self._data_streams[0],
-                synth.SEA(variant=np.random.randint(0, 4), seed=self.seed).__iter__()
-            )
+            self._data_streams = (self._data_streams[0], synth.SEA(variant=np.random.randint(0, 4), seed=self.seed).__iter__())
             self._iter_drift_remaining = self.drift_duration
         if self._iter_drift_remaining == 1:
             self._data_streams = self._data_streams[1], None
@@ -57,11 +54,18 @@ class Sea(IStreamGenerator):
 
 
 class Rbf(IStreamGenerator):
-    def __init__(self, drift_position: int | list[int] = 500, drift_duration: int = 1, seed: int = 42,
-                 n_informative: int = 5, n_centroids: int = 11) -> None:
+    def __init__(
+        self,
+        drift_position: int | list[int] = 500,
+        drift_duration: int = 1,
+        seed: int = 42,
+        n_informative: int = 5,
+        n_centroids: int = 11,
+    ) -> None:
         super().__init__(drift_position, drift_duration, seed)
-        self._data_stream = synth.RandomRBF(seed_model=seed, seed_sample=seed, n_features=n_informative,
-                                            n_centroids=n_centroids, n_classes=3).__iter__()
+        self._data_stream = synth.RandomRBF(
+            seed_model=seed, seed_sample=seed, n_features=n_informative, n_centroids=n_centroids, n_classes=3
+        ).__iter__()
         self._flip = False
 
     def _permute_y(self, y: int) -> int:
@@ -90,11 +94,15 @@ class Rbf(IStreamGenerator):
 
 
 class Stagger(IStreamGenerator):
-    def __init__(self, drift_position: int | list[int] = 500, drift_duration: int = 1,
-                 classification_function: Literal[0, 1, 2] = 0, seed: int = 42) -> None:
+    def __init__(
+        self,
+        drift_position: int | list[int] = 500,
+        drift_duration: int = 1,
+        classification_function: Literal[0, 1, 2] = 0,
+        seed: int = 42,
+    ) -> None:
         super().__init__(drift_position, drift_duration, seed)
-        self._data_stream = synth.STAGGER(classification_function=classification_function, balance_classes=True,
-                                          seed=seed)
+        self._data_stream = synth.STAGGER(classification_function=classification_function, balance_classes=True, seed=seed)
         self._data_stream_iter = self._data_stream.__iter__()
 
     def _normalise(self, x: dict[str, float]) -> dict[str, float]:
@@ -122,8 +130,13 @@ class Stagger(IStreamGenerator):
 
 
 class Mixed(IStreamGenerator):
-    def __init__(self, drift_position: int | list[int] = 500, drift_duration: int = 1,
-                 classification_function: Literal[0, 1] = 1, seed: int = 42) -> None:
+    def __init__(
+        self,
+        drift_position: int | list[int] = 500,
+        drift_duration: int = 1,
+        classification_function: Literal[0, 1] = 1,
+        seed: int = 42,
+    ) -> None:
         super().__init__(drift_position, drift_duration, seed)
         self._data_stream = synth.Mixed(classification_function=classification_function, balance_classes=False, seed=seed)
         self._data_stream_iter = self._data_stream.__iter__()

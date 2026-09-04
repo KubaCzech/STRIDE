@@ -10,9 +10,9 @@ from src.feature_importance import (
 )
 
 
-def render_feature_importance_analysis_tab(X_before, y_before, X_after, y_after,
-                                           feature_names,
-                                           model_class=None, model_params=None):
+def render_feature_importance_analysis_tab(
+    X_before, y_before, X_after, y_after, feature_names, model_class=None, model_params=None
+):
     """
     Renders the Feature Importance Analysis tab.
 
@@ -47,16 +47,13 @@ def render_feature_importance_analysis_tab(X_before, y_before, X_after, y_after,
                 "Feature Importance Method",
                 options=FeatureImportanceMethod.all_available(),
                 format_func=lambda x: x.upper(),
-                help="Select the method to calculate importance (e.g., Permutation, SHAP)."
+                help="Select the method to calculate importance (e.g., Permutation, SHAP).",
             )
 
         with col_controls_2:
             # Plot Type Selector
             plot_type_display = st.selectbox(
-                "Plot Type",
-                options=["Bar Chart", "Box Plot"],
-                index=0,
-                help="Choose visualization type for the charts."
+                "Plot Type", options=["Bar Chart", "Box Plot"], index=0, help="Choose visualization type for the charts."
             )
             plot_type_map = {"Bar Chart": "bar", "Box Plot": "box"}
             selected_plot_type = plot_type_map[plot_type_display]
@@ -68,7 +65,7 @@ def render_feature_importance_analysis_tab(X_before, y_before, X_after, y_after,
             include_target = st.checkbox(
                 "Include Target (Y) in Drift Analysis",
                 value=True,
-                help="Checked: Concept Drift (P(Y|X)). Unchecked: Data Drift (P(X))."
+                help="Checked: Concept Drift (P(Y|X)). Unchecked: Data Drift (P(X)).",
             )
 
     # Initialize DriftAnalyzer
@@ -96,40 +93,34 @@ def render_feature_importance_analysis_tab(X_before, y_before, X_after, y_after,
 
         st.subheader(f"{drift_title}", help=drift_help)
 
-        with st.spinner(f'Running {drift_title}...'):
+        with st.spinner(f"Running {drift_title}..."):
             # Compute Drift Analysis
             drift_result = analyzer.compute_drift_importance(
                 importance_method=importance_method,
                 include_target=include_target,
                 model_class=model_class,
-                model_params=model_params
+                model_params=model_params,
             )
 
             # Visualization
             fig_drift = visualize_drift_importance(
-                drift_result, drift_result['feature_names'],
-                plot_type=selected_plot_type,
-                include_target=include_target
+                drift_result, drift_result["feature_names"], plot_type=selected_plot_type, include_target=include_target
             )
             st.pyplot(fig_drift)
             plt.close(fig_drift)
 
             # Table
             st.markdown("**Importance Summary**")
-            feature_names_result = drift_result['feature_names']
-            drift_df = pd.DataFrame({
-                'Feature': feature_names_result,
-                'Mean Importance': drift_result['importance_mean'],
-                'Std Deviation': drift_result['importance_std']
-            })
-            drift_df = drift_df.sort_values('Mean Importance', ascending=False)
-            st.dataframe(
-                drift_df.style.format({
-                    'Mean Importance': '{:.4f}',
-                    'Std Deviation': '{:.4f}'
-                }),
-                width="stretch"
+            feature_names_result = drift_result["feature_names"]
+            drift_df = pd.DataFrame(
+                {
+                    "Feature": feature_names_result,
+                    "Mean Importance": drift_result["importance_mean"],
+                    "Std Deviation": drift_result["importance_std"],
+                }
             )
+            drift_df = drift_df.sort_values("Mean Importance", ascending=False)
+            st.dataframe(drift_df.style.format({"Mean Importance": "{:.4f}", "Std Deviation": "{:.4f}"}), width="stretch")
 
     # --- Right Column: Predictive Power Shift ---
     with col_pred:
@@ -140,19 +131,14 @@ def render_feature_importance_analysis_tab(X_before, y_before, X_after, y_after,
         """
         st.subheader("Predictive Power Shift", help=pred_help)
 
-        with st.spinner('Running Predictive Shift Analysis...'):
+        with st.spinner("Running Predictive Shift Analysis..."):
             # Compute Predictive Shift
             shift_result = analyzer.compute_predictive_importance_shift(
-                importance_method=importance_method,
-                model_class=model_class,
-                model_params=model_params
+                importance_method=importance_method, model_class=model_class, model_params=model_params
             )
 
             # Visualization
-            fig_shift = visualize_predictive_importance_shift(
-                shift_result, feature_names,
-                plot_type=selected_plot_type
-            )
+            fig_shift = visualize_predictive_importance_shift(shift_result, feature_names, plot_type=selected_plot_type)
             st.pyplot(fig_shift)
             plt.close(fig_shift)
 
@@ -160,31 +146,25 @@ def render_feature_importance_analysis_tab(X_before, y_before, X_after, y_after,
             # Stacked might be better for readability in the column
 
             st.markdown("**Importance: Before Drift**")
-            pred_before_df = pd.DataFrame({
-                'Feature': feature_names,
-                'Mean Importance': shift_result['fi_before']['importances_mean'],
-                'Std Deviation': shift_result['fi_before']['importances_std']
-            })
-            pred_before_df = pred_before_df.sort_values('Mean Importance', ascending=False)
+            pred_before_df = pd.DataFrame(
+                {
+                    "Feature": feature_names,
+                    "Mean Importance": shift_result["fi_before"]["importances_mean"],
+                    "Std Deviation": shift_result["fi_before"]["importances_std"],
+                }
+            )
+            pred_before_df = pred_before_df.sort_values("Mean Importance", ascending=False)
             st.dataframe(
-                pred_before_df.style.format({
-                    'Mean Importance': '{:.4f}',
-                    'Std Deviation': '{:.4f}'
-                }),
-                width="stretch"
+                pred_before_df.style.format({"Mean Importance": "{:.4f}", "Std Deviation": "{:.4f}"}), width="stretch"
             )
 
             st.markdown("**Importance: After Drift**")
-            pred_after_df = pd.DataFrame({
-                'Feature': feature_names,
-                'Mean Importance': shift_result['fi_after']['importances_mean'],
-                'Std Deviation': shift_result['fi_after']['importances_std']
-            })
-            pred_after_df = pred_after_df.sort_values('Mean Importance', ascending=False)
-            st.dataframe(
-                pred_after_df.style.format({
-                    'Mean Importance': '{:.4f}',
-                    'Std Deviation': '{:.4f}'
-                }),
-                width="stretch"
+            pred_after_df = pd.DataFrame(
+                {
+                    "Feature": feature_names,
+                    "Mean Importance": shift_result["fi_after"]["importances_mean"],
+                    "Std Deviation": shift_result["fi_after"]["importances_std"],
+                }
             )
+            pred_after_df = pred_after_df.sort_values("Mean Importance", ascending=False)
+            st.dataframe(pred_after_df.style.format({"Mean Importance": "{:.4f}", "Std Deviation": "{:.4f}"}), width="stretch")

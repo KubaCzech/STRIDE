@@ -4,8 +4,19 @@ from src.datasets.protree_data.river_generators import Sea, Rbf, Mixed, Stagger
 from src.datasets.protree_data.stream_generators import Sine, Plane, RandomTree
 
 TNamedStream: TypeAlias = Literal[
-    "sine1", "sine500", "plane100", "plane1000", "plane5000", "random_tree20", "random_tree500", "rbf1", "rbf3000",
-    "sea1", "stagger1", "mixed1"]
+    "sine1",
+    "sine500",
+    "plane100",
+    "plane1000",
+    "plane5000",
+    "random_tree20",
+    "random_tree500",
+    "rbf1",
+    "rbf3000",
+    "sea1",
+    "stagger1",
+    "mixed1",
+]
 
 
 class INamedStream:

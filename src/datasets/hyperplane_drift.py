@@ -15,16 +15,18 @@ class HyperplaneDriftDataset(BaseDataset):
 
     def get_params(self) -> dict:
         params = super().get_params()
-        params.update({
-            "n_windows_before": 1,
-            "n_windows_after": 1,
-            "n_features": 2,
-            "n_drift_features": 2,
-            "noise_percentage": 0.05,
-            "drift_noise_percentage": 0.1,
-            "mag_change": 0.2,
-            "drift_width": 1
-        })
+        params.update(
+            {
+                "n_windows_before": 1,
+                "n_windows_after": 1,
+                "n_features": 2,
+                "n_drift_features": 2,
+                "noise_percentage": 0.05,
+                "drift_noise_percentage": 0.1,
+                "mag_change": 0.2,
+                "drift_width": 1,
+            }
+        )
         return params
 
     def get_settings_schema(self) -> list[dict]:
@@ -36,7 +38,7 @@ class HyperplaneDriftDataset(BaseDataset):
                 "default": 1,
                 "min_value": 0,
                 "step": 1,
-                "help": "Number of windows generated before the concept drift occurs."
+                "help": "Number of windows generated before the concept drift occurs.",
             },
             {
                 "name": "n_windows_after",
@@ -45,7 +47,7 @@ class HyperplaneDriftDataset(BaseDataset):
                 "default": 1,
                 "min_value": 0,
                 "step": 1,
-                "help": "Number of windows generated after the concept drift occurs."
+                "help": "Number of windows generated after the concept drift occurs.",
             },
             {
                 "name": "n_features",
@@ -54,7 +56,7 @@ class HyperplaneDriftDataset(BaseDataset):
                 "default": 2,
                 "min_value": 2,
                 "step": 1,
-                "help": "Total number of features for the hyperplane. Must be >= 2."
+                "help": "Total number of features for the hyperplane. Must be >= 2.",
             },
             {
                 "name": "n_drift_features",
@@ -63,7 +65,7 @@ class HyperplaneDriftDataset(BaseDataset):
                 "default": 2,
                 "min_value": 2,
                 "step": 1,
-                "help": "Number of features that will drift. Must be <= n_features."
+                "help": "Number of features that will drift. Must be <= n_features.",
             },
             {
                 "name": "noise_percentage",
@@ -73,7 +75,7 @@ class HyperplaneDriftDataset(BaseDataset):
                 "min_value": 0.0,
                 "max_value": 1.0,
                 "step": 0.01,
-                "help": "Probability of label noise for the initial stream."
+                "help": "Probability of label noise for the initial stream.",
             },
             {
                 "name": "drift_noise_percentage",
@@ -83,7 +85,7 @@ class HyperplaneDriftDataset(BaseDataset):
                 "min_value": 0.0,
                 "max_value": 1.0,
                 "step": 0.01,
-                "help": "Probability of label noise for the drift stream."
+                "help": "Probability of label noise for the drift stream.",
             },
             {
                 "name": "mag_change",
@@ -92,7 +94,7 @@ class HyperplaneDriftDataset(BaseDataset):
                 "default": 0.2,
                 "min_value": 0.0,
                 "step": 0.01,
-                "help": "Magnitude of change for drifting features."
+                "help": "Magnitude of change for drifting features.",
             },
             {
                 "name": "drift_width",
@@ -101,16 +103,25 @@ class HyperplaneDriftDataset(BaseDataset):
                 "default": 1,
                 "min_value": 1,
                 "step": 1,
-                "help": "Width of the concept drift (number of samples)."
-            }
+                "help": "Width of the concept drift (number of samples).",
+            },
         ]
 
     # TODO: Seems that the parameter mag_change has no effect on the data stream.
     # Remove it, or fix it.
-    def generate(self, n_samples_before=1000, n_samples_after=1000,
-                 n_features=2, n_drift_features=2, noise_percentage=0.05,
-                 drift_noise_percentage=0.1, mag_change=0.2, drift_width=1,
-                 random_seed=42, **kwargs):
+    def generate(
+        self,
+        n_samples_before=1000,
+        n_samples_after=1000,
+        n_features=2,
+        n_drift_features=2,
+        noise_percentage=0.05,
+        drift_noise_percentage=0.1,
+        mag_change=0.2,
+        drift_width=1,
+        random_seed=42,
+        **kwargs,
+    ):
         """
         Generate synthetic data stream using River's Hyperplane generator.
         """
@@ -130,24 +141,20 @@ class HyperplaneDriftDataset(BaseDataset):
         if drift_width < SAFE_MIN_WIDTH:
             # Manual Abrupt Drift
             stream1 = synth.Hyperplane(
-                n_features=n_features,
-                n_drift_features=n_drift_features,
-                seed=random_seed,
-                noise_percentage=noise_percentage
+                n_features=n_features, n_drift_features=n_drift_features, seed=random_seed, noise_percentage=noise_percentage
             )
             stream2 = synth.Hyperplane(
                 n_features=n_features,
                 n_drift_features=n_drift_features,
                 seed=random_seed,
                 mag_change=mag_change,
-                noise_percentage=drift_noise_percentage
+                noise_percentage=drift_noise_percentage,
             )
 
             # Chain the streams: First n_before from stream1, then n_after from stream2
             # Note: stream1 and stream2 are infinite generators
             stream_HP = itertools.chain(
-                itertools.islice(stream1, n_samples_before),
-                itertools.islice(stream2, n_samples_after)
+                itertools.islice(stream1, n_samples_before), itertools.islice(stream2, n_samples_after)
             )
         else:
             stream_HP = synth.ConceptDriftStream(
@@ -155,17 +162,17 @@ class HyperplaneDriftDataset(BaseDataset):
                     n_features=n_features,
                     n_drift_features=n_drift_features,
                     seed=random_seed,
-                    noise_percentage=noise_percentage
+                    noise_percentage=noise_percentage,
                 ),
                 drift_stream=synth.Hyperplane(
                     n_features=n_features,
                     n_drift_features=n_drift_features,
                     seed=random_seed,
                     mag_change=mag_change,
-                    noise_percentage=drift_noise_percentage
+                    noise_percentage=drift_noise_percentage,
                 ),
                 position=n_samples_before,
                 width=drift_width,  # Gradual drift
-                seed=random_seed
+                seed=random_seed,
             )
         return generate_river_data(stream_HP, n_samples_before + n_samples_after, n_features)

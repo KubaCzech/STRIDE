@@ -70,7 +70,7 @@ class RiverDataset(BaseDataset):
         stream = itertools.islice(iter(self.dataset), starting_point, None)
 
         if self.dataset_name == RiverDatasetType.ELECTRICITY.value:
-            feature_names = ['nswprice', 'nswdemand', 'vicprice', 'vicdemand', 'transfer']
+            feature_names = ["nswprice", "nswdemand", "vicprice", "vicdemand", "transfer"]
             return generate_river_data_with_selection(stream, size_of_block, feature_names)
 
         return generate_river_data(stream, size_of_block)

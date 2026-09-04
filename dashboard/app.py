@@ -2,8 +2,8 @@ import sys
 import os
 
 # Add the src directory to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src', 'recurrence')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src", "recurrence")))
 
 import warnings  # noqa: E402
 import logging  # noqa: E402
@@ -11,14 +11,14 @@ import streamlit as st  # noqa: E402
 from dashboard.components.sidebar import render_sidebar_datasource_config, render_sidebar_window_selection  # noqa: E402
 
 # Suppress TensorFlow oneDNN custom operations logs
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 
 # Suppress specific TensorFlow warnings
-logging.getLogger('tensorflow').setLevel(logging.ERROR)
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
 # Also try to suppress via warnings just in case it's reachable that way
-warnings.filterwarnings('ignore', category=UserWarning, module='tensorflow')
-warnings.filterwarnings('ignore', message='.*reset_default_graph.*')
+warnings.filterwarnings("ignore", category=UserWarning, module="tensorflow")
+warnings.filterwarnings("ignore", message=".*reset_default_graph.*")
 
 from src.datasets import DATASETS  # noqa: E402
 from dashboard.components.tabs import (  # noqa: E402
@@ -27,7 +27,7 @@ from dashboard.components.tabs import (  # noqa: E402
     render_drift_detection_tab,
     render_decision_boundary_tab,
     render_prototype_analysis_tab,
-    render_clustering_analysis_tab
+    render_clustering_analysis_tab,
 )
 from dashboard.components.modals.info import show_info_modal  # noqa: E402
 
@@ -94,11 +94,7 @@ def generate_data(dataset_name, window_length_val, **kwargs):
         return None, None
 
 
-X, y = generate_data(
-    dataset_key,
-    window_length,
-    **dataset_params
-)
+X, y = generate_data(dataset_key, window_length, **dataset_params)
 
 if X is not None:
     feature_names = X.columns.tolist()
@@ -154,7 +150,7 @@ tabs = [
     "Decision Boundary",
     "Feature Importance Analysis",
     "Clustering Analysis",
-    "Prototype Analysis"
+    "Prototype Analysis",
 ]
 
 # Initialize session state for active tab if it doesn't exist
@@ -165,20 +161,14 @@ if "active_tab" not in st.session_state:
 # Custom CSS to style radio buttons as tabs
 def load_css(file_name):
     with open(file_name) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 css_file = os.path.join(os.path.dirname(__file__), "assets", "styles.css")
 load_css(css_file)
 
 # Use radio buttons for navigation to allow state persistence
-active_tab = st.radio(
-    "Select Analysis Module",
-    tabs,
-    horizontal=True,
-    key="active_tab",
-    label_visibility="collapsed"
-)
+active_tab = st.radio("Select Analysis Module", tabs, horizontal=True, key="active_tab", label_visibility="collapsed")
 
 # Prepare data slices for analysis tabs
 start_before = window_before_start
@@ -201,25 +191,28 @@ y_after = y.iloc[start_after:end_after] if hasattr(y, "iloc") else y[start_after
 
 
 if active_tab == tabs[0]:
-    render_data_visualization_tab(X, y, X_before, y_before, X_after, y_after, feature_names,
-                                  window_before_start, window_after_start, window_length)
+    render_data_visualization_tab(
+        X, y, X_before, y_before, X_after, y_after, feature_names, window_before_start, window_after_start, window_length
+    )
 
 elif active_tab == tabs[1]:
-    render_drift_detection_tab(X, y, window_length,
-                               model_class=selected_model_class,
-                               model_params=model_params)
+    render_drift_detection_tab(X, y, window_length, model_class=selected_model_class, model_params=model_params)
 
 elif active_tab == tabs[2]:
-    render_decision_boundary_tab(X_before, y_before, X_after, y_after,
-                                 model_class=selected_model_class,
-                                 model_params=model_params,
-                                 feature_names=feature_names)
+    render_decision_boundary_tab(
+        X_before,
+        y_before,
+        X_after,
+        y_after,
+        model_class=selected_model_class,
+        model_params=model_params,
+        feature_names=feature_names,
+    )
 
 elif active_tab == tabs[3]:
-    render_feature_importance_analysis_tab(X_before, y_before, X_after, y_after,
-                                           feature_names,
-                                           model_class=selected_model_class,
-                                           model_params=model_params)
+    render_feature_importance_analysis_tab(
+        X_before, y_before, X_after, y_after, feature_names, model_class=selected_model_class, model_params=model_params
+    )
 
 elif active_tab == tabs[4]:
     render_clustering_analysis_tab(X_before, y_before, X_after, y_after)

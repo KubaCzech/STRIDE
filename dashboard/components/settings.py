@@ -20,7 +20,7 @@ def _render_list_of_int_input(setting, key, value, default, on_change):
         step=1,
         key=len_key,
         on_change=on_change,
-        help=f"Number of layers for {label}"
+        help=f"Number of layers for {label}",
     )
 
     # Adjust list size locally to render correct number of inputs
@@ -34,12 +34,7 @@ def _render_list_of_int_input(setting, key, value, default, on_change):
         item_key = f"{key}_item_{i}"
         item_val = int(current_list[i])
         new_val = st.number_input(
-            f"Layer {i+1} Size",
-            min_value=1,
-            value=item_val,
-            step=1,
-            key=item_key,
-            on_change=on_change
+            f"Layer {i + 1} Size", min_value=1, value=item_val, step=1, key=item_key, on_change=on_change
         )
         new_list.append(new_val)
 
@@ -59,7 +54,7 @@ def _render_simple_input(setting, key, on_change):
             step=setting.get("step", 1),
             help=help_text,
             key=key,
-            on_change=on_change
+            on_change=on_change,
         )
     elif st_type == "float":
         return st.number_input(
@@ -69,39 +64,19 @@ def _render_simple_input(setting, key, on_change):
             step=setting.get("step", 0.1),
             help=help_text,
             key=key,
-            on_change=on_change
+            on_change=on_change,
         )
     elif st_type == "text":
-        return st.text_input(
-            label,
-            help=help_text,
-            key=key,
-            on_change=on_change
-        )
+        return st.text_input(label, help=help_text, key=key, on_change=on_change)
     elif st_type == "bool":
-        return st.checkbox(
-            label,
-            help=help_text,
-            key=key,
-            on_change=on_change
-        )
+        return st.checkbox(label, help=help_text, key=key, on_change=on_change)
     elif st_type == "file":
-        return st.file_uploader(
-            label,
-            type=setting.get("allowed_types"),
-            help=help_text,
-            key=key,
-            on_change=on_change
-        )
+        return st.file_uploader(label, type=setting.get("allowed_types"), help=help_text, key=key, on_change=on_change)
     return None
 
 
 def render_settings_from_schema(
-    schema: list[dict],
-    on_change=None,
-    initial_values=None,
-    force_update=False,
-    key_prefix=""
+    schema: list[dict], on_change=None, initial_values=None, force_update=False, key_prefix=""
 ) -> dict:
     """
     Render Streamlit widgets based on a settings schema.

@@ -8,13 +8,7 @@ from src.recurrence.protree.explainers.tree_distance import IExplainer
 from src.recurrence.protree.utils import get_x_belonging_to_cls, get_re_idx, flatten_prototypes, get_x_not_belonging_to_cls
 
 
-def individual_contribution(
-        prototypes: TPrototypes,
-        cls: str | int,
-        idx: int,
-        explainer: IExplainer,
-        x: TDataBatch
-) -> float:
+def individual_contribution(prototypes: TPrototypes, cls: str | int, idx: int, explainer: IExplainer, x: TDataBatch) -> float:
     from src.recurrence.protree.metrics.group import fidelity_with_model
 
     prototypes_without = deepcopy(prototypes)
@@ -27,13 +21,7 @@ def individual_contribution(
     return result
 
 
-def voting_frequency(
-        prototypes: TPrototypes,
-        cls: str | int,
-        idx: int,
-        explainer: IExplainer,
-        x: TDataBatch
-) -> float:
+def voting_frequency(prototypes: TPrototypes, cls: str | int, idx: int, explainer: IExplainer, x: TDataBatch) -> float:
     prototypes_flat = flatten_prototypes(prototypes)
     re_idx = get_re_idx(prototypes, cls, idx)
 
@@ -45,13 +33,7 @@ def voting_frequency(
     return (np.vstack(neighbourhood).argmax(axis=0) == re_idx).sum().item() / len(x) if len(x) > 0 else 0.0
 
 
-def consistent_votes(
-        prototypes: TPrototypes,
-        cls: str | int,
-        idx: int,
-        explainer: IExplainer,
-        x: TDataBatch
-) -> float:
+def consistent_votes(prototypes: TPrototypes, cls: str | int, idx: int, explainer: IExplainer, x: TDataBatch) -> float:
     re_idx = get_re_idx(prototypes, cls, idx)
     prototypes_flat = flatten_prototypes(prototypes)
 
@@ -63,19 +45,12 @@ def consistent_votes(
     neighbourhood = []
     for i in range(len(proto_leaves)):
         neighbourhood.append((x_leaves == proto_leaves[i]).sum(axis=1))
-    votes = (np.vstack(neighbourhood).argmax(axis=0) == re_idx)
+    votes = np.vstack(neighbourhood).argmax(axis=0) == re_idx
     correct = np.logical_and(votes, mask).sum()
     return (correct / votes.sum()).item() if votes.sum() > 0 else 0.0
 
 
-def hubness(
-        prototypes: TPrototypes,
-        cls: str | int,
-        idx: int,
-        explainer: IExplainer,
-        x: TDataBatch,
-        y: TTarget
-) -> float:
+def hubness(prototypes: TPrototypes, cls: str | int, idx: int, explainer: IExplainer, x: TDataBatch, y: TTarget) -> float:
     sub_x = get_x_belonging_to_cls(x, y, cls)
 
     if not len(sub_x):
@@ -92,13 +67,7 @@ def hubness(
     return (np.vstack(neighbourhood).argmax(axis=0) == re_idx).sum().item() / len(sub_x) if len(sub_x) > 0 else 0.0
 
 
-def _mean_similarity(
-        sub_x: TDataBatch,
-        prototypes: TPrototypes,
-        cls: str | int,
-        idx: int,
-        explainer: IExplainer
-) -> float:
+def _mean_similarity(sub_x: TDataBatch, prototypes: TPrototypes, cls: str | int, idx: int, explainer: IExplainer) -> float:
     x_cls_leaves = explainer.model.get_leave_indices(sub_x)
     if isinstance(prototypes[cls], pd.DataFrame):
         proto_leaves = explainer.model.get_leave_indices(pd.DataFrame(prototypes[cls].loc[idx]).transpose())
@@ -108,24 +77,14 @@ def _mean_similarity(
 
 
 def individual_in_distribution(
-        prototypes: TPrototypes,
-        cls: str | int,
-        idx: int,
-        explainer: IExplainer,
-        x: TDataBatch,
-        y: TTarget
+    prototypes: TPrototypes, cls: str | int, idx: int, explainer: IExplainer, x: TDataBatch, y: TTarget
 ) -> float:
     sub_x = get_x_belonging_to_cls(x, y, cls)
     return _mean_similarity(sub_x, prototypes, cls, idx, explainer)
 
 
 def individual_out_distribution(
-        prototypes: TPrototypes,
-        cls: str | int,
-        idx: int,
-        explainer: IExplainer,
-        x: TDataBatch,
-        y: TTarget
+    prototypes: TPrototypes, cls: str | int, idx: int, explainer: IExplainer, x: TDataBatch, y: TTarget
 ) -> float:
     sub_x = get_x_not_belonging_to_cls(x, y, cls)
     return _mean_similarity(sub_x, prototypes, cls, idx, explainer)

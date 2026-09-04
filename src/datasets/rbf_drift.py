@@ -16,16 +16,18 @@ class RBFDriftDataset(BaseDataset):
 
     def get_params(self) -> dict:
         params = super().get_params()
-        params.update({
-            "n_windows_before": 1,
-            "n_windows_after": 1,
-            "n_features": 4,
-            "gamma": 30.0,
-            "noise": 0.0,
-            "cluster_std": 0.05,
-            "random_seed": 42,
-            "drift_width": 1
-        })
+        params.update(
+            {
+                "n_windows_before": 1,
+                "n_windows_after": 1,
+                "n_features": 4,
+                "gamma": 30.0,
+                "noise": 0.0,
+                "cluster_std": 0.05,
+                "random_seed": 42,
+                "drift_width": 1,
+            }
+        )
         return params
 
     def get_settings_schema(self) -> list[dict]:
@@ -37,7 +39,7 @@ class RBFDriftDataset(BaseDataset):
                 "default": 1,
                 "min_value": 1,
                 "step": 1,
-                "help": "Number of windows before the specific drift point."
+                "help": "Number of windows before the specific drift point.",
             },
             {
                 "name": "n_windows_after",
@@ -46,7 +48,7 @@ class RBFDriftDataset(BaseDataset):
                 "default": 1,
                 "min_value": 1,
                 "step": 1,
-                "help": "Number of windows after the specific drift point."
+                "help": "Number of windows after the specific drift point.",
             },
             {
                 "name": "gamma",
@@ -55,7 +57,7 @@ class RBFDriftDataset(BaseDataset):
                 "default": 30.0,
                 "min_value": 0.1,
                 "step": 0.1,
-                "help": "Gamma parameter for RBF kernel."
+                "help": "Gamma parameter for RBF kernel.",
             },
             {
                 "name": "noise",
@@ -65,7 +67,7 @@ class RBFDriftDataset(BaseDataset):
                 "min_value": 0.0,
                 "max_value": 1.0,
                 "step": 0.01,
-                "help": "Ratio of labels to flip."
+                "help": "Ratio of labels to flip.",
             },
             {
                 "name": "cluster_std",
@@ -74,7 +76,7 @@ class RBFDriftDataset(BaseDataset):
                 "default": 0.05,
                 "min_value": 0.01,
                 "step": 0.01,
-                "help": "Standard deviation of the Gaussian clusters."
+                "help": "Standard deviation of the Gaussian clusters.",
             },
             {
                 "name": "random_seed",
@@ -83,7 +85,7 @@ class RBFDriftDataset(BaseDataset):
                 "default": 42,
                 "min_value": 0,
                 "step": 1,
-                "help": "Seed for reproducible random generation."
+                "help": "Seed for reproducible random generation.",
             },
             {
                 "name": "drift_width",
@@ -92,8 +94,8 @@ class RBFDriftDataset(BaseDataset):
                 "default": 1,
                 "min_value": 1,
                 "step": 1,
-                "help": "Width of the concept drift (number of samples)."
-            }
+                "help": "Width of the concept drift (number of samples).",
+            },
         ]
 
     def _generate_cluster_data(self, centers, total_samples, std):
@@ -128,33 +130,31 @@ class RBFDriftDataset(BaseDataset):
             y[idx] = 1 - y[idx]
         return y
 
-    def generate(self, n_samples_before=2000, n_samples_after=2000,
-                 gamma=30.0, noise=0.0, cluster_std=0.05,
-                 random_seed=42, drift_width=1, **kwargs) -> tuple[pd.DataFrame, pd.Series]:
+    def generate(
+        self,
+        n_samples_before=2000,
+        n_samples_after=2000,
+        gamma=30.0,
+        noise=0.0,
+        cluster_std=0.05,
+        random_seed=42,
+        drift_width=1,
+        **kwargs,
+    ) -> tuple[pd.DataFrame, pd.Series]:
 
         np.random.seed(random_seed)
 
         # Define 4 cluster centers in 4D → 2 per class
         # (Taken from reference implementation)
-        centers_class0 = np.array([
-            [0.2, 0.8, 0.2, 0.8],
-            [0.8, 0.2, 0.8, 0.2]
-        ])
+        centers_class0 = np.array([[0.2, 0.8, 0.2, 0.8], [0.8, 0.2, 0.8, 0.2]])
 
-        centers_class1 = np.array([
-            [0.2, 0.2, 0.8, 0.8],
-            [0.8, 0.8, 0.2, 0.2]
-        ])
+        centers_class1 = np.array([[0.2, 0.2, 0.8, 0.8], [0.8, 0.8, 0.2, 0.2]])
 
         total_samples = n_samples_before + n_samples_after
         samples_total = total_samples  # Alias for clarity
 
         # 1. Generate full length data for Concept 1 (Pre)
-        X1 = self._generate_cluster_data(
-            np.vstack([centers_class0, centers_class1]),
-            samples_total,
-            cluster_std
-        )
+        X1 = self._generate_cluster_data(np.vstack([centers_class0, centers_class1]), samples_total, cluster_std)
         y1 = self._generate_labels(X1, centers_class0, centers_class1, gamma)
 
         # Shuffle Concept 1
@@ -163,11 +163,7 @@ class RBFDriftDataset(BaseDataset):
         y1 = y1[p1]
 
         # 2. Generate full length data for Concept 2 (Post)
-        X2 = self._generate_cluster_data(
-            np.vstack([centers_class0, centers_class1]),
-            samples_total,
-            cluster_std
-        )
+        X2 = self._generate_cluster_data(np.vstack([centers_class0, centers_class1]), samples_total, cluster_std)
         # Swapped centers for labels
         y2 = self._generate_labels(X2, centers_class1, centers_class0, gamma)
 
@@ -185,7 +181,7 @@ class RBFDriftDataset(BaseDataset):
         y = apply_sigmoid_drift(y1, y2, n_samples_before, drift_width)
 
         # Convert to Pandas
-        feature_names = [f"x{i+1}" for i in range(X.shape[1])]
+        feature_names = [f"x{i + 1}" for i in range(X.shape[1])]
         X_df = pd.DataFrame(X, columns=feature_names)
         y_series = pd.Series(y, name="target")
 

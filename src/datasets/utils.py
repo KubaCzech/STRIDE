@@ -36,8 +36,8 @@ def generate_river_data(river_stream, total_samples, n_features=2):
         print(f"Warning: Stream generation failed: {e}")
         return np.array([]), np.array([])
 
-    X = pd.DataFrame(X_all, columns=[f'X{i+1}' for i in range(n_features)])
-    y = pd.Series(y_all, name='Y')
+    X = pd.DataFrame(X_all, columns=[f"X{i + 1}" for i in range(n_features)])
+    y = pd.Series(y_all, name="Y")
 
     return X, y
 
@@ -81,7 +81,7 @@ def generate_river_data_with_selection(river_stream, total_samples, feature_name
         return pd.DataFrame(), pd.Series()
 
     X = pd.DataFrame(X_all, columns=feature_names)
-    y = pd.Series(y_all, name='Y')
+    y = pd.Series(y_all, name="Y")
 
     return X, y
 

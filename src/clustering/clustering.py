@@ -243,9 +243,9 @@ class ClusterBasedDriftDetector:
         if hasattr(y_after, "values"):
             y_after = y_after.values
 
-        assert (
-            thr_centroid_disappear > thr_centroid_shift
-        ), "Threshold of cluster to disappear must be higher than maximum allowed shift of centroids between data blocks"
+        assert thr_centroid_disappear > thr_centroid_shift, (
+            "Threshold of cluster to disappear must be higher than maximum allowed shift of centroids between data blocks"
+        )
 
         self.X_old = X_before
         self.y_old = y_before
@@ -604,7 +604,7 @@ class ClusterBasedDriftDetector:
 
         classes = set(self.y_old).union(set(self.y_new))
 
-        clusters_all = {'old': [], 'new': []}
+        clusters_all = {"old": [], "new": []}
         details = {cl: {} for cl in classes}
         maps = []
 
@@ -614,12 +614,12 @@ class ClusterBasedDriftDetector:
             X_new_cl = self.X_new[np.array(self.y_new) == cl]
             clusters_old, clusters_new, mapp = self._detect(X_old_cl, X_new_cl)
 
-            clusters_all['old'].append(clusters_old)
-            clusters_all['new'].append(clusters_new)
+            clusters_all["old"].append(clusters_old)
+            clusters_all["new"].append(clusters_new)
             maps.append(mapp)
 
-        self.cluster_labels_old = self._merge_clusters(clusters_all['old'], self.y_old)
-        self.cluster_labels_new = self._merge_clusters(clusters_all['new'], self.y_new, maps=maps)
+        self.cluster_labels_old = self._merge_clusters(clusters_all["old"], self.y_old)
+        self.cluster_labels_new = self._merge_clusters(clusters_all["new"], self.y_new, maps=maps)
 
         self.number_of_clusters_old = len(set(self.cluster_labels_old))
         self.number_of_clusters_new = len(set(self.cluster_labels_new))
@@ -642,25 +642,24 @@ class ClusterBasedDriftDetector:
             mask_new = self.y_new == cl
             cl_new = set(self.cluster_labels_new[mask_new])
 
-            details[cl]['nr_of_clusters'] = (
-                len(set(self.cluster_labels_new[mask_new]) ^ set(self.cluster_labels_old[mask_old]))
-                >= self.thr_clusters
+            details[cl]["nr_of_clusters"] = (
+                len(set(self.cluster_labels_new[mask_new]) ^ set(self.cluster_labels_old[mask_old])) >= self.thr_clusters
             )
 
             idx = set(self.cluster_labels_old[self.y_old == cl]).union(set(self.cluster_labels_new[self.y_new == cl]))
 
-            details[cl]['centroid_shift'] = {
+            details[cl]["centroid_shift"] = {
                 k: (
-                    bool(self.cluster_shifts[k]['euclidean_distance'] > self.thr_centroid_shift)
+                    bool(self.cluster_shifts[k]["euclidean_distance"] > self.thr_centroid_shift)
                     if isinstance(self.cluster_shifts[k], dict)
                     else True
                 )
                 for k in idx
             }
 
-            details[cl]['desc_stats_changes'] = {k: details_stats_shifts[k] for k in idx if k in details_stats_shifts}
+            details[cl]["desc_stats_changes"] = {k: details_stats_shifts[k] for k in idx if k in details_stats_shifts}
 
-            details[cl]['avg_distance_to_center'] = {
+            details[cl]["avg_distance_to_center"] = {
                 k: (
                     bool(abs(self.avg_distance_shift[k]) > self.thr_avg_distance_to_center_change)
                     if self.avg_distance_shift[k] is not None
@@ -700,14 +699,14 @@ class ClusterBasedDriftDetector:
             center_new = self.centers_new[i]
 
             if center_old is None:
-                shift = 'appeared'
+                shift = "appeared"
             elif center_new is None:
-                shift = 'disappeared'
+                shift = "disappeared"
             else:
                 delta = center_new - center_old
                 shift = {
-                    'distance_per_feature': center_new - center_old,
-                    'euclidean_distance': np.linalg.norm(delta),
+                    "distance_per_feature": center_new - center_old,
+                    "euclidean_distance": np.linalg.norm(delta),
                 }
             shifts[i] = shift
         self.cluster_shifts = shifts
@@ -726,33 +725,33 @@ class ClusterBasedDriftDetector:
 
         def compute_cluster_stats(X, labels):
             df = pd.DataFrame(X, columns=self.columns)
-            df['cluster'] = labels
+            df["cluster"] = labels
             features = df.columns[:-1]
-            clusters = sorted(df['cluster'].unique())
+            clusters = sorted(df["cluster"].unique())
 
             records = []
             for cluster in clusters:
-                cluster_df = df[df['cluster'] == cluster]
+                cluster_df = df[df["cluster"] == cluster]
                 stats_dict = {}
                 for f in features:
                     # stats_dict[(f, 'min')] = cluster_df[f].min()
-                    stats_dict[(f, 'median')] = cluster_df[f].median()
-                    stats_dict[(f, 'mean')] = cluster_df[f].mean()
-                    stats_dict[(f, 'std')] = cluster_df[f].std()
+                    stats_dict[(f, "median")] = cluster_df[f].median()
+                    stats_dict[(f, "mean")] = cluster_df[f].mean()
+                    stats_dict[(f, "std")] = cluster_df[f].std()
                     # stats_dict[(f, 'max')] = cluster_df[f].max()
-                stats_dict[('cluster', 'id')] = cluster
+                stats_dict[("cluster", "id")] = cluster
                 records.append(stats_dict)
 
             stats_df = pd.DataFrame(records)
-            stats_df.set_index([('cluster', 'id')], inplace=True)
+            stats_df.set_index([("cluster", "id")], inplace=True)
             stats_df.sort_index(inplace=True)
             return stats_df
 
         stats_old = compute_cluster_stats(self.X_old, self.cluster_labels_old)
         stats_new = compute_cluster_stats(self.X_new, self.cluster_labels_new)
 
-        stats_old.columns = pd.MultiIndex.from_tuples([('before', f, stat) for f, stat in stats_old.columns])
-        stats_new.columns = pd.MultiIndex.from_tuples([('after', f, stat) for f, stat in stats_new.columns])
+        stats_old.columns = pd.MultiIndex.from_tuples([("before", f, stat) for f, stat in stats_old.columns])
+        stats_new.columns = pd.MultiIndex.from_tuples([("after", f, stat) for f, stat in stats_new.columns])
 
         stats_combined = pd.concat([stats_old, stats_new], axis=1)
         stats_combined.fillna(np.nan, inplace=True)
@@ -768,9 +767,7 @@ class ClusterBasedDriftDetector:
         stats_combined = stats_combined.sort_index(axis=1)
         return stats_combined
 
-    def compare_desc_stats_for_clusters(
-        self, stats_combined: pd.DataFrame
-    ) -> dict[int, dict[int, dict[str, float | str]]]:
+    def compare_desc_stats_for_clusters(self, stats_combined: pd.DataFrame) -> dict[int, dict[int, dict[str, float | str]]]:
         """
         Compare descriptive statistics and calculate the shift between them for corresponding clusters
         between data blocks.
@@ -801,8 +798,8 @@ class ClusterBasedDriftDetector:
                 stats_available = row_df.columns.levels[2]
 
                 for stat in stats_available:
-                    col_old = ('before', feature, stat)
-                    col_new = ('after', feature, stat)
+                    col_old = ("before", feature, stat)
+                    col_new = ("after", feature, stat)
 
                     if col_old not in row_df.columns or col_new not in row_df.columns:
                         details[cluster][feature][stat] = np.nan
@@ -893,26 +890,26 @@ class ClusterBasedDriftDetector:
         eps = 1e-10
         true_counts = np.array(
             [
-                sum(self.drift_details[cl]['nr_of_clusters'] is True for cl in set(self.y_old).union(set(self.y_new))),
+                sum(self.drift_details[cl]["nr_of_clusters"] is True for cl in set(self.y_old).union(set(self.y_new))),
                 sum(
                     stat is True
                     for klass in self.drift_details.values()
-                    for cluster in klass['desc_stats_changes'].values()
+                    for cluster in klass["desc_stats_changes"].values()
                     for feature in cluster.values()
                     for stat in feature.values()
                 ),
                 sum(
                     [
-                        self.drift_details[cl]['centroid_shift'][label] is True
+                        self.drift_details[cl]["centroid_shift"][label] is True
                         for cl in set(self.y_old).union(set(self.y_new))
-                        for label in self.drift_details[cl]['centroid_shift'].keys()
+                        for label in self.drift_details[cl]["centroid_shift"].keys()
                     ]
                 ),
                 sum(
                     [
-                        self.drift_details[cl]['avg_distance_to_center'][label] is True
+                        self.drift_details[cl]["avg_distance_to_center"][label] is True
                         for cl in set(self.y_old).union(set(self.y_new))
-                        for label in self.drift_details[cl]['avg_distance_to_center'].keys()
+                        for label in self.drift_details[cl]["avg_distance_to_center"].keys()
                     ]
                 ),
             ]
@@ -920,26 +917,26 @@ class ClusterBasedDriftDetector:
 
         false_counts = np.array(
             [
-                sum(self.drift_details[cl]['nr_of_clusters'] is False for cl in set(self.y_old).union(set(self.y_new))),
+                sum(self.drift_details[cl]["nr_of_clusters"] is False for cl in set(self.y_old).union(set(self.y_new))),
                 sum(
                     stat is False
                     for klass in self.drift_details.values()
-                    for cluster in klass['desc_stats_changes'].values()
+                    for cluster in klass["desc_stats_changes"].values()
                     for feature in cluster.values()
                     for stat in feature.values()
                 ),
                 sum(
                     [
-                        self.drift_details[cl]['centroid_shift'][label] is False
+                        self.drift_details[cl]["centroid_shift"][label] is False
                         for cl in set(self.y_old).union(set(self.y_new))
-                        for label in self.drift_details[cl]['centroid_shift'].keys()
+                        for label in self.drift_details[cl]["centroid_shift"].keys()
                     ]
                 ),
                 sum(
                     [
-                        self.drift_details[cl]['avg_distance_to_center'][label] is False
+                        self.drift_details[cl]["avg_distance_to_center"][label] is False
                         for cl in set(self.y_old).union(set(self.y_new))
-                        for label in self.drift_details[cl]['avg_distance_to_center'].keys()
+                        for label in self.drift_details[cl]["avg_distance_to_center"].keys()
                     ]
                 ),
             ]

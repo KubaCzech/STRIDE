@@ -7,13 +7,13 @@ from collections import defaultdict
 
 
 class StatisticsType(Enum):
-    Mean = 'mean'
-    StandardDeviation = 'std'
-    Min = 'min'
-    Max = 'max'
-    Median = 'median'
-    ImbalanceRatio = 'imbalance_ratio'
-    All = 'all'
+    Mean = "mean"
+    StandardDeviation = "std"
+    Min = "min"
+    Max = "max"
+    Median = "median"
+    ImbalanceRatio = "imbalance_ratio"
+    All = "all"
 
 
 class DescriptiveStatisticsDriftDetector:
@@ -199,8 +199,8 @@ class DescriptiveStatisticsDriftDetector:
         drift_flag : bool
             Boolean flag saying whether the drift occurred or not.
         """
-        old_ir = data_before['label'].value_counts(normalize=True)
-        new_ir = data_after['label'].value_counts(normalize=True)
+        old_ir = data_before["label"].value_counts(normalize=True)
+        new_ir = data_after["label"].value_counts(normalize=True)
 
         all_labels = old_ir.index.union(new_ir.index)
 
@@ -288,8 +288,8 @@ class DescriptiveStatisticsDriftDetector:
             Nested dictionary with drift information for each class/feature/statistic.
         """
         if features is not None:
-            data_before = pd.concat([self.data_before[features], self.data_before['label']], axis=1)
-            data_after = pd.concat([self.data_after[features], self.data_after['label']], axis=1)
+            data_before = pd.concat([self.data_before[features], self.data_before["label"]], axis=1)
+            data_after = pd.concat([self.data_after[features], self.data_after["label"]], axis=1)
         else:
             data_before = self.data_before.copy()
             data_after = self.data_after.copy()
@@ -325,8 +325,8 @@ class DescriptiveStatisticsDriftDetector:
         """
 
         def compute_stats(df: pd.DataFrame) -> pd.DataFrame:
-            features = [c for c in df.columns if c != 'label']
-            grouped = df.groupby('label')
+            features = [c for c in df.columns if c != "label"]
+            grouped = df.groupby("label")
 
             records = []
 

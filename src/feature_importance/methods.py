@@ -5,11 +5,7 @@ from lime.lime_tabular import LimeTabularExplainer
 from .base import FeatureImportanceMethod
 
 
-def calculate_feature_importance(
-    model, X, y, method="permutation",
-    feature_names=None, n_repeats=30,
-    random_state=42
-):
+def calculate_feature_importance(model, X, y, method="permutation", feature_names=None, n_repeats=30, random_state=42):
     """
     Calculate feature importance using specified method.
 
@@ -40,7 +36,7 @@ def calculate_feature_importance(
         - 'method': method used
     """
     if feature_names is None:
-        if hasattr(X, 'columns'):
+        if hasattr(X, "columns"):
             feature_names = X.columns.tolist()
         else:
             feature_names = [f"Feature_{i}" for i in range(X.shape[1])]
@@ -55,24 +51,18 @@ def calculate_feature_importance(
         return _calculate_lime(model, X, y, feature_names, random_state)
 
     else:
-        raise ValueError(f"Unknown method: {method}. Use 'permutation', "
-                         "'shap', or 'lime'")
+        raise ValueError(f"Unknown method: {method}. Use 'permutation', 'shap', or 'lime'")
 
 
 def _calculate_pfi(model, X, y, n_repeats=30, random_state=42):
     """Calculate Permutation Feature Importance."""
-    pfi_result = permutation_importance(
-        model, X, y,
-        n_repeats=n_repeats,
-        random_state=random_state,
-        n_jobs=-1
-    )
+    pfi_result = permutation_importance(model, X, y, n_repeats=n_repeats, random_state=random_state, n_jobs=-1)
 
     return {
-        'importances_mean': pfi_result.importances_mean,
-        'importances_std': pfi_result.importances_std,
-        'importances': pfi_result.importances,
-        'method': 'PFI'
+        "importances_mean": pfi_result.importances_mean,
+        "importances_std": pfi_result.importances_std,
+        "importances": pfi_result.importances,
+        "method": "PFI",
     }
 
 
@@ -124,10 +114,10 @@ def _calculate_shap(model, X, feature_names):
         importances_array = abs_shap_values
 
     return {
-        'importances_mean': importances_mean,
-        'importances_std': importances_std,
-        'importances': importances_array,
-        'method': 'SHAP'
+        "importances_mean": importances_mean,
+        "importances_std": importances_std,
+        "importances": importances_array,
+        "method": "SHAP",
     }
 
 
@@ -137,11 +127,7 @@ def _calculate_lime(model, X, y, feature_names, random_state=42):
 
     # Create LIME explainer
     explainer = LimeTabularExplainer(
-        X,
-        feature_names=feature_names,
-        class_names=['Class 0', 'Class 1'],
-        mode='classification',
-        random_state=random_state
+        X, feature_names=feature_names, class_names=["Class 0", "Class 1"], mode="classification", random_state=random_state
     )
 
     # Calculate LIME explanations for a sample of instances
@@ -151,11 +137,7 @@ def _calculate_lime(model, X, y, feature_names, random_state=42):
     all_importances = []
 
     for idx in sample_indices:
-        exp = explainer.explain_instance(
-            X[idx],
-            model.predict_proba,
-            num_features=len(feature_names)
-        )
+        exp = explainer.explain_instance(X[idx], model.predict_proba, num_features=len(feature_names))
 
         # Extract feature importances (absolute values)
         importance_dict = dict(exp.as_list())
@@ -174,8 +156,8 @@ def _calculate_lime(model, X, y, feature_names, random_state=42):
     all_importances = np.array(all_importances)
 
     return {
-        'importances_mean': np.mean(all_importances, axis=0),
-        'importances_std': np.std(all_importances, axis=0),
-        'importances': all_importances.T,
-        'method': 'LIME'
+        "importances_mean": np.mean(all_importances, axis=0),
+        "importances_std": np.std(all_importances, axis=0),
+        "importances": all_importances.T,
+        "method": "LIME",
     }

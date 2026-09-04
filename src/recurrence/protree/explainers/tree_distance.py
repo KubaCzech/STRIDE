@@ -95,8 +95,9 @@ class IExplainer(ABC):
     def distance_matrix(self, batch: TDataBatch) -> np.ndarray:
         return 1 - self.similarity_matrix(batch)
 
-    def _create_distance_matrices(self, x: TDataBatch, y: TTarget, classes: Iterable[int | str]
-                                  ) -> dict[int | str, np.ndarray]:
+    def _create_distance_matrices(
+        self, x: TDataBatch, y: TTarget, classes: Iterable[int | str]
+    ) -> dict[int | str, np.ndarray]:
         distances = {cls: None for cls in classes}
         for cls in classes:
             class_x = get_x_belonging_to_cls(x, y, cls)
@@ -110,7 +111,8 @@ class IExplainer(ABC):
 
         for cls in prototypes:
             for _, prototype in (
-                    prototypes[cls].iterrows() if hasattr(prototypes[cls], "iterrows") else enumerate(prototypes[cls])):
+                prototypes[cls].iterrows() if hasattr(prototypes[cls], "iterrows") else enumerate(prototypes[cls])
+            ):
                 prototype_leaves = self.model.get_leave_indices([prototype])
                 prototype_similarity = (prototype_leaves == x_nodes).sum(axis=1) / self.model.n_trees
                 mask = prototype_similarity > similarity
@@ -177,9 +179,7 @@ class G_KM(IExplainer):
     def _find_single_class_prototypes(self, matrix: np.ndarray) -> list[int]:
         prototypes = []
         for _ in range(self.n_prototypes):
-            prototypes.append(
-                self._find_classwise_prototype(matrix, prototypes)
-            )
+            prototypes.append(self._find_classwise_prototype(matrix, prototypes))
         return prototypes
 
     def select_prototypes(self, x: TDataBatch, y: TTarget | None = None) -> TPrototypes:
@@ -248,8 +248,9 @@ class SM_WA(SM_A):
     def __init__(self, model: TModel, n_prototypes: int = 3, *args, **kwargs) -> None:
         super().__init__(model=model, n_prototypes=n_prototypes, *args, **kwargs)
 
-    def _find_prototype(self, distances: dict[int | str, np.ndarray], prototypes: dict[int | str, list[int]]
-                        ) -> tuple[int | float, int]:
+    def _find_prototype(
+        self, distances: dict[int | str, np.ndarray], prototypes: dict[int | str, list[int]]
+    ) -> tuple[int | float, int]:
         prototype: tuple[float, int | str, int] = (-np.inf, -1, -1)
         for cls in distances:
             idx, improvement = self._find_classwise_prototype(distances[cls], prototypes[cls])
@@ -263,8 +264,9 @@ class SG(SM_A):
     def __init__(self, n_prototypes: int = 3, *args, **kwargs) -> None:
         super().__init__(n_prototypes=n_prototypes, *args, **kwargs)
 
-    def _find_prototype(self, prototypes: TPrototypes, x: TDataBatch, y: TTarget, accuracy: float
-                        ) -> tuple[int | str, int, float]:
+    def _find_prototype(
+        self, prototypes: TPrototypes, x: TDataBatch, y: TTarget, accuracy: float
+    ) -> tuple[int | str, int, float]:
         prototype: tuple[int | str, int] = (-1, -1)
         for cls in prototypes:
             class_x = x[y.values == cls]
@@ -301,8 +303,9 @@ class APete(SM_A):
         super().__init__(model)
         self.alpha = float(alpha)
 
-    def _find_prototype(self, distances: dict[int | str, np.ndarray], prototypes: dict[int | str, list[int]]
-                        ) -> tuple[int | float, int, float]:
+    def _find_prototype(
+        self, distances: dict[int | str, np.ndarray], prototypes: dict[int | str, list[int]]
+    ) -> tuple[int | float, int, float]:
         delta_prim = -np.inf
         prototype_idx = -1
         prototype_cls = -1

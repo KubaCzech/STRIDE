@@ -1,5 +1,6 @@
 class FeatureImportanceMethod:
     """Enum-like class for feature importance methods."""
+
     PFI = "permutation"
     SHAP = "shap"
     LIME = "lime"

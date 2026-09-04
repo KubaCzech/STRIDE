@@ -6,7 +6,7 @@ pyclustering
 river
 matplotlib
 umap-learn
-flake8
+ruff
 lime
 shap
 streamlit

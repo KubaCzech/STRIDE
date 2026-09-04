@@ -16,9 +16,9 @@ from scipy.stats import gaussian_kde, probplot
 
 
 class PlotOptions(Enum):
-    Mean = 'mean'
-    Median = 'median'
-    Both = 'both'
+    Mean = "mean"
+    Median = "median"
+    Both = "both"
 
 
 def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = None) -> Callable:
@@ -68,17 +68,15 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
                 y_after = y_after.values
 
             if palette is None:
-                default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+                default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
             else:
                 default_colors = palette
-            kwargs['default_colors'] = default_colors
+            kwargs["default_colors"] = default_colors
 
             features = X_before.columns
             classes = sorted([int(i) for i in set(y_before).union(set(y_after))])
 
-            fig, axes = plt.subplots(
-                len(features), len(classes), figsize=(6 * len(classes), 5 * len(features)), sharey=sharey
-            )
+            fig, axes = plt.subplots(len(features), len(classes), figsize=(6 * len(classes), 5 * len(features)), sharey=sharey)
 
             # normalize axes shape
             if len(features) == 1:
@@ -109,7 +107,7 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
                     )
 
                     if i == 0:
-                        ax.set_title(f'Class {int(cl)}')
+                        ax.set_title(f"Class {int(cl)}")
                     if j == 0:
                         ax.set_ylabel(feature)
 
@@ -126,9 +124,7 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
 
 # 1. Boxplot
 @plot("Boxplot – Before vs After")
-def _boxplot(
-    ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, feature: str, show_: PlotOptions, save=None, **_
-) -> None:
+def _boxplot(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, feature: str, show_: PlotOptions, save=None, **_) -> None:
     """
     Draw a boxplot comparing distributions of two data blocks.
     """
@@ -136,29 +132,29 @@ def _boxplot(
     legend_elements = []
 
     if show_ == PlotOptions.Median:
-        bp = ax.boxplot([old_vals, new_vals], tick_labels=['Before', 'After'])
-        median_color = bp['medians'][0].get_color()
+        bp = ax.boxplot([old_vals, new_vals], tick_labels=["Before", "After"])
+        median_color = bp["medians"][0].get_color()
     elif show_ == PlotOptions.Mean:
         bp = ax.boxplot(
             [old_vals, new_vals],
-            tick_labels=['Before', 'After'],
+            tick_labels=["Before", "After"],
             showmeans=True,
             meanline=True,
             medianprops=dict(visible=False),
         )
-        mean_color = bp['means'][0].get_color()
+        mean_color = bp["means"][0].get_color()
     elif show_ == PlotOptions.Both:
-        bp = ax.boxplot([old_vals, new_vals], tick_labels=['Before', 'After'], showmeans=True, meanline=True)
-        median_color = bp['medians'][0].get_color()
-        mean_color = bp['means'][0].get_color()
+        bp = ax.boxplot([old_vals, new_vals], tick_labels=["Before", "After"], showmeans=True, meanline=True)
+        median_color = bp["medians"][0].get_color()
+        mean_color = bp["means"][0].get_color()
     else:
         raise ValueError("Unsupported Boxplot option")
-    ax.set_ylabel('Value of feature')
+    ax.set_ylabel("Value of feature")
 
     if median_color is not None:
-        legend_elements.append(Line2D([0], [0], color=median_color, lw=1, label='Median'))
+        legend_elements.append(Line2D([0], [0], color=median_color, lw=1, label="Median"))
     if mean_color is not None:
-        legend_elements.append(Line2D([0], [0], color=mean_color, lw=1, linestyle='--', label='Mean'))
+        legend_elements.append(Line2D([0], [0], color=mean_color, lw=1, linestyle="--", label="Mean"))
     ax.legend(handles=legend_elements)
 
 
@@ -173,17 +169,17 @@ def _histogram(
     all_vals = np.concatenate([old_vals, new_vals])
     bin_edges = np.histogram_bin_edges(all_vals, bins=bins)
 
-    ax.hist(old_vals, bins=bin_edges, alpha=0.6, density=False, label='Before', color=colors[0])
-    ax.hist(new_vals, bins=bin_edges, alpha=0.6, density=False, label='After', color=colors[1])
+    ax.hist(old_vals, bins=bin_edges, alpha=0.6, density=False, label="Before", color=colors[0])
+    ax.hist(new_vals, bins=bin_edges, alpha=0.6, density=False, label="After", color=colors[1])
     both_color = np.mean([to_rgb(colors[0]), to_rgb(colors[1])], axis=0)
 
     legend_elements = [
-        Patch(facecolor=colors[0], alpha=0.6, label='Before'),
-        Patch(facecolor=colors[1], alpha=0.6, label='After'),
-        Patch(facecolor=both_color, alpha=0.6, label='Both'),
+        Patch(facecolor=colors[0], alpha=0.6, label="Before"),
+        Patch(facecolor=colors[1], alpha=0.6, label="After"),
+        Patch(facecolor=both_color, alpha=0.6, label="Both"),
     ]
-    ax.set_xlabel('Value of feature')
-    ax.set_ylabel('Number of appearences')
+    ax.set_xlabel("Value of feature")
+    ax.set_ylabel("Number of appearences")
     ax.legend(handles=legend_elements)
 
 
@@ -201,7 +197,7 @@ def _violin(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, show_: PlotO
     else:
         raise ValueError("Unsupported Violin plot option")
     ax.set_xticks([1, 2])
-    ax.set_xticklabels(['Before', 'After'])
+    ax.set_xticklabels(["Before", "After"])
 
 
 # 4. QQ Plot
@@ -228,8 +224,8 @@ def _kde(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequenc
     x_max = max(max(old_vals), max(new_vals))
     x_range = np.linspace(x_min, x_max, 1000)
 
-    ax.plot(x_range, kde_old(x_range), label='Before', color=colors[0])
-    ax.plot(x_range, kde_new(x_range), label='After', color=colors[1])
+    ax.plot(x_range, kde_old(x_range), label="Before", color=colors[0])
+    ax.plot(x_range, kde_new(x_range), label="After", color=colors[1])
     ax.legend()
 
 
@@ -245,8 +241,8 @@ def _ecdf(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequen
         y = np.arange(1, len(x) + 1) / len(x)
         return x, y
 
-    ax.plot(*ecdf(old_vals), label='Before', color=colors[0])
-    ax.plot(*ecdf(new_vals), label='After', color=colors[1])
+    ax.plot(*ecdf(old_vals), label="Before", color=colors[0])
+    ax.plot(*ecdf(new_vals), label="After", color=colors[1])
     ax.legend()
 
 
