@@ -80,6 +80,7 @@ STRIDE can be integrated programmatically into experimental scripts and streamin
 
 ```python
 import sys
+
 sys.path.append("src")
 
 from datasets.hyperplane_drift import HyperplaneDriftDataset
