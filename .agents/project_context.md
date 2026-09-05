@@ -16,6 +16,7 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 - [x] Interactive Streamlit dashboard with multi-tab analysis and sidebar controls.
 - [x] Isolated model parameters and dataset feature reduction sanitization.
 - [x] Official Streamlit AI agent skills integration (`.agents/skills/developing-with-streamlit/`).
+- [x] Publication-grade README.md and documentation alignment for ECML PKDD 2026 Demo Track.
 - [ ] Expand automated test coverage for core xAI algorithms in `src/`.
 - [ ] Implement additional statistical drift detectors and recurring concept benchmarks.
 
