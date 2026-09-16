@@ -3,6 +3,7 @@
 A Python Toolkit for Concept Drift Detection, Characterization, and Explanation
 
 [![ECML PKDD 2026](https://img.shields.io/badge/ECML--PKDD_2026-Demo_Track-1E88E5.svg)](https://michalredm.github.io/stride-website/assets/pdf/paper.pdf)
+[![DOI: 10.1007/978-3-032-37685-5_32](https://img.shields.io/badge/DOI-10.1007%2F978--3--032--37685--5__32-blue.svg)](https://link.springer.com/chapter/10.1007/978-3-032-37685-5_32)
 [![Website](https://img.shields.io/badge/Website-STRIDE-0A66C2?logo=googlechrome&logoColor=white)](https://michalredm.github.io/stride-website/)
 [![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stream-insight-and-drift-explanation.streamlit.app/)
 [![CI](https://github.com/KubaCzech/STRIDE/actions/workflows/ci.yml/badge.svg)](https://github.com/KubaCzech/STRIDE/actions/workflows/ci.yml)
@@ -10,7 +11,7 @@ A Python Toolkit for Concept Drift Detection, Characterization, and Explanation
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-[Website](https://michalredm.github.io/stride-website/) &bull; [Live Dashboard](https://stream-insight-and-drift-explanation.streamlit.app/) &bull; [Paper (PDF)](https://michalredm.github.io/stride-website/assets/pdf/paper.pdf) &bull; [Architecture](#three-layer-architecture) &bull; [Quickstart](#quickstart) &bull; [Citation](#citation)
+[Website](https://michalredm.github.io/stride-website/) &bull; [Live Dashboard](https://stream-insight-and-drift-explanation.streamlit.app/) &bull; [Springer Chapter](https://link.springer.com/chapter/10.1007/978-3-032-37685-5_32) &bull; [Paper (PDF)](https://michalredm.github.io/stride-website/assets/pdf/paper.pdf) &bull; [Architecture](#three-layer-architecture) &bull; [Quickstart](#quickstart) &bull; [Citation](#citation)
 
 ---
 
@@ -201,11 +202,16 @@ STRIDE/
 If you use STRIDE in your research, please cite our paper from the **ECML PKDD 2026 Demo Track**:
 
 ```bibtex
-@inproceedings{aksoy2026stride,
-  title     = {{STReam Insight and Drift Explanation (STRIDE): a Python Toolkit for Concept Drift Detection and Explanation}},
-  author    = {Aksoy, Deniz and Czech, Kuba and Nag{\'o}rka, Wojciech and Redmer, Micha{\l} and Stefanowski, Jerzy},
-  booktitle = {European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML PKDD)},
-  year      = {2026}
+@inproceedings{nagorka2026stride,
+  title     = {{STReam Insight and Drift Explanation (STRIDE): A Python Toolkit for Concept Drift Detection and Explanation}},
+  author    = {Nag{\'o}rka, Wojciech and Redmer, Micha{\l} and Czech, Kuba and Aksoy, Deniz and Stefanowski, Jerzy},
+  booktitle = {Machine Learning and Knowledge Discovery in Databases. Applied Data Science Track, Demo Track and Industrial Track (ECML PKDD)},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {348--352},
+  year      = {2026},
+  publisher = {Springer, Cham},
+  doi       = {10.1007/978-3-032-37685-5_32},
+  url       = {https://link.springer.com/chapter/10.1007/978-3-032-37685-5_32}
 }
 ```
 
@@ -213,10 +219,10 @@ If you use STRIDE in your research, please cite our paper from the **ECML PKDD 2
 
 ## Authors & Acknowledgments
 
-* **Deniz Aksoy** &bull; Poznań University of Technology
-* **Kuba Czech** &bull; Poznań University of Technology
 * **Wojciech Nagórka** &bull; Poznań University of Technology
 * **Michał Redmer** &bull; Poznań University of Technology
+* **Kuba Czech** &bull; Poznań University of Technology
+* **Deniz Aksoy** &bull; Poznań University of Technology
 * **Jerzy Stefanowski** &bull; Poznań University of Technology
 
 **Funding**: The research by Jerzy Stefanowski was funded by the National Science Centre, Poland, under OPUS grant no. `2023/51/B/ST6/00545`.
