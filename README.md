@@ -77,18 +77,12 @@ The application opens at `http://localhost:8501`.
 
 ### Python API Usage
 
-STRIDE can be integrated programmatically into experimental scripts and streaming pipelines:
+STRIDE exposes a clean programmatic API under the `stride` namespace. After installation (see below), no `sys.path` manipulation is required:
 
 ```python
-import sys
-
-sys.path.append("src")
-
-from datasets.hyperplane_drift import HyperplaneDriftDataset
-from descriptive_statistics.statistical_tests import (
-    StatisticalTestsDriftDetector,
-    StatisticalTestType,
-)
+from stride.datasets import HyperplaneDriftDataset
+from stride.xai.stats import StatisticalTestsDriftDetector, StatisticalTestType
+from stride.models import RandomForestModel
 
 # 1. Generate a synthetic streaming dataset with rotating hyperplane drift
 dataset = HyperplaneDriftDataset()
@@ -105,12 +99,25 @@ X, y = dataset.generate(
 X_ref, y_ref = X.iloc[:1000], y.iloc[:1000]
 X_det, y_det = X.iloc[1000:], y.iloc[1000:]
 
-# 3. Detect and characterize distribution shifts via non-parametric statistical tests
+# 3. Train a streaming classifier on the reference window
+model = RandomForestModel()
+model.fit(X_ref, y_ref)
+
+# 4. Detect and characterize distribution shifts via non-parametric statistical tests
 detector = StatisticalTestsDriftDetector(X_ref, y_ref, X_det, y_det)
 has_drift = detector.detect(StatisticalTestType.KolmogorovSmirnov)
 
 print(f"Drift detected: {has_drift}")
 print(f"Per-feature test outcomes: {detector.drift_flags}")
+```
+
+Top-level convenience imports are also available directly from `stride`:
+
+```python
+import stride
+
+model = stride.RandomForestModel()
+detector = stride.DescriptiveStatisticsDriftDetector(...)
 ```
 
 ---
@@ -141,11 +148,26 @@ print(f"Per-feature test outcomes: {detector.drift_flags}")
    .venv\Scripts\Activate.ps1
    ```
 
-3. **Install dependencies**:
+3. **Install the package and its dependencies**:
    ```bash
    pip install --upgrade pip
    pip install -r requirements.txt
+   pip install -e .
    ```
+
+   The editable install (`-e .`) registers the `stride` package in your environment so that `from stride.datasets import ...` works without any `sys.path` manipulation.
+
+   **Optional extras** can be appended in brackets to install additional capability groups:
+
+   | Extra | Installs |
+   |---|---|
+   | `pip install -e ".[vis]"` | `matplotlib`, `seaborn`, `plotly` |
+   | `pip install -e ".[drift]"` | `river` (online stream learning) |
+   | `pip install -e ".[clustering]"` | `pyclustering`, `hdbscan`, `umap-learn` |
+   | `pip install -e ".[xai]"` | `shap`, `lime` |
+   | `pip install -e ".[deeplearning]"` | `tensorflow>=2.15` (for SSNP boundary projection) |
+   | `pip install -e ".[dashboard]"` | `streamlit`, `icecream` |
+   | `pip install -e ".[all]"` | All of the above |
 
 4. **Verify the installation**:
    ```bash
@@ -176,23 +198,45 @@ print(f"Per-feature test outcomes: {detector.drift_flags}")
 
 ```text
 STRIDE/
-├── assets/                    # Architecture diagrams and visual documentation
+├── assets/                         # Architecture diagrams and visual documentation
 │   └── pipeline.png
-├── dashboard/                 # Streamlit interactive application
-│   ├── app.py                 # Application entry point
-│   ├── assets/                # Dashboard styles and custom CSS
-│   └── components/            # UI tabs (Data, Model, Explanation layers)
-├── src/                       # Core toolkit algorithms
-│   ├── datasets/              # Streaming data generators and real datasets
-│   ├── DDM/                   # River drift detectors and error descriptors
-│   ├── decision_boundary/     # Supervised Decision Boundary Maps (SDBM)
-│   ├── descriptive_statistics/# Statistical tests (KS, AD, Wasserstein)
-│   ├── feature_importance/    # SHAP and Permutation Feature Importance
-│   ├── models/                # Model wrappers (MLP, Random Forest, SVM)
-│   └── recurrence/            # Prototype extraction & HDBSCAN concept clustering
-├── tests/                     # Automated test suite
-├── pyproject.toml             # Package configuration and ruff lint settings
-└── requirements.txt           # Core runtime dependencies
+├── dashboard/                      # Streamlit interactive application
+│   ├── app.py                      # Application entry point
+│   ├── assets/                     # Dashboard styles and custom CSS
+│   ├── components/                 # UI tabs (Data, Model, Explanation layers)
+│   └── config/                     # Dashboard-only widget schemas & presets
+│       ├── dataset_schemas.py      # Dataset UI configuration (decoupled from core)
+│       └── model_schemas.py        # Model UI configuration (decoupled from core)
+├── src/                            # PyPA src-layout root
+│   ├── stride/                     # Canonical Python package (import as `stride`)
+│   │   ├── __init__.py             # Top-level public API & convenience re-exports
+│   │   ├── exceptions.py           # Domain exception hierarchy (StrideError, …)
+│   │   ├── py.typed                # PEP 561 marker for static type checkers
+│   │   ├── common/                 # Shared utilities and window helpers
+│   │   ├── datasets/               # Streaming data generators and real datasets
+│   │   │   ├── hyperplane_drift.py
+│   │   │   ├── sea_drift.py
+│   │   │   ├── rbf_drift.py
+│   │   │   ├── linear_weight_inversion_drift.py
+│   │   │   ├── *_multi_window.py   # Multi-concept stream generators
+│   │   │   ├── csv_dataset.py
+│   │   │   └── river_dataset.py
+│   │   ├── drift/                  # Sequential drift detectors
+│   │   │   └── binary_descriptor.py  # BinaryErrorDriftDescriptor (DDM-based)
+│   │   ├── models/                 # Model wrappers with fit/predict API
+│   │   │   ├── mlp.py              # Multi-Layer Perceptron
+│   │   │   └── random_forest.py    # Random Forest
+│   │   ├── plotting/               # Stream-level matplotlib visualizations
+│   │   └── xai/                    # Explainable AI analyzers
+│   │       ├── boundary/           # Decision boundary maps (SDBM / SSNP)
+│   │       ├── clustering/         # X-means clustering dynamics
+│   │       ├── importance/         # SHAP & Permutation Feature Importance
+│   │       ├── recurrence/         # ProTree prototype & HDBSCAN concept detection
+│   │       └── stats/              # Statistical tests (KS, AD, Wasserstein)
+│   └── DDM/                        # Backward-compatibility bridge → stride.drift
+├── tests/                          # Automated test suite
+├── pyproject.toml                  # PEP 621 package metadata, extras, and ruff config
+└── requirements.txt                # Pinned runtime dependencies
 ```
 
 ---
