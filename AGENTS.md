@@ -18,11 +18,12 @@ Before writing or modifying any code, identify your target area and **read the c
 
 | When working on / modifying... | Target Paths / Globs | Mandatory File to Read FIRST | Key Invariants & Pitfalls to Check |
 | :--- | :--- | :--- | :--- |
+| **Python Package & Core API** | `src/stride/**`, `src/**`, `pyproject.toml` | [`.agents/rules/python_package_standards.md`](.agents/rules/python_package_standards.md)<br>[`.agents/rules/ml_and_drift_standards.md`](.agents/rules/ml_and_drift_standards.md) | • Standard PyPA `src/stride/` layout<br>• Zero Streamlit UI logic in core<br>• No `plt.show()` in library; return `Figure`/`Axes` |
 | **Streamlit Dashboard & UI** | `dashboard/**`, `streamlit_app.py` | [`.agents/rules/dashboard_standards.md`](.agents/rules/dashboard_standards.md)<br>[`.agents/skills/developing-with-streamlit/SKILL.md`](.agents/skills/developing-with-streamlit/SKILL.md) | • Isolate model/dataset state per key<br>• Use `width="stretch"` (no `use_container_width`)<br>• Gating expensive computation with `st.fragment`/`st.form` |
-| **ML Models, Drift & xAI** | `src/**` | [`.agents/rules/ml_and_drift_standards.md`](.agents/rules/ml_and_drift_standards.md)<br>[`.agents/context/architecture.md`](.agents/context/architecture.md) | • Fixed random seeds for stream reproducibility<br>• Consistent interface for data generators (`X, y`)<br>• Handle high-dimensional projections cleanly |
+| **ML Models, Drift & xAI** | `src/stride/**`, `src/**` | [`.agents/rules/ml_and_drift_standards.md`](.agents/rules/ml_and_drift_standards.md)<br>[`.agents/context/architecture.md`](.agents/context/architecture.md) | • Fixed random seeds for stream reproducibility<br>• Consistent interface for data generators (`X, y`)<br>• Handle high-dimensional projections cleanly |
 | **CI, Linting & Testing** | `.github/workflows/**`, `tests/**` | [`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Pass ruff check and ruff format with zero errors<br>• All tests pass via `unittest discover tests` |
 | **Agent Context & Config** | `.agents/**`, `AGENTS.md` | [`.agents/rules/agent_maintenance_standards.md`](.agents/rules/agent_maintenance_standards.md)<br>[`.agents/skills/agent-maintenance/SKILL.md`](.agents/skills/agent-maintenance/SKILL.md) | • Update `acs.yaml` triggers on new paths<br>• Maintain roadmap status in `project_context.md` |
-| **Git & Version Control** | Repository root / Git | [`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Atomic Conventional Commits (`feat`, `fix`, `test`, `chore`)<br>• Mandatory pre-push local CI validation |
+| **Git & Version Control** | Repository root / Git | [`.agents/rules/git_and_pr_standards.md`](.agents/rules/git_and_pr_standards.md)<br>[`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Strict pre-implementation branch invariant<br>• Atomic Conventional Commits (`feat`, `fix`, `refactor`)<br>• Mandatory pre-push local CI validation |
 
 ---
 
