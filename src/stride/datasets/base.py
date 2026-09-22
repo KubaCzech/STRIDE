@@ -39,16 +39,39 @@ class BaseDataset(ABC):
 
     def get_settings_schema(self) -> list[dict]:
         """
-        Return a schema describing the settings for this dataset.
-        Subclasses can provide parameter schemas for consumer dashboards.
+        Deprecated: Return a schema describing the settings for this dataset.
+
+        UI schemas should be managed by consumer applications (e.g. dashboard.config.dataset_schemas).
         """
-        return []
+        import warnings
+
+        warnings.warn(
+            "get_settings_schema() on dataset classes is deprecated and will be removed in a future release. "
+            "UI configuration schemas should be managed by the application layer (e.g. dashboard.config.dataset_schemas).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        try:
+            from dashboard.config.dataset_schemas import get_dataset_schema
+
+            return get_dataset_schema(self.name)
+        except ImportError:
+            return []
 
     def get_available_settings(self) -> dict[str, dict]:
         """
-        Return available named preset settings for this dataset.
-        Delegates to dashboard configuration if available.
+        Deprecated: Return available named preset settings for this dataset.
+
+        UI presets should be managed by consumer applications (e.g. dashboard.config.dataset_schemas).
         """
+        import warnings
+
+        warnings.warn(
+            "get_available_settings() on dataset classes is deprecated and will be removed in a future release. "
+            "UI presets should be managed by the application layer (e.g. dashboard.config.dataset_schemas).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         try:
             from dashboard.config.dataset_schemas import get_dataset_available_settings
 

@@ -25,53 +25,6 @@ class RbfMultiWindowDataset(BaseDataset):
         )
         return params
 
-    def get_settings_schema(self) -> list[dict]:
-        return [
-            {
-                "name": "num_windows",
-                "type": "int",
-                "label": "Number of Windows",
-                "default": 100,
-                "min_value": 2,
-                "step": 1,
-                "help": "Total number of windows to generate.",
-            },
-            {
-                "name": "drift_positions",
-                "type": "text",
-                "label": "Drift Positions (comma-separated sample numbers)",
-                "default": "28000, 52000, 70000",
-                "help": "Enter sample positions where drifts occur, e.g., '28000, 52000, 70000'. Leave empty for no drifts.",
-            },
-            {
-                "name": "drift_duration",
-                "type": "int",
-                "label": "Drift Duration (samples)",
-                "default": 1,
-                "min_value": 1,
-                "step": 100,
-                "help": "Duration of each drift transition in samples.",
-            },
-            {
-                "name": "n_informative",
-                "type": "int",
-                "label": "Number of Informative Features",
-                "default": 5,
-                "min_value": 1,
-                "step": 1,
-                "help": "Number of informative features in the dataset.",
-            },
-            {
-                "name": "n_centroids",
-                "type": "int",
-                "label": "Number of Centroids",
-                "default": 11,
-                "min_value": 2,
-                "step": 1,
-                "help": "Number of centroids for RBF generation.",
-            },
-        ]
-
     def generate(
         self,
         num_windows=100,

@@ -31,34 +31,3 @@ class RandomForestModel(BaseModel):
             min_samples_split=self.min_samples_split,
             random_state=self.random_state,
         )
-
-    def get_settings_schema(self) -> list[dict]:
-        return [
-            {
-                "name": "n_estimators",
-                "type": "int",
-                "label": "Number of Estimators",
-                "default": 100,
-                "min_value": 10,
-                "step": 10,
-                "help": "The number of trees in the forest.",
-            },
-            {
-                "name": "max_depth",
-                "type": "int",
-                "label": "Max Depth",
-                "default": 0,  # 0 will mean None in our logic if we handle it
-                "min_value": 0,
-                "step": 1,
-                "help": "The maximum depth of the tree. 0 means unlimited.",
-            },
-            {
-                "name": "min_samples_split",
-                "type": "int",
-                "label": "Min Samples Split",
-                "default": 2,
-                "min_value": 2,
-                "step": 1,
-                "help": "The minimum number of samples required to split an internal node.",
-            },
-        ]

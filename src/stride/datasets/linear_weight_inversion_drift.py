@@ -18,55 +18,6 @@ class LinearWeightInversionDriftDataset(BaseDataset):
         params.update({"n_features": 11, "n_drift_features": 5, "drift_width": 1})
         return params
 
-    def get_settings_schema(self) -> list[dict]:
-        return [
-            {
-                "name": "n_samples_before",
-                "type": "int",
-                "label": "Number of Samples Before Drift",
-                "default": 1000,
-                "min_value": 100,
-                "step": 100,
-                "help": "Number of samples generated before the concept drift occurs.",
-            },
-            {
-                "name": "n_samples_after",
-                "type": "int",
-                "label": "Number of Samples After Drift",
-                "default": 1000,
-                "min_value": 100,
-                "step": 100,
-                "help": "Number of samples generated after the concept drift occurs.",
-            },
-            {
-                "name": "n_features",
-                "type": "int",
-                "label": "Number of Features (n_features)",
-                "default": 11,
-                "min_value": 2,
-                "step": 1,
-                "help": "Total number of features for the dataset. Must be >= 2.",
-            },
-            {
-                "name": "n_drift_features",
-                "type": "int",
-                "label": "Number of Drifting Features (n_drift_features)",
-                "default": 5,
-                "min_value": 1,
-                "step": 1,
-                "help": "Number of features that will drift. Must be <= n_features.",
-            },
-            {
-                "name": "drift_width",
-                "type": "int",
-                "label": "Drift Width (drift_width)",
-                "default": 1,
-                "min_value": 1,
-                "step": 1,
-                "help": "Width of the concept drift (number of samples).",
-            },
-        ]
-
     def generate(
         self,
         n_samples_before=1000,

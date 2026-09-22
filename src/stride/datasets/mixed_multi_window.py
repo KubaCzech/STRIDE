@@ -19,45 +19,6 @@ class MixedMultiWindowDataset(BaseDataset):
         )
         return params
 
-    def get_settings_schema(self) -> list[dict]:
-        return [
-            {
-                "name": "num_windows",
-                "type": "int",
-                "label": "Number of Windows",
-                "default": 100,
-                "min_value": 2,
-                "step": 1,
-                "help": "Total number of windows to generate.",
-            },
-            {
-                "name": "drift_positions",
-                "type": "text",
-                "label": "Drift Positions (comma-separated sample numbers)",
-                "default": "28000, 52000, 70000",
-                "help": "Enter sample positions where drifts occur, e.g., '28000, 52000, 70000'. Leave empty for no drifts.",
-            },
-            {
-                "name": "drift_duration",
-                "type": "int",
-                "label": "Drift Duration (samples)",
-                "default": 1,
-                "min_value": 1,
-                "step": 100,
-                "help": "Duration of each drift transition in samples.",
-            },
-            {
-                "name": "classification_function",
-                "type": "int",
-                "label": "Classification Function",
-                "default": 1,
-                "min_value": 0,
-                "step": 1,
-                "help": "Classification function to use (should be 0 or 1). "
-                "Values outside this range will be reduced using modulo 2.",
-            },
-        ]
-
     def generate(
         self,
         num_windows=100,

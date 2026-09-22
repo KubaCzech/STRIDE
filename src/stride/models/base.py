@@ -47,21 +47,39 @@ class BaseModel(BaseEstimator, ClassifierMixin, ABC):
 
     def get_settings_schema(self) -> list[dict]:
         """
-        Return a schema describing the settings for this model.
-        Delegates to dashboard configuration if available.
-        """
-        try:
-            from dashboard.config.model_schemas import get_model_settings_schema
+        Deprecated: Return a schema describing the settings for this model.
 
-            return get_model_settings_schema(self.name)
+        UI schemas should be managed by the application layer (e.g. dashboard.config.model_schemas).
+        """
+        import warnings
+
+        warnings.warn(
+            "get_settings_schema() on model classes is deprecated and will be removed in a future release. "
+            "UI schemas should be managed by dashboard.config.model_schemas.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        try:
+            from dashboard.config.model_schemas import get_model_schema
+
+            return get_model_schema(self.name)
         except ImportError:
             return []
 
     def get_available_settings(self) -> dict[str, dict]:
         """
-        Return available named preset settings for this model.
-        Delegates to dashboard configuration if available.
+        Deprecated: Return available named preset settings for this model.
+
+        UI presets should be managed by the application layer (e.g. dashboard.config.model_schemas).
         """
+        import warnings
+
+        warnings.warn(
+            "get_available_settings() on model classes is deprecated and will be removed in a future release. "
+            "UI presets should be managed by dashboard.config.model_schemas.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         try:
             from dashboard.config.model_schemas import get_model_available_settings
 

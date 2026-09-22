@@ -1,5 +1,6 @@
 import streamlit as st
 from dashboard.components.settings import render_settings_from_schema
+from dashboard.config.model_schemas import get_model_schema, get_model_available_settings
 
 
 def _on_model_setting_change_handler(model_available_settings, model_name):
@@ -24,7 +25,7 @@ def _on_model_setting_change_handler(model_available_settings, model_name):
 
 def _get_cleaned_model_settings(temp_model):
     """Retrieves and cleans available settings from the model."""
-    model_available_settings = temp_model.get_available_settings()
+    model_available_settings = get_model_available_settings(temp_model.name)
     cleaned_available_settings = {}
     default_preset_name = None
 
@@ -162,7 +163,7 @@ def open_model_settings_modal(selected_model_class):
     _render_model_preset_selection(temp_model)
 
     # --- Model Settings ---
-    model_schema = temp_model.get_settings_schema()
+    model_schema = get_model_schema(model_name)
 
     current_params = st.session_state.get("model_params_by_model", {}).get(model_name, st.session_state.get("model_params"))
 

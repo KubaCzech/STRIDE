@@ -33,28 +33,6 @@ class RiverDataset(BaseDataset):
     def display_name(self) -> str:
         return f"{self.dataset_name} Drift"
 
-    def get_settings_schema(self) -> list[dict]:
-        return [
-            {
-                "name": "size_of_block",
-                "type": "int",
-                "label": "Size of Block",
-                "default": 2000,
-                "min_value": 100,
-                "step": 100,
-                "help": "Number of samples to extract from the dataset.",
-            },
-            {
-                "name": "starting_point",
-                "type": "int",
-                "label": "Starting Point",
-                "default": -1,
-                "min_value": -1,
-                "step": 100,
-                "help": "Starting index in the stream. If -1, a random point is chosen.",
-            },
-        ]
-
     def get_params(self) -> dict:
         return {"size_of_block": 2000, "starting_point": -1, "random_seed": 42}
 

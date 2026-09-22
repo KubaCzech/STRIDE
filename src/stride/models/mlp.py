@@ -39,33 +39,3 @@ class MLPModel(BaseModel):
             random_state=self.random_state,
             solver="adam",
         )
-
-    def get_settings_schema(self) -> list[dict]:
-        return [
-            {
-                "name": "hidden_layer_sizes",
-                "type": "list_of_int",
-                "label": "Hidden Layer Sizes",
-                "default": [10, 10],
-                "help": "Specify the number of neurons for each hidden layer.",
-            },
-            {
-                "name": "max_iter",
-                "type": "int",
-                "label": "Max Iterations",
-                "default": 500,
-                "min_value": 10,
-                "step": 10,
-                "help": "Maximum number of iterations.",
-            },
-            {
-                "name": "alpha",
-                "type": "float",
-                "label": "Alpha (L2 penalty)",
-                "default": 0.00001,
-                "min_value": 0.0,
-                "step": 0.00001,
-                "format": "%.5f",
-                "help": "L2 penalty (regularization term) parameter.",
-            },
-        ]

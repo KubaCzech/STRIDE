@@ -25,53 +25,6 @@ class SineMultiWindowDataset(BaseDataset):
         )
         return params
 
-    def get_settings_schema(self) -> list[dict]:
-        return [
-            {
-                "name": "num_windows",
-                "type": "int",
-                "label": "Number of Windows",
-                "default": 100,
-                "min_value": 2,
-                "step": 1,
-                "help": "Total number of windows to generate.",
-            },
-            {
-                "name": "drift_positions",
-                "type": "text",
-                "label": "Drift Positions (comma-separated sample numbers)",
-                "default": "28000, 52000, 70000",
-                "help": "Enter sample positions where drifts occur, e.g., '28000, 52000, 70000'. Leave empty for no drifts.",
-            },
-            {
-                "name": "drift_duration",
-                "type": "int",
-                "label": "Drift Duration (samples)",
-                "default": 1,
-                "min_value": 1,
-                "step": 100,
-                "help": "Duration of each drift transition in samples.",
-            },
-            {
-                "name": "informative_attr_0",
-                "type": "int",
-                "label": "Informative Attribute 0",
-                "default": 3,
-                "min_value": 0,
-                "step": 1,
-                "help": "First informative attribute index.",
-            },
-            {
-                "name": "informative_attr_1",
-                "type": "int",
-                "label": "Informative Attribute 1",
-                "default": 2,
-                "min_value": 0,
-                "step": 1,
-                "help": "Second informative attribute index.",
-            },
-        ]
-
     def generate(
         self,
         num_windows=100,

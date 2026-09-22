@@ -24,14 +24,6 @@ class ImportedCSVDataset(BaseDataset):
             "features": self.registry_info.get("selected_features"),
         }
 
-    def get_settings_schema(self) -> list[dict]:
-        # Imported datasets have fixed structure, maybe allow renaming target?
-        # For now, keep it simple.
-        return []
-
-    def get_available_settings(self) -> dict:
-        return {}
-
     def generate(self, **kwargs):
         """
         Load data from the stored CSV file.
