@@ -1,0 +1,75 @@
+{
+  "hyperplane_drift": {
+    "Default": {
+      "default": true,
+      "n_features": 2,
+      "n_drift_features": 2,
+      "noise_percentage": 0.05,
+      "drift_noise_percentage": 0.1,
+      "mag_change": 0.2,
+      "drift_width": 1
+    }
+  },
+  "random_rbf_drift": {
+    "Default": {
+      "default": true,
+      "n_features": 10,
+      "n_classes": 2,
+      "n_centroids": 50,
+      "change_speed": 0.0,
+      "n_drift_centroids": 50,
+      "drift_width": 1
+    },
+    "Fast Drift": {
+      "n_features": 10,
+      "n_classes": 2,
+      "n_centroids": 50,
+      "change_speed": 0.87,
+      "n_drift_centroids": 50,
+      "drift_width": 1
+    }
+  },
+  "rbf_drift": {
+    "Default": {
+      "default": true,
+      "n_features": 4,
+      "gamma": 30.0,
+      "noise": 0.0,
+      "cluster_std": 0.05,
+      "drift_width": 1
+    }
+  },
+  "sea_drift": {
+    "Default": {
+      "default": true
+    }
+  },
+  "electricity_drift": {
+    "Default": {
+      "default": true,
+      "size_of_block": 2000,
+      "starting_point": -1
+    }
+  },
+  "airlines_drift": {
+    "Default": {
+      "default": true,
+      "size_of_block": 2000,
+      "starting_point": -1
+    }
+  },
+  "forest_drift": {
+    "Default": {
+      "default": true,
+      "size_of_block": 2000,
+      "starting_point": -1
+    }
+  },
+  "linear_weight_inversion_drift": {
+    "Default": {
+      "default": true,
+      "n_features": 11,
+      "n_drift_features": 5
+    }
+  }
+}

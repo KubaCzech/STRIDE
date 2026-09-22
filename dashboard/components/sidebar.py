@@ -1,8 +1,8 @@
 import inspect
 import streamlit as st
 import pandas as pd
-from src.datasets import DATASETS, reload_datasets, DatasetRegistry
-from src.models import MODELS
+from stride.datasets import DATASETS, reload_datasets, DatasetRegistry
+from stride.models import MODELS
 from dashboard.components.modals.dataset_settings import open_dataset_settings_modal
 from dashboard.components.modals.model_settings import open_model_settings_modal
 

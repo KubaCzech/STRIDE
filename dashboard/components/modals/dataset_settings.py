@@ -1,5 +1,5 @@
 import streamlit as st
-from src.datasets import DatasetRegistry
+from stride.datasets import DatasetRegistry
 from dashboard.components.settings import render_settings_from_schema
 from dashboard.utils import get_dataset_settings_schema
 

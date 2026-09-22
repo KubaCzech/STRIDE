@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "stride-xai"
@@ -26,7 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "numpy",
+    "numpy<2.0",
     "pandas",
     "scipy",
     "scikit-learn",
@@ -87,12 +87,8 @@ all = [
     "ruff",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["stride*"]
-
-[tool.setuptools.package-data]
-"stride" = ["py.typed"]
+[tool.flit.module]
+name = "stride"
 
 [tool.ruff]
 target-version = "py310"
