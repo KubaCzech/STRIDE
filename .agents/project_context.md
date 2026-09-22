@@ -7,8 +7,8 @@ See [AGENTS.md](../AGENTS.md) at the repository root for immediate orientation a
 Develop, benchmark, and visualize Explainable AI (xAI) techniques for characterizing concept drift in data streams, integrated with an interactive Streamlit dashboard.
 
 ## Implementation Details
-- **Architecture**: Modular Python framework (`src/`) implementing data stream generation, drift detection (DDM), decision boundary shift analysis, feature importance shift (SHAP/permutation), clustering dynamics, and prototype-based recurring concept analysis + interactive Streamlit dashboard (`dashboard/`).
-- **Key Technologies**: Python 3.10+, Streamlit, Scikit-learn, NumPy, Pandas, Altair, Matplotlib, Plotly, SHAP, HDBSCAN.
+- **Architecture**: PyPA-standard Python package `stride-xai` (`src/stride/`) implementing data stream generation, drift detection, decision boundary shift analysis, feature importance shift (SHAP/permutation), clustering dynamics, and prototype-based recurring concept analysis + decoupled dashboard config (`dashboard/config/`) and interactive Streamlit UI (`dashboard/`).
+- **Key Technologies**: Python 3.10-3.12, Flit / PEP 621 packaging, Streamlit, Scikit-learn, NumPy (<2.0), Pandas, SciPy, Matplotlib, Plotly, SHAP, HDBSCAN.
 
 ## Repository Status
 - [x] Initial repository setup and agent context initialization (`AGENTS.md`, `.agents/`).
@@ -17,7 +17,10 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 - [x] Isolated model parameters and dataset feature reduction sanitization.
 - [x] Official Streamlit AI agent skills integration (`.agents/skills/developing-with-streamlit/`).
 - [x] Publication-grade README.md and documentation alignment for ECML PKDD 2026 Demo Track.
-- [ ] Expand automated test coverage for core xAI algorithms in `src/`.
+- [x] PEP 621 / PyPA standard packaging migration (`src/stride/` layout with `stride-xai`).
+- [x] Decouple UI widget schemas from core algorithmic engine (`dashboard/config/`).
+- [x] Modular optional dependency extras (`vis`, `drift`, `clustering`, `xai`, `deeplearning`, `dashboard`, `dev`, `all`).
+- [ ] Expand automated test coverage for core xAI algorithms in `src/stride/`.
 - [ ] Implement additional statistical drift detectors and recurring concept benchmarks.
 
 ## Critical Requirements & Developer Guidelines
