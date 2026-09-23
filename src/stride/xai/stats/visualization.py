@@ -8,6 +8,7 @@ from functools import wraps
 from matplotlib.colors import to_rgb
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
+from matplotlib.figure import Figure
 from scipy.stats import gaussian_kde, probplot
 
 # TODO 2: legendy w histogramie, kde, ecdf
@@ -22,8 +23,7 @@ class PlotOptions(Enum):
 
 
 def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = None) -> Callable:
-    """
-    Decorator that wraps a plotting function into a grid of subplots
+    """Decorator that wraps a plotting function into a grid of subplots
     over features and class labels.
 
     The decorated function is called once per subplot and must accept
@@ -48,7 +48,7 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
     -------
     Callable
         A decorator that converts a single-axes plotting function
-        into a grid-based plot.
+        into a grid-based plot returning a :class:`matplotlib.figure.Figure`.
     """
 
     def decorator(plot_func):
@@ -61,7 +61,7 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
             *args,
             save=None,
             **kwargs,
-        ) -> None:
+        ) -> Figure:
             if hasattr(y_before, "values"):
                 y_before = y_before.values
             if hasattr(y_after, "values"):
@@ -115,7 +115,7 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
             plt.tight_layout()
             if save is not None and isinstance(save, str):
                 plt.savefig(save)
-            plt.show()
+            return fig
 
         return wrapper
 
@@ -124,9 +124,27 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
 
 # 1. Boxplot
 @plot("Boxplot – Before vs After")
-def _boxplot(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, feature: str, show_: PlotOptions, save=None, **_) -> None:
-    """
-    Draw a boxplot comparing distributions of two data blocks.
+def plot_boxplot(
+    ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, feature: str, show_: PlotOptions, save=None, **_
+) -> None:
+    """Draw a boxplot comparing distributions of two data blocks.
+
+    Parameters
+    ----------
+    X_before : pd.DataFrame
+        Feature data from first data block.
+    y_before : pd.Series or np.ndarray
+        Class labels from first data block.
+    X_after : pd.DataFrame
+        Feature data from second data block.
+    y_after : pd.Series or np.ndarray
+        Class labels from second data block.
+    show_ : PlotOptions, default=PlotOptions.Median
+        Option to show Mean, Median or Both in the boxplot.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
     """
     median_color, mean_color = None, None
     legend_elements = []
@@ -160,11 +178,21 @@ def _boxplot(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, feature: st
 
 # 2. Histogram
 @plot("Histogram - Before vs After")
-def _histogram(
+def plot_histogram(
     ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], bins: int = 30, save=None, **_
 ) -> None:
-    """
-    Draw overlapping histograms for distributions of two data blocks.
+    """Draw overlapping histograms for distributions of two data blocks.
+
+    Parameters
+    ----------
+    X_before : pd.DataFrame
+    y_before : np.ndarray or pd.Series
+    X_after : pd.DataFrame
+    y_after : np.ndarray or pd.Series
+
+    Returns
+    -------
+    matplotlib.figure.Figure
     """
     all_vals = np.concatenate([old_vals, new_vals])
     bin_edges = np.histogram_bin_edges(all_vals, bins=bins)
@@ -185,9 +213,20 @@ def _histogram(
 
 # 3. Violin Plot
 @plot("Violin Plot – Before vs After")
-def _violin(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, show_: PlotOptions, **_) -> None:
-    """
-    Draw a violin plot comparing distributions of two data blocks.
+def plot_violin(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, show_: PlotOptions, **_) -> None:
+    """Draw a violin plot comparing distributions of two data blocks.
+
+    Parameters
+    ----------
+    X_before : pd.DataFrame
+    y_before : np.ndarray or pd.Series
+    X_after : pd.DataFrame
+    y_after : np.ndarray or pd.Series
+    show_ : PlotOptions, default=PlotOptions.Median
+
+    Returns
+    -------
+    matplotlib.figure.Figure
     """
     data = [old_vals, new_vals]
     if show_ == PlotOptions.Median:
@@ -202,9 +241,19 @@ def _violin(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, show_: PlotO
 
 # 4. QQ Plot
 @plot("QQ Plot – Before vs After")
-def _qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, **_) -> None:
-    """
-    Draw a QQ-plot plot comparing distributions of two data blocks.
+def plot_qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, **_) -> None:
+    """Draw a QQ-plot comparing distributions of two data blocks.
+
+    Parameters
+    ----------
+    X_before : pd.DataFrame
+    y_before : np.ndarray or pd.Series
+    X_after : pd.DataFrame
+    y_after : np.ndarray or pd.Series
+
+    Returns
+    -------
+    matplotlib.figure.Figure
     """
     ax.set_ylim(-0.05, 1.05)
     probplot(old_vals, dist="norm", plot=ax)
@@ -213,9 +262,19 @@ def _qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, **_) -> None:
 
 # 5. KDE Plot
 @plot("KDE Plot – Before vs After")
-def _kde(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], **_) -> None:
-    """
-    Draw a Kernel Density Estimation plot comparing distributions of two data blocks.
+def plot_kde(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], **_) -> None:
+    """Draw a Kernel Density Estimation plot comparing distributions of two data blocks.
+
+    Parameters
+    ----------
+    X_before : pd.DataFrame
+    y_before : np.ndarray or pd.Series
+    X_after : pd.DataFrame
+    y_after : np.ndarray or pd.Series
+
+    Returns
+    -------
+    matplotlib.figure.Figure
     """
     kde_old = gaussian_kde(old_vals)
     kde_new = gaussian_kde(new_vals)
@@ -231,9 +290,19 @@ def _kde(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequenc
 
 # 6. ECDF Plot
 @plot("ECDF – Before vs After")
-def _ecdf(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], **_) -> None:
-    """
-    Draw an Empirical Distribution Function plot comparing distributions of two data blocks.
+def plot_ecdf(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], **_) -> None:
+    """Draw an Empirical CDF plot comparing distributions of two data blocks.
+
+    Parameters
+    ----------
+    X_before : pd.DataFrame
+    y_before : np.ndarray or pd.Series
+    X_after : pd.DataFrame
+    y_after : np.ndarray or pd.Series
+
+    Returns
+    -------
+    matplotlib.figure.Figure
     """
 
     def ecdf(x):
@@ -244,191 +313,3 @@ def _ecdf(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequen
     ax.plot(*ecdf(old_vals), label="Before", color=colors[0])
     ax.plot(*ecdf(new_vals), label="After", color=colors[1])
     ax.legend()
-
-
-def plot_boxplot(
-    X_before: pd.DataFrame,
-    y_before: Union[pd.Series, np.ndarray],
-    X_after: pd.DataFrame,
-    y_after: Union[pd.Series, np.ndarray],
-    show_: PlotOptions = PlotOptions.Median,
-    **kwargs,
-) -> None:
-    """
-    Plot boxplots of feature distributions between data blocks for each class label.
-
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature data from first data block.
-    y_before : pd.Series or np.ndarray
-        Class labels from first data block.
-    X_after : pd.DataFrame
-        Feature data from second data block.
-    y_after : pd.Series or np.ndarray
-        Class labels from second data block.
-    show_ : PlotOptions, default=PlotOptions.Median
-        Option to show Mean, Median or Both in the boxplot.
-
-    Returns
-    -------
-    None
-        Displays the boxplot figure.
-    """
-    _boxplot(X_before, y_before, X_after, y_after, show_=show_, **kwargs)
-
-
-def plot_histogram(
-    X_before: pd.DataFrame,
-    y_before: Union[pd.Series, np.ndarray],
-    X_after: pd.DataFrame,
-    y_after: Union[pd.Series, np.ndarray],
-    **kwargs,
-) -> None:
-    """
-    Plot histograms of feature distributions between data blocks for each class label.
-
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature data from first data block.
-    y_before : np.ndarray or pd.Series
-        Class labels from first data block.
-    X_after : pd.DataFrame
-        Feature data from second data block.
-    y_after : np.ndarray or pd.Series
-        Class labels from second data block.
-
-    Returns
-    -------
-    None
-        Displays the boxplot figure.
-    """
-    _histogram(X_before, y_before, X_after, y_after, **kwargs)
-
-
-def plot_violin(
-    X_before: pd.DataFrame,
-    y_before: Union[pd.Series, np.ndarray],
-    X_after: pd.DataFrame,
-    y_after: Union[pd.Series, np.ndarray],
-    show_: PlotOptions = PlotOptions.Median,
-    **kwargs,
-) -> None:
-    """
-    Plot violin plots of feature distributions between data blocks for each class label.
-
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature data from first data block.
-    y_before : np.ndarray or pd.Series
-        Class labels from first data block.
-    X_after : pd.DataFrame
-        Feature data from second data block.
-    y_after : np.ndarray or pd.Series
-        Class labels from second data block.
-    show_ : PlotOptions, default=PlotOptions.Median
-        Option to show Mean, Median or Both in the boxplot.
-
-    Returns
-    -------
-    None
-        Displays the boxplot figure.
-    """
-    _violin(X_before, y_before, X_after, y_after, show_=show_, **kwargs)
-
-
-def plot_qq(
-    X_before: pd.DataFrame,
-    y_before: Union[pd.Series, np.ndarray],
-    X_after: pd.DataFrame,
-    y_after: Union[pd.Series, np.ndarray],
-    **kwargs,
-) -> None:
-    """
-    Plot QQ-plots of feature distributions between data blocks for each class label.
-
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature data from first data block.
-    y_before : np.ndarray or pd.Series
-        Class labels from first data block.
-    X_after : pd.DataFrame
-        Feature data from second data block.
-    y_after : np.ndarray or pd.Series
-        Class labels from second data block.
-
-    Returns
-    -------
-    None
-        Displays the boxplot figure.
-    """
-    _qq(X_before, y_before, X_after, y_after, **kwargs)
-
-
-def plot_kde(
-    X_before: pd.DataFrame,
-    y_before: Union[pd.Series, np.ndarray],
-    X_after: pd.DataFrame,
-    y_after: Union[pd.Series, np.ndarray],
-    **kwargs,
-) -> None:
-    """
-    Plot Kernel Distribution Estimation of feature distributions between data blocks for each class label.
-
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature data from first data block.
-    y_before : np.ndarray or pd.Series
-        Class labels from first data block.
-    X_after : pd.DataFrame
-        Feature data from second data block.
-    y_after : np.ndarray or pd.Series
-        Class labels from second data block.
-
-    Returns
-    -------
-    None
-        Displays the boxplot figure.
-    """
-    if hasattr(y_before, "values"):
-        y_before = y_before.values
-    if hasattr(y_after, "values"):
-        y_after = y_after.values
-    _kde(X_before, y_before, X_after, y_after, **kwargs)
-
-
-def plot_ecdf(
-    X_before: pd.DataFrame,
-    y_before: Union[pd.Series, np.ndarray],
-    X_after: pd.DataFrame,
-    y_after: Union[pd.Series, np.ndarray],
-    **kwargs,
-) -> None:
-    """
-    Plot boxplots of feature distributions between data blocks for each class label.
-
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature data from first data block.
-    y_before : np.ndarray or pd.Series
-        Class labels from first data block.
-    X_after : pd.DataFrame
-        Feature data from second data block.
-    y_after : np.ndarray or pd.Series
-        Class labels from second data block.
-
-    Returns
-    -------
-    None
-        Displays the boxplot figure.
-    """
-    if hasattr(y_before, "values"):
-        y_before = y_before.values
-    if hasattr(y_after, "values"):
-        y_after = y_after.values
-    _ecdf(X_before, y_before, X_after, y_after, **kwargs)
