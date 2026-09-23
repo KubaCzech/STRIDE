@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import seaborn as sns
+from matplotlib.figure import Figure
+
 from stride.xai.recurrence.full_window_storage import FullWindowStorage
 
 
@@ -89,7 +92,7 @@ def plot_prototype_comparison(storage: FullWindowStorage, windows_to_compare: li
         ax[row, 0].set_ylabel(f"Class {class_name}", rotation=90, labelpad=10)
 
     plt.tight_layout()
-    plt.show()
+    return fig
 
 
 def plot_cluster_timeline(labels, drift_locations=None, title="Cluster Timeline"):
@@ -231,7 +234,7 @@ def plot_distance_to_all_windows(
     ax.legend()
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.show()
+    return fig
 
 
 def _find_samples_closest_to_class(x_dicts, y_list, prototypes, class_name):
@@ -373,3 +376,73 @@ def plot_window_detail(storage: FullWindowStorage, window_nr: int):
         _analyze_class_prototypes(class_name, prototypes, x_dicts, y_list)
 
     print(f"\n{'=' * 60}\n")
+
+
+def visualize_distance_matrix(
+    matrix: pd.DataFrame, drift_positions: list[int] | None = None, title: str = "Window Distance Matrix"
+) -> Figure:
+    """Visualize the distance matrix as a heatmap.
+
+    Args:
+        matrix: Distance matrix DataFrame
+        drift_positions: List of iterations where drift was detected
+        title: Plot title
+
+    Returns:
+        matplotlib.figure.Figure
+    """
+    fig, ax = plt.subplots(figsize=(14, 12))
+
+    # Create heatmap
+    sns.heatmap(matrix, cmap="RdYlGn_r", square=True, linewidths=0, cbar_kws={"label": "Distance"}, ax=ax)
+
+    # Mark drift positions if provided
+    if drift_positions:
+        for drift_iter in drift_positions:
+            if drift_iter in matrix.index:
+                idx = list(matrix.index).index(drift_iter)
+                # Draw lines to mark drifts
+                ax.axhline(y=idx, color="blue", linewidth=3, alpha=0.8)
+                ax.axvline(x=idx, color="blue", linewidth=3, alpha=0.8)
+
+    ax.set_title(title)
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel("Iteration")
+
+    plt.tight_layout()
+    return fig
+
+
+def show_distance_median(
+    storage: FullWindowStorage, window_nr: int, k: int = 3, measure: str = "centroid_displacement"
+) -> Figure:
+    from stride.xai.recurrence.methods import median_mask
+
+    data_to_plot = storage.compare_window_to_all(window_nr, measure=measure)
+    data_to_plot = [float(x) for x in data_to_plot]
+    data_to_plot = median_mask(data_to_plot, k)
+
+    fig, ax = plt.subplots()
+    ax.plot(data_to_plot)
+    ax.set_title("distance from window nr " + str(window_nr))
+    return fig
+
+
+def plot_threshold_analysis_results(results: list[dict]) -> Figure:
+    # Plot All Metrics
+    thresholds = sorted([x["threshold"] for x in results])
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(thresholds, [r["accuracy"] for r in results], label="Accuracy")
+    ax.plot(thresholds, [r["precision"] for r in results], label="Precision")
+    ax.plot(thresholds, [r["recall"] for r in results], label="Recall")
+    ax.plot(thresholds, [r["f1"] for r in results], label="F1 Score")
+    ax.plot(thresholds, [r["fpr"] for r in results], label="FPR")
+    ax.plot(thresholds, [r["fnr"] for r in results], label="FNR")
+
+    ax.set_title("Threshold Performance Metrics (Median Distance)")
+    ax.set_xlabel("Threshold")
+    ax.set_ylabel("Score")
+    ax.legend()
+    ax.grid(True)
+    return fig

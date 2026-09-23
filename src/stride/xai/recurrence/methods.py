@@ -1,79 +1,16 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
 import hdbscan
 import pandas as pd
 import numpy as np
-
 
 from sklearn.metrics import confusion_matrix
 from scipy.optimize import linear_sum_assignment
 
 from stride.xai.recurrence.full_window_storage import FullWindowStorage
-
-
-def visualize_distance_matrix(
-    matrix: pd.DataFrame, drift_positions: list[int] = None, title: str = "Window Distance Matrix", show: bool = False
-):
-    """Visualize the distance matrix as a heatmap.
-
-    Args:
-        matrix: Distance matrix DataFrame
-        drift_positions: List of iterations where drift was detected
-        title: Plot title
-        show: Whether to call plt.show() immediately (default: False)
-
-    Returns:
-        matplotlib.figure.Figure
-    """
-
-    fig, ax = plt.subplots(figsize=(14, 12))
-
-    # Create heatmap
-    sns.heatmap(matrix, cmap="RdYlGn_r", square=True, linewidths=0, cbar_kws={"label": "Distance"}, ax=ax)
-
-    # Mark drift positions if provided
-    if drift_positions:
-        for drift_iter in drift_positions:
-            if drift_iter in matrix.index:
-                idx = list(matrix.index).index(drift_iter)
-                # Draw lines to mark drifts
-                ax.axhline(y=idx, color="blue", linewidth=3, alpha=0.8)
-                ax.axvline(x=idx, color="blue", linewidth=3, alpha=0.8)
-
-    ax.set_title(title)
-    ax.set_xlabel("Iteration")
-    ax.set_ylabel("Iteration")
-
-    plt.tight_layout()
-    if show:
-        plt.show()
-    return fig
-
-
-def median_mask(arr, k=3):
-    arr = np.asarray(arr)
-    pad = k // 2
-
-    # Same/edge padding
-    padded = np.pad(arr, pad_width=pad, mode="edge")
-
-    # Sliding window view
-    windows = np.lib.stride_tricks.sliding_window_view(padded, k)
-
-    return np.median(windows, axis=1).astype(arr.dtype)
-
-
-def show_distance_median(storage: FullWindowStorage, window_nr, k=3, measure="centroid_displacement", show: bool = False):
-    data_to_plot = storage.compare_window_to_all(window_nr, measure=measure)
-    data_to_plot = [float(x) for x in data_to_plot]
-    data_to_plot = median_mask(data_to_plot, k)
-
-    fig, ax = plt.subplots()
-    ax.plot(data_to_plot)
-    ax.set_title("distance from window nr " + str(window_nr))
-    if show:
-        plt.show()
-    return fig
+from stride.xai.recurrence.visualization import (
+    visualize_distance_matrix,
+    show_distance_median,
+    plot_threshold_analysis_results,
+)
 
 
 def cluster_windows(matrix: pd.DataFrame, fix_outliers=True, median_mask_width=1):
@@ -223,31 +160,6 @@ def threshold_test(M: pd.DataFrame, true_concept: list, median_mask_dimensions=(
         )
 
     return results
-
-
-def plot_threshold_analysis_results(results):
-    # Plot All Metrics
-    thresholds = sorted([x["threshold"] for x in results])
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(thresholds, [r["accuracy"] for r in results], label="Accuracy")
-    plt.plot(thresholds, [r["precision"] for r in results], label="Precision")
-    plt.plot(thresholds, [r["recall"] for r in results], label="Recall")
-    plt.plot(thresholds, [r["f1"] for r in results], label="F1 Score")
-    plt.plot(thresholds, [r["fpr"] for r in results], label="FPR")
-    plt.plot(thresholds, [r["fnr"] for r in results], label="FNR")
-
-    plt.title("Threshold Performance Metrics (Median Distance)")
-    plt.xlabel("Threshold")
-    plt.ylabel("Score")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-    # Best Threshold by F1
-    best = max(results, key=lambda x: x["f1"])
-    print("Best Threshold by F1:")
-    print(best)
 
 
 def create_prototypes_for_stream(model, storage, dataset, verbose=True):
