@@ -1,25 +1,7 @@
 import numpy as np
 from river import drift
 
-
-class DriftDescription:
-    def __init__(
-        self,
-        error_rate_at_warning=None,
-        error_rate_at_detection=None,
-        drift_duration=None,
-        drift_start_index=None,
-        drift_end_index=None,
-        error_rate_at_peak=None,
-    ):
-        self.error_rate_at_warning = error_rate_at_warning
-        self.error_rate_at_detection = error_rate_at_detection
-        self.error_rate_at_peak = error_rate_at_peak  # Error rate at actual peak/end
-        self.drift_duration = drift_duration
-        self.drift_start_index = drift_start_index  # Actual start index
-        self.drift_end_index = drift_end_index  # Actual end index (peak/recovery point)
-
-        self.detected_at = None
+from ._types import DriftDescription
 
 
 class BinaryErrorDriftDescriptor:
