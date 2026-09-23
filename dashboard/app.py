@@ -1,26 +1,18 @@
-import sys
 import os
-
-# Add the src directory to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src", "recurrence")))
-
-import warnings  # noqa: E402
-import logging  # noqa: E402
-import streamlit as st  # noqa: E402
-from dashboard.components.sidebar import render_sidebar_datasource_config, render_sidebar_window_selection  # noqa: E402
+import warnings
+import logging
+import streamlit as st
+from dashboard.components.sidebar import render_sidebar_datasource_config, render_sidebar_window_selection
 
 # Suppress TensorFlow oneDNN custom operations logs
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-
 # Suppress specific TensorFlow warnings
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
-# Also try to suppress via warnings just in case it's reachable that way
 warnings.filterwarnings("ignore", category=UserWarning, module="tensorflow")
 warnings.filterwarnings("ignore", message=".*reset_default_graph.*")
 
-from src.datasets import DATASETS  # noqa: E402
+from stride.datasets import DATASETS
 from dashboard.components.tabs import (  # noqa: E402
     render_data_visualization_tab,
     render_feature_importance_analysis_tab,

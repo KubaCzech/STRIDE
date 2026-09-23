@@ -4,11 +4,11 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 
-from src.recurrence.methods import cluster_windows, get_drift_from_clusters, median_mask
-from src.recurrence.visualisation import plot_cluster_timeline
+from stride.xai.recurrence.methods import cluster_windows, get_drift_from_clusters, median_mask
+from stride.xai.recurrence.visualization import plot_cluster_timeline
 from river import forest
-from src.recurrence.protree.explainers import APete
-from src.recurrence.full_window_storage import FullWindowStorage
+from stride.xai.recurrence.protree.explainers import APete
+from stride.xai.recurrence.full_window_storage import FullWindowStorage
 
 
 def render_prototype_analysis_tab(X, y, window_length):  # noqa: C901

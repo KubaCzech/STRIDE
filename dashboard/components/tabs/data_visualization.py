@@ -1,5 +1,5 @@
-from src.descriptive_statistics.descriptive_statistics import DescriptiveStatisticsDriftDetector
-from src.plotting import visualize_data_stream
+from stride.xai.stats import DescriptiveStatisticsDriftDetector
+from stride.plotting import visualize_data_stream
 import pandas as pd
 import streamlit as st
 

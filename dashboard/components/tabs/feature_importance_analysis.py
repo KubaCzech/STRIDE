@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from src.feature_importance import (
+from stride.xai.importance import (
     FeatureImportanceMethod,
     FeatureImportanceDriftAnalyzer,
     visualize_drift_importance,

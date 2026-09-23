@@ -1,13 +1,6 @@
 import unittest
-import sys
-import os
 import numpy as np
-
-
-# Add src to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from src.models import MODELS  # noqa: E402
+from stride.models import MODELS
 
 
 class TestModels(unittest.TestCase):
@@ -21,12 +14,10 @@ class TestModels(unittest.TestCase):
         """Test that all models can fit and score."""
         for name, model_class in MODELS.items():
             with self.subTest(model=name):
-                # print(f"Testing {name}...")
                 model = model_class()
                 try:
                     model.fit(self.X, self.y)
                     score = model.score(self.X, self.y)
-                    # print(f"{name} score: {score}")
                     self.assertGreaterEqual(score, 0.0)
                     self.assertLessEqual(score, 1.0)
                 except Exception as e:

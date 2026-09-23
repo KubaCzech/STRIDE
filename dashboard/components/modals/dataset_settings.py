@@ -1,7 +1,8 @@
 import streamlit as st
-from src.datasets import DatasetRegistry
+from stride.datasets import DatasetRegistry
 from dashboard.components.settings import render_settings_from_schema
 from dashboard.utils import get_dataset_settings_schema
+from dashboard.config.dataset_schemas import get_dataset_available_settings
 
 
 def _get_preview_features(registry, selected_dataset, temp_dataset_params, window_length):
@@ -97,7 +98,7 @@ def _on_setting_change_handler(available_settings):
 
 def _get_cleaned_available_settings(selected_dataset):
     """Retrieves and cleans available settings from the dataset."""
-    available_settings = selected_dataset.get_available_settings()
+    available_settings = get_dataset_available_settings(selected_dataset.name)
     cleaned_available_settings = {}
     default_preset_name = None
 

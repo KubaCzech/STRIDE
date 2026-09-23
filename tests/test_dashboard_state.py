@@ -3,12 +3,9 @@ import sys
 import os
 import inspect
 
-# Add repo root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from src.models import MLPModel, RandomForestModel  # noqa: E402
-from src.datasets.linear_weight_inversion_drift import LinearWeightInversionDriftDataset  # noqA: E402
-from streamlit.testing.v1 import AppTest  # noqA: E402
+from stride.models import MLPModel, RandomForestModel
+from stride.datasets.linear_weight_inversion_drift import LinearWeightInversionDriftDataset
+from streamlit.testing.v1 import AppTest
 
 
 class TestDashboardState(unittest.TestCase):
@@ -132,7 +129,7 @@ class TestDashboardState(unittest.TestCase):
         script = (
             "import inspect\n"
             "import streamlit as st\n"
-            "from src.models import MODELS\n\n"
+            "from stride.models import MODELS\n\n"
             "model_key = st.selectbox('Choose a Model', options=list(MODELS.keys()), key='model_choice')\n"
             "selected_model_class = MODELS[model_key]\n\n"
             "if 'model_params_by_model' not in st.session_state:\n"

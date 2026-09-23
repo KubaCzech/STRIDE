@@ -4,13 +4,10 @@ import os
 import pandas as pd
 
 
-# Add src to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-
-from datasets.hyperplane_drift import HyperplaneDriftDataset  # noqa: E402
-from datasets.linear_weight_inversion_drift import LinearWeightInversionDriftDataset  # noqa: E402
-from datasets.rbf_drift import RBFDriftDataset  # noqa: E402
-from datasets.sea_drift import SeaDriftDataset  # noqa: E402
+from stride.datasets.hyperplane_drift import HyperplaneDriftDataset
+from stride.datasets.linear_weight_inversion_drift import LinearWeightInversionDriftDataset
+from stride.datasets.rbf_drift import RBFDriftDataset
+from stride.datasets.sea_drift import SeaDriftDataset
 
 
 class TestSyntheticDatasets(unittest.TestCase):

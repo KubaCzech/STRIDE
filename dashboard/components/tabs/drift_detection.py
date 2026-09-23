@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 from river import drift as river_drift
 from sklearn.neural_network import MLPClassifier
-from src.DDM.BinaryErrorDriftDescriptor import BinaryErrorDriftDescriptor
+from stride.drift import BinaryErrorDriftDescriptor
 
 
 def generate_error_stream(X_np, y_np, model):

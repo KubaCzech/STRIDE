@@ -5,8 +5,8 @@ import streamlit as st
 from typing import Sequence, Union
 import matplotlib.pyplot as plt
 
-from src.clustering.clustering import ClusterBasedDriftDetector
-from src.clustering.visualization import (
+from stride.xai.clustering.clustering import ClusterBasedDriftDetector
+from stride.xai.clustering.visualization import (
     plot_clusters_by_class,
     plot_drift_clustered,
     plot_centers_shift,

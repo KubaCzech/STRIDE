@@ -1,8 +1,8 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import traceback
-from src.decision_boundary.analysis import DecisionBoundaryDriftAnalyzer
-from src.decision_boundary.visualization import visualize_decision_boundary, plot_categorical_drift_map
+from stride.xai.boundary.analysis import DecisionBoundaryDriftAnalyzer
+from stride.xai.boundary.visualization import visualize_decision_boundary, plot_categorical_drift_map
 
 
 def _render_ssnp_config(X_before):
