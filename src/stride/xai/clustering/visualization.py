@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from functools import wraps
 from matplotlib.patches import Patch
+from matplotlib.figure import Figure
 from typing import Sequence, Union, Callable
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from stride.common import DataDimensionsReducer, ReducerType
@@ -148,7 +149,7 @@ def plot_drift_clustered(
     labels_after: Sequence[Union[int, float]],
     show: bool = False,
     save=None,
-) -> None:
+) -> Figure:
     """
     Plot clusters from first and second data block to visualize drift for 2D data.
 
@@ -170,7 +171,7 @@ def plot_drift_clustered(
         If True, display the plot immediately. Otherwise, the plot can be
         further modified or returned for later display.
     """
-    plt.figure(figsize=(12, 5))
+    fig = plt.figure(figsize=(12, 5))
 
     # Normalize inputs
     if hasattr(labels_before, "values"):
@@ -194,8 +195,7 @@ def plot_drift_clustered(
     plt.tight_layout()
     if save is not None and isinstance(save, str):
         plt.savefig(save)
-    if show:
-        plt.show()
+    return fig
 
 
 @reduce_dimensions()
@@ -208,7 +208,7 @@ def plot_clusters_by_class(
     cluster_labels_after: Sequence[Union[int, float]],
     show: bool = False,
     save=None,
-) -> None:
+) -> Figure:
     """
     Plot clusters separated by class labels to visualize drift per class (not overall) for 2D data.
 
@@ -261,8 +261,7 @@ def plot_clusters_by_class(
     plt.tight_layout()
     if save is not None and isinstance(save, str):
         plt.savefig(save)
-    if show:
-        plt.show()
+    return fig
 
 
 @reduce_dimensions()
@@ -275,7 +274,7 @@ def plot_centers_shift(
     cluster_labels_new: Sequence[Union[int, float]],
     show: bool = False,
     save=None,
-) -> None:
+) -> Figure:
     """
     Plot shifts of cluster centroids between two data blocks for 2D data.
 
@@ -303,7 +302,7 @@ def plot_centers_shift(
     all_labels = sorted(list(unique_labels_old.union(unique_labels_new)))
 
     # TODO: zmienic rozmiar
-    plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(8, 8))
 
     # For legend purposes
     plt.scatter([], [], marker="x", color="black", label="Center (before)")
@@ -349,8 +348,7 @@ def plot_centers_shift(
     plt.legend()
     if save is not None and isinstance(save, str):
         plt.savefig(save)
-    if show:
-        plt.show()
+    return fig
 
 
 def plot_clustering_heatmap(stats_shifts, threshold, show=False, save=None):
@@ -388,7 +386,7 @@ def plot_clustering_heatmap(stats_shifts, threshold, show=False, save=None):
     bounds = [-0.5, 0.5, 1.5, 2.5]
     norm = BoundaryNorm(bounds, cmap.N)
 
-    plt.figure(figsize=(14, 5))
+    fig = plt.figure(figsize=(14, 5))
     sns.heatmap(heatmap_to_plot, cmap=cmap, norm=norm, cbar=False, linewidths=0.5, linecolor="white")
 
     plt.xlabel("(Cluster, Feature)")
@@ -403,5 +401,4 @@ def plot_clustering_heatmap(stats_shifts, threshold, show=False, save=None):
     plt.legend(handles=legend_elements, loc="upper right", title="Legend", frameon=True)
     if save is not None and isinstance(save, str):
         plt.savefig(save)
-    if show:
-        plt.show()
+    return fig
