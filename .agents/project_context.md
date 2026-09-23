@@ -20,6 +20,7 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 - [x] PEP 621 / PyPA standard packaging migration (`src/stride/` layout with `stride-xai`).
 - [x] Decouple UI widget schemas from core algorithmic engine (`dashboard/config/`).
 - [x] Modular optional dependency extras (`vis`, `drift`, `clustering`, `xai`, `deeplearning`, `dashboard`, `dev`, `all`).
+- [x] Single Responsibility Principle (SRP) cleanup, decomposition of monolithic God Classes (`ClusterBasedDriftDetector`), and headless plotting execution without `plt.show()`.
 - [ ] Expand automated test coverage for core xAI algorithms in `src/stride/`.
 - [ ] Implement additional statistical drift detectors and recurring concept benchmarks.
 
