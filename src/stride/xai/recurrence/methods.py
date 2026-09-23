@@ -13,6 +13,19 @@ from stride.xai.recurrence.visualization import (
 )
 
 
+def median_mask(arr, k=3):
+    arr = np.asarray(arr)
+    pad = k // 2
+
+    # Same/edge padding
+    padded = np.pad(arr, pad_width=pad, mode="edge")
+
+    # Sliding window view
+    windows = np.lib.stride_tricks.sliding_window_view(padded, k)
+
+    return np.median(windows, axis=1).astype(arr.dtype)
+
+
 def cluster_windows(matrix: pd.DataFrame, fix_outliers=True, median_mask_width=1):
     clusterer = hdbscan.HDBSCAN(
         metric="precomputed",

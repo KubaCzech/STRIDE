@@ -95,6 +95,9 @@ def get_model_settings_schema(model_name: str) -> list[dict]:
     return MODEL_SETTINGS_SCHEMAS.get(model_name, [])
 
 
+get_model_schema = get_model_settings_schema
+
+
 def get_model_available_settings(model_name: str) -> dict[str, dict]:
     """Return available preset configurations for a specific model."""
     return MODEL_PRESETS.get(model_name, {})
