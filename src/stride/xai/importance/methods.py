@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.inspection import permutation_importance
-import shap
-from lime.lime_tabular import LimeTabularExplainer
+from stride.exceptions import OptionalDependencyError
 from .base import FeatureImportanceMethod
 
 
@@ -68,6 +67,15 @@ def _calculate_pfi(model, X, y, n_repeats=30, random_state=42):
 
 def _calculate_shap(model, X, feature_names):
     """Calculate SHAP values."""
+    try:
+        import shap
+    except ImportError as err:
+        raise OptionalDependencyError(
+            package_name="shap",
+            feature_name="SHAP feature importance",
+            extra_name="xai",
+        ) from err
+
     # Use a subset for efficiency if dataset is large
     background_size = min(100, len(X))
     background = shap.sample(X, background_size)
@@ -123,6 +131,15 @@ def _calculate_shap(model, X, feature_names):
 
 def _calculate_lime(model, X, y, feature_names, random_state=42):
     """Calculate LIME feature importance."""
+    try:
+        from lime.lime_tabular import LimeTabularExplainer
+    except ImportError as err:
+        raise OptionalDependencyError(
+            package_name="lime",
+            feature_name="LIME feature importance",
+            extra_name="xai",
+        ) from err
+
     np.random.seed(random_state)
 
     # Create LIME explainer

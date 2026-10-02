@@ -3,12 +3,21 @@
 import os
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
-import tensorflow as tf
-from tensorflow.keras import regularizers
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.initializers import Constant
-from tensorflow.keras.layers import Dense, Input
-from tensorflow.keras.models import Model
+
+from stride.exceptions import OptionalDependencyError
+
+try:
+    import tensorflow as tf
+    from tensorflow.keras import regularizers
+    from tensorflow.keras.callbacks import EarlyStopping
+    from tensorflow.keras.initializers import Constant
+    from tensorflow.keras.layers import Dense, Input
+    from tensorflow.keras.models import Model
+
+    _HAS_TF = True
+except ImportError:
+    _HAS_TF = False
+    tf = None
 
 # Ensure deterministic operations where possible
 os.environ["TF_DETERMINISTIC_OPS"] = "1"
@@ -53,6 +62,13 @@ class SSNP:
         self.fwd = None
         self.inv = None
         self.clustering = None
+
+        if not _HAS_TF:
+            raise OptionalDependencyError(
+                package_name="tensorflow",
+                feature_name="SSNP boundary projection",
+                extra_name="deeplearning",
+            )
 
         tf.random.set_seed(42)
 

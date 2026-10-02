@@ -1,16 +1,11 @@
-import hdbscan
 import pandas as pd
 import numpy as np
 
 from sklearn.metrics import confusion_matrix
 from scipy.optimize import linear_sum_assignment
 
+from stride.exceptions import OptionalDependencyError
 from stride.xai.recurrence.full_window_storage import FullWindowStorage
-from stride.xai.recurrence.visualization import (
-    visualize_distance_matrix,
-    show_distance_median,
-    plot_threshold_analysis_results,
-)
 
 
 def median_mask(arr, k=3):
@@ -27,6 +22,15 @@ def median_mask(arr, k=3):
 
 
 def cluster_windows(matrix: pd.DataFrame, fix_outliers=True, median_mask_width=1):
+    try:
+        import hdbscan
+    except ImportError as err:
+        raise OptionalDependencyError(
+            package_name="hdbscan",
+            feature_name="Window clustering (HDBSCAN)",
+            extra_name="clustering",
+        ) from err
+
     clusterer = hdbscan.HDBSCAN(
         metric="precomputed",
         min_cluster_size=3,

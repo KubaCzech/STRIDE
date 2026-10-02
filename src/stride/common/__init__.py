@@ -9,7 +9,8 @@ from sklearn.decomposition import PCA, FactorAnalysis, FastICA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.manifold import MDS, TSNE, LocallyLinearEmbedding
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from umap import UMAP
+
+from stride.exceptions import OptionalDependencyError
 
 
 class ScalingType(Enum):
@@ -103,6 +104,14 @@ class DataDimensionsReducer:
         elif self.reducer_type == ReducerType.TSNE:
             return TSNE(n_components=self.n_components, init="pca", learning_rate="auto", random_state=42)
         elif self.reducer_type == ReducerType.UMAP:
+            try:
+                from umap import UMAP
+            except ImportError as err:
+                raise OptionalDependencyError(
+                    package_name="umap-learn",
+                    feature_name="UMAP dimensionality reduction",
+                    extra_name="clustering",
+                ) from err
             return UMAP(n_components=self.n_components, random_state=42, transform_seed=42)
         elif self.reducer_type == ReducerType.LLE:
             return LocallyLinearEmbedding(n_components=self.n_components, n_neighbors=max(5, self.n_components + 1))

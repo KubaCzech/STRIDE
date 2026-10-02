@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from sklearn.preprocessing import MinMaxScaler
+from stride.exceptions import OptionalDependencyError, StrideError
 from stride.xai.boundary.disagreement import compute_disagreement_analysis
 
 
@@ -64,14 +65,15 @@ class DecisionBoundaryDriftAnalyzer:
         else:
             try:
                 from stride.xai.boundary.ssnp import SSNP
-            except ImportError as err:
-                raise ImportError(
-                    "High-dimensional decision boundary projection requires the deeplearning extra: "
-                    "install with 'pip install stride-xai[deeplearning]' (requires tensorflow)."
+
+                ssnp = SSNP(epochs=ssnp_epochs, patience=ssnp_patience, verbose=0)
+                ssnp.fit(X_before_scaled, self.y_before)
+            except Exception as err:
+                raise OptionalDependencyError(
+                    package_name="tensorflow",
+                    feature_name="High-dimensional decision boundary projection (SSNP)",
+                    extra_name="deeplearning",
                 ) from err
-            # SSNP is used to find a 2D projection that preserves class structure.
-            ssnp = SSNP(epochs=ssnp_epochs, patience=ssnp_patience, verbose=0)
-            ssnp.fit(X_before_scaled, self.y_before)
 
         # Project points to 2D (if 2D already, this just returns the scaled data)
         X_before_2d = ssnp.transform(X_before_scaled)

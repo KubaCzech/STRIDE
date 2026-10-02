@@ -7,13 +7,33 @@ Public API:
     - :func:`visualize_data_stream`
 """
 
+from typing import Any
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.figure import Figure
 from sklearn.decomposition import PCA
 
+from stride.exceptions import OptionalDependencyError
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+
+    _HAS_MATPLOTLIB = True
+except ImportError:
+    plt = None
+    Figure = Any  # type: ignore
+    _HAS_MATPLOTLIB = False
+
 from ._renderers import _plot_distribution_comparison
+
+
+def _ensure_matplotlib() -> None:
+    if not _HAS_MATPLOTLIB:
+        raise OptionalDependencyError(
+            package_name="matplotlib",
+            feature_name="Stream plotting",
+            extra_name="vis",
+        )
 
 
 def plot_feature_target_relationship(
@@ -60,6 +80,7 @@ def plot_feature_target_relationship(
     -------
     matplotlib.figure.Figure
     """
+    _ensure_matplotlib()
     unique_classes = sorted(np.unique(np.concatenate([y_before, y_after])))
     n_classes = len(unique_classes)
 
@@ -122,6 +143,7 @@ def plot_class_distribution(class_dist_before, class_dist_after, class_colors, t
     -------
     matplotlib.figure.Figure
     """
+    _ensure_matplotlib()
     fig, (ax_before, ax_after) = plt.subplots(1, 2, figsize=(12, 6))
     if title:
         fig.suptitle(title, fontsize=16, fontweight="bold", y=1.0)
@@ -175,6 +197,7 @@ def plot_feature_space(
     -------
     matplotlib.figure.Figure
     """
+    _ensure_matplotlib()
     fig, (ax_before, ax_after) = plt.subplots(1, 2, figsize=(14, 7))
     fs_title_suffix = ""
 
@@ -307,6 +330,7 @@ def visualize_data_stream(
     list[matplotlib.figure.Figure]
         List of three figures in the order described above.
     """
+    _ensure_matplotlib()
     if isinstance(X, pd.DataFrame):
         X = X.values
     if isinstance(y, pd.Series):

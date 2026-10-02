@@ -22,6 +22,8 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 - [x] Modular optional dependency extras (`vis`, `drift`, `clustering`, `xai`, `deeplearning`, `dashboard`, `dev`, `all`).
 - [x] Single Responsibility Principle (SRP) cleanup, decomposition of monolithic God Classes (`ClusterBasedDriftDetector`), and headless plotting execution without `plt.show()`.
 - [x] Standardized GitHub agent instructions, Git & PR workflow skill (`.agents/skills/git-pr-workflow/`), issue templates, and PR template aligned with institutional engineering standards.
+- [x] Decouple optional dependency imports (`umap-learn`, `shap`, `lime`, `pyclustering`, `hdbscan`, `tensorflow`, `matplotlib`, `seaborn`) and establish minimal base installation guardrails (`OptionalDependencyError`).
+- [ ] PyPI Packaging, Metadata Standardization, and Automated OIDC Trusted Publishing Workflow (#10).
 - [ ] Expand automated test coverage for core xAI algorithms in `src/stride/`.
 - [ ] Implement additional statistical drift detectors and recurring concept benchmarks.
 

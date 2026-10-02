@@ -30,6 +30,7 @@ dependencies = [
     "pandas",
     "scipy",
     "scikit-learn",
+    "river",
 ]
 
 [project.optional-dependencies]
