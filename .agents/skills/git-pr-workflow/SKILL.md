@@ -134,7 +134,11 @@ If the remote CI fails, immediately inspect logs (`gh run view <run-id> --log`),
 
 ### Step 6: Create Pull Request via Temporary Body File
 
-To prevent escaping errors and broken markdown on Windows/PowerShell shells, **never pass inline multi-line markdown strings** to `gh`. Always use a temporary file:
+To prevent escaping errors and broken markdown on Windows/PowerShell shells, **never pass inline multi-line markdown strings** to `gh`. Always use a temporary file.
+
+> [!CAUTION]
+> **No Git Meta-Process in Verification**:
+> The `## Verification` section is strictly for automated tests, linting, and application runtime checks. **NEVER** include internal Git commands or ancestry audits (e.g., `git log origin/main..HEAD`) in the PR body.
 
 1. **Write PR body to `.tmp_pr_body.md`**:
 ```markdown
@@ -157,7 +161,7 @@ To prevent escaping errors and broken markdown on Windows/PowerShell shells, **n
 - [x] `ruff check .` passed with 0 errors
 - [x] `ruff format --check .` passed cleanly
 - [x] `python -m unittest discover tests` passed with 0 failures
-- [x] <Specific manual test step or behavioral verification performed>
+- [x] <Specific manual test step or behavioral verification performed (optional)>
 ```
 
 2. **Execute `gh pr create`**:

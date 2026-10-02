@@ -39,7 +39,7 @@ Every task must progress sequentially through these 5 lifecycle gates:
 2. **Gate 2: Implementation**: Write clean, modular Python adhering strictly to golden patterns in `.agents/rules/`. Commit changes atomically using Conventional Commits on a dedicated feature branch.
 3. **Gate 3: Local CI Verification**: Execute all local verification commands (ruff check/format, and unittest) to verify 0 errors and 0 failures.
 4. **Gate 4: Context Self-Maintenance**: Update `.agents/context/`, `.agents/rules/`, or `.agents/project_context.md` if components, models, or dependencies evolved.
-5. **Gate 5: Git & PR Protocol**: Audit commit ancestry against `origin/main`, push branch, monitor GitHub Actions CI via `gh run watch`, and submit PR using a temporary markdown body file (`.tmp_pr_body.md`).
+5. **Gate 5: Git & PR Protocol**: Audit commit ancestry against `origin/main`, push branch, monitor GitHub Actions CI via `gh run watch`, and submit PR using a temporary markdown body file (`.tmp_pr_body.md`). Keep PR verification strictly focused on test/lint/app behavior (never include Git ancestry checks or agent meta-process).
 
 ---
 
@@ -76,6 +76,7 @@ Always run these commands with the project virtual environment activated (`.venv
   - Never commit or stage code directly on `main`.
   - Never branch off stale local branches without specifying `origin/main` (prevents rogue pre-squash commits).
   - Never pass multi-line or formatted markdown via inline `--body "..."` CLI arguments.
+  - Never include internal Git commands (e.g. `git log` ancestry audits, branch checks) or agent meta-process in the PR `## Verification` section.
   - Never commit `.env` credentials, raw data caches, or transient runtime files.
   - Never silence errors using unconditional `# noqa` or bare `except:` to bypass CI.
   - Never push failing code to remote branches.

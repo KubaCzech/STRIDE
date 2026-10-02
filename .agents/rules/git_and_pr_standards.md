@@ -171,6 +171,15 @@ git log origin/main..HEAD --oneline
 ### Pull Request Structure Standard
 Every PR description must follow this structure:
 
+> [!CAUTION]
+> **Keep Verification Focused on Code Quality (No Git Meta-Process)**:
+> The `## Verification` section is strictly reserved for evidence of **code and system correctness**:
+> - Automated test results (`python -m unittest discover tests`)
+> - Linting and formatting status (`ruff check .`, `ruff format --check .`)
+> - Application runtime, UI, or behavioral verification (e.g. "Verified Streamlit slider interaction")
+>
+> **NEVER** include internal Git authoring commands or self-audits (such as `git log origin/main..HEAD`, `git status`, branch names, or commit counts) in the PR body. Commit history is already self-evident in GitHub's "Commits" tab; stating it in the PR body is redundant internal agent self-talk.
+
 ```markdown
 ## Summary
 - Bullet point overview of high-level changes.
@@ -191,7 +200,7 @@ Every PR description must follow this structure:
 - [x] `ruff check .` passed with 0 errors
 - [x] `ruff format --check .` passed cleanly
 - [x] `python -m unittest discover tests` passed with 0 failures
-- [x] <Specific manual test step or behavioral verification performed>
+- [x] <Specific manual test step or behavioral verification performed (optional)>
 ```
 
 ---

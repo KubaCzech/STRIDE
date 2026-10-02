@@ -12,9 +12,11 @@
 - 
 
 ## Verification
-<!-- Check the boxes of tests and verifications executed locally -->
+<!-- Check the boxes of tests and verifications executed locally.
+     Include ONLY automated test/lint commands and application runtime/behavioral checks.
+     Do NOT include internal Git commands (e.g., git log, git status) or commit ancestry audits. -->
 - [ ] `ruff check .` passed with 0 errors
 - [ ] `ruff format --check .` passed cleanly
 - [ ] `python -m unittest discover tests` passed with 0 failures
-- [ ] Manual verification step performed (describe below):
+- [ ] Manual / runtime verification performed (optional, describe below):
   - 
