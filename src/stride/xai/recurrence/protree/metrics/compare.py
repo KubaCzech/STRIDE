@@ -2,7 +2,6 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from icecream import ic
 
 from stride.xai.recurrence.protree import TDataBatch, TPrototypes, TTarget
 from stride.xai.recurrence.protree.explainers.tree_distance import IExplainer
@@ -430,7 +429,6 @@ def _one_way_swap_delta(
                 new_accuracy = _get_accuracy(temp_prototypes, x, y, explainer)
                 accuracy_changes.append(np.abs(baseline_accuracy - new_accuracy))
         except Exception as e:
-            ic(prototypes)
             raise e
     if accuracy_changes:
         return np.mean(accuracy_changes)

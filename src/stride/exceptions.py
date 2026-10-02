@@ -8,13 +8,25 @@ class StrideError(Exception):
 class OptionalDependencyError(StrideError):
     """Raised when an optional dependency (e.g. tensorflow, shap) is missing."""
 
-    def __init__(self, package_name: str, feature_name: str):
-        super().__init__(
-            f"Feature '{feature_name}' requires optional dependency '{package_name}'. "
-            f"Install it using: pip install stride-xai[{package_name}] or pip install {package_name}"
-        )
-        self.package_name = package_name
-        self.feature_name = feature_name
+    def __init__(
+        self,
+        package_name: str,
+        feature_name: str | None = None,
+        extra_name: str | None = None,
+    ):
+        if feature_name is None:
+            super().__init__(package_name)
+            self.package_name = package_name
+            self.feature_name = ""
+            self.extra_name = ""
+        else:
+            self.package_name = package_name
+            self.feature_name = feature_name
+            self.extra_name = extra_name or package_name
+            super().__init__(
+                f"Feature '{feature_name}' requires optional dependency '{package_name}'. "
+                f"Install it using: pip install stride-xai[{self.extra_name}] or pip install {package_name}"
+            )
 
 
 class DriftDetectionError(StrideError):

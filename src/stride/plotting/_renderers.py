@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Low-level matplotlib rendering primitives for stream visualisation.
 
 These are private helpers used internally by :mod:`.stream`.  They are not
@@ -5,7 +7,11 @@ part of the public ``stride.plotting`` API.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 
 
 def _plot_violin(ax: plt.Axes, values: list, positions: list, colors: list, alphas: list) -> None:

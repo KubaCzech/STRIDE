@@ -4,7 +4,7 @@ import random
 from typing import Sequence
 
 import numpy as np
-from pyclustering.cluster.xmeans import kmeans_plusplus_initializer, xmeans  # type: ignore
+from stride.exceptions import OptionalDependencyError
 
 
 def reshape_clusters(clusters: Sequence[Sequence[int]]) -> np.ndarray:
@@ -63,6 +63,15 @@ def run_xmeans(
     here seeds both ``numpy.random`` and the built-in ``random`` module, which is
     sufficient for pyclustering's internal sampling.
     """
+    try:
+        from pyclustering.cluster.xmeans import kmeans_plusplus_initializer, xmeans
+    except ImportError as err:
+        raise OptionalDependencyError(
+            package_name="pyclustering",
+            feature_name="X-Means clustering",
+            extra_name="clustering",
+        ) from err
+
     if random_state is not None:
         random.seed(random_state)
         np.random.seed(random_state)
