@@ -21,6 +21,7 @@ class TestADWINDriftDetection(unittest.TestCase):
     def _run_prequential_evaluation(self, X, y, detector, burn_in=500):
         """Runs test-then-train evaluation and returns drift descriptions."""
         from sklearn.naive_bayes import GaussianNB
+
         model = GaussianNB()
         # Initialize model
         classes = np.unique(y)
@@ -59,57 +60,80 @@ class TestADWINDriftDetection(unittest.TestCase):
         X, y = dataset.generate(n_samples_before=1000, n_samples_after=1000, random_seed=self.random_state)
 
         adwin = ADWIN(delta=0.1)
-        drifts = self._run_prequential_evaluation(X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin)
+        drifts = self._run_prequential_evaluation(
+            X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin
+        )
 
         self.assertGreaterEqual(len(drifts), 1)
         # Check if first drift is around index 1000
         detected_idx = [d.detected_at for d in drifts]
-        self.assertTrue(any(900 <= idx <= 1900 for idx in detected_idx), f"Drift detected at {detected_idx} which is outside expected range")
+        self.assertTrue(
+            any(900 <= idx <= 1900 for idx in detected_idx),
+            f"Drift detected at {detected_idx} which is outside expected range",
+        )
 
     def test_hyperplane_drift(self):
         dataset = HyperplaneDriftDataset()
         X, y = dataset.generate(n_samples_before=1000, n_samples_after=1000, drift_width=200, random_seed=self.random_state)
 
         adwin = ADWIN(delta=0.1)
-        drifts = self._run_prequential_evaluation(X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin)
+        drifts = self._run_prequential_evaluation(
+            X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin
+        )
 
         self.assertGreaterEqual(len(drifts), 1)
         detected_idx = [d.detected_at for d in drifts]
-        self.assertTrue(any(900 <= idx <= 1900 for idx in detected_idx), f"Drift detected at {detected_idx} which is outside expected range")
+        self.assertTrue(
+            any(900 <= idx <= 1900 for idx in detected_idx),
+            f"Drift detected at {detected_idx} which is outside expected range",
+        )
 
     def test_linear_weight_inversion_drift(self):
         dataset = LinearWeightInversionDriftDataset()
         X, y = dataset.generate(n_samples_before=1000, n_samples_after=1000, random_seed=self.random_state)
 
         adwin = ADWIN(delta=0.1)
-        drifts = self._run_prequential_evaluation(X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin)
+        drifts = self._run_prequential_evaluation(
+            X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin
+        )
 
         self.assertGreaterEqual(len(drifts), 1)
         detected_idx = [d.detected_at for d in drifts]
-        self.assertTrue(any(900 <= idx <= 1900 for idx in detected_idx), f"Drift detected at {detected_idx} which is outside expected range")
+        self.assertTrue(
+            any(900 <= idx <= 1900 for idx in detected_idx),
+            f"Drift detected at {detected_idx} which is outside expected range",
+        )
 
     def test_rbf_drift(self):
         dataset = RBFDriftDataset()
         X, y = dataset.generate(n_samples_before=1000, n_samples_after=1000, random_seed=self.random_state)
 
-        adwin = ADWIN(delta=0.1) # RBF might need very sensitive delta for quick SGD
-        drifts = self._run_prequential_evaluation(X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin)
+        adwin = ADWIN(delta=0.1)  # RBF might need very sensitive delta for quick SGD
+        drifts = self._run_prequential_evaluation(
+            X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin
+        )
 
         self.assertGreaterEqual(len(drifts), 1)
         detected_idx = [d.detected_at for d in drifts]
-        self.assertTrue(any(900 <= idx <= 1900 for idx in detected_idx), f"Drift detected at {detected_idx} which is outside expected range")
+        self.assertTrue(
+            any(900 <= idx <= 1900 for idx in detected_idx),
+            f"Drift detected at {detected_idx} which is outside expected range",
+        )
 
     def test_random_tree_multi_window_drift(self):
         dataset = RandomTreeMultiWindowDataset()
         X, y = dataset.generate(window_length=1000, num_windows=3, random_seed=self.random_state)
 
-        adwin = ADWIN(delta=0.1) # Make it very sensitive for this test
-        drifts = self._run_prequential_evaluation(X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin)
+        adwin = ADWIN(delta=0.1)  # Make it very sensitive for this test
+        drifts = self._run_prequential_evaluation(
+            X.values if hasattr(X, "values") else X, y.values if hasattr(y, "values") else y, adwin
+        )
 
         self.assertGreaterEqual(len(drifts), 1)
 
         # Check if ADWIN detects multiple drifts
         self.assertTrue(any(d.detected_at > 900 for d in drifts))
+
 
 if __name__ == "__main__":
     unittest.main()
