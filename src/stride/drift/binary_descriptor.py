@@ -232,38 +232,48 @@ class BinaryErrorDriftDescriptor:
         self.complete_error_history.append(x)
         self.drift_detected = False
 
-        if self.ddm.warning_detected:
+        warning_detected = getattr(self.ddm, "warning_detected", False)
+
+        if warning_detected:
             self.warning_grace_period_left = self.warning_grace_period
         elif self.previous_was_warning is True:
             self.warning_grace_period_left -= 1
 
         if self.previous_was_warning and self.warning_grace_period_left > 0:
             self.assume_warning = True
-        elif self.ddm.warning_detected:
+        elif warning_detected:
             self.assume_warning = True
         else:
             self.assume_warning = False
 
         self.error_history.append(x)
 
-        if not self.assume_warning and not self.ddm.drift_detected:
+        drift_detected = getattr(self.ddm, "drift_detected", getattr(self.ddm, "change_detected", False))
+
+        if not self.assume_warning and not drift_detected:
             self.error_history = self.error_history[-self.rate_calculation_sample_size :]
 
-        if self.ddm.drift_detected:
+        if drift_detected:
             detection_idx = self.current_index
+
+            # Determine dynamic lookback window
+            if hasattr(self.ddm, "width"):
+                lookback_window = int(self.ddm.width)
+            else:
+                lookback_window = len(self.error_history)
 
             # Find actual drift start using selected method
             if self.lookback_method == "cusum":
-                drift_start_idx = self.find_drift_start_cusum(detection_idx)
+                drift_start_idx = self.find_drift_start_cusum(detection_idx, lookback_window=lookback_window)
             elif self.lookback_method == "threshold":
-                drift_start_idx = self.find_drift_start_threshold(detection_idx)
+                drift_start_idx = self.find_drift_start_threshold(detection_idx, lookback_window=lookback_window)
             elif self.lookback_method == "gradient":
-                drift_start_idx = self.find_drift_start_gradient(detection_idx)
+                drift_start_idx = self.find_drift_start_gradient(detection_idx, lookback_window=lookback_window)
             else:  # 'none'
-                drift_start_idx = max(0, detection_idx - len(self.error_history))
+                drift_start_idx = max(0, detection_idx - lookback_window)
 
             # Ensure the found starting point is not later than without correction.
-            drift_start_idx = min(drift_start_idx, detection_idx - len(self.error_history))
+            drift_start_idx = min(drift_start_idx, detection_idx - lookback_window)
 
             # Calculate error rates at drift start and detection
             window_size = self.rate_calculation_sample_size
