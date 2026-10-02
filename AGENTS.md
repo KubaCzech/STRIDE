@@ -23,7 +23,7 @@ Before writing or modifying any code, identify your target area and **read the c
 | **ML Models, Drift & xAI** | `src/stride/**`, `src/**` | [`.agents/rules/ml_and_drift_standards.md`](.agents/rules/ml_and_drift_standards.md)<br>[`.agents/context/architecture.md`](.agents/context/architecture.md) | • Fixed random seeds for stream reproducibility<br>• Consistent interface for data generators (`X, y`)<br>• Handle high-dimensional projections cleanly |
 | **CI, Linting & Testing** | `.github/workflows/**`, `tests/**` | [`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Pass ruff check and ruff format with zero errors<br>• All tests pass via `unittest discover tests` |
 | **Agent Context & Config** | `.agents/**`, `AGENTS.md` | [`.agents/rules/agent_maintenance_standards.md`](.agents/rules/agent_maintenance_standards.md)<br>[`.agents/skills/agent-maintenance/SKILL.md`](.agents/skills/agent-maintenance/SKILL.md) | • Update `acs.yaml` triggers on new paths<br>• Maintain roadmap status in `project_context.md` |
-| **Git & Version Control** | Repository root / Git | [`.agents/rules/git_and_pr_standards.md`](.agents/rules/git_and_pr_standards.md)<br>[`.agents/rules/ci_standards.md`](.agents/rules/ci_standards.md) | • Strict pre-implementation branch invariant<br>• Atomic Conventional Commits (`feat`, `fix`, `refactor`)<br>• Mandatory pre-push local CI validation |
+| **Git & Version Control** | Repository root / Git, `.git/**`, `.github/**` | [`.agents/rules/git_and_pr_standards.md`](.agents/rules/git_and_pr_standards.md)<br>[`.agents/skills/git-pr-workflow/SKILL.md`](.agents/skills/git-pr-workflow/SKILL.md) | • Strict pre-implementation branch invariant (`origin/main`)<br>• Atomic Conventional Commits (`feat`, `fix`, `refactor`)<br>• Mandatory pre-push local CI validation<br>• Pre-push commit ancestry audit<br>• PR creation via `.tmp_pr_body.md` |
 
 ---
 
@@ -36,10 +36,10 @@ Every task must progress sequentially through these 5 lifecycle gates:
 ```
 
 1. **Gate 1: Rule & Contract Intake (MANDATORY)**: Identify target files. Read required rule and reference files from the *Rule Routing Matrix* using `view_file`. Inspect underlying interfaces before invocation.
-2. **Gate 2: Implementation**: Write clean, modular Python adhering strictly to golden patterns in `.agents/rules/`.
-3. **Gate 3: Local CI Verification**: Execute all local verification commands (ruff and unittest) to verify clean status.
-4. **Gate 4: Context Self-Maintenance**: Update `.agents/context/` or `.agents/project_context.md` if components, models, or dependencies evolved.
-5. **Gate 5: Git & PR Protocol**: Follow atomic Conventional Commits; verify branch ancestry before pushing.
+2. **Gate 2: Implementation**: Write clean, modular Python adhering strictly to golden patterns in `.agents/rules/`. Commit changes atomically using Conventional Commits on a dedicated feature branch.
+3. **Gate 3: Local CI Verification**: Execute all local verification commands (ruff check/format, and unittest) to verify 0 errors and 0 failures.
+4. **Gate 4: Context Self-Maintenance**: Update `.agents/context/`, `.agents/rules/`, or `.agents/project_context.md` if components, models, or dependencies evolved.
+5. **Gate 5: Git & PR Protocol**: Audit commit ancestry against `origin/main`, push branch, monitor GitHub Actions CI via `gh run watch`, and submit PR using a temporary markdown body file (`.tmp_pr_body.md`). Keep PR verification strictly focused on test/lint/app behavior (never include Git ancestry checks or agent meta-process).
 
 ---
 
@@ -53,6 +53,8 @@ Always run these commands with the project virtual environment activated (`.venv
 | **Lint (Ruff)** | Root | `ruff check .` |
 | **Format Check (Ruff)** | Root | `ruff format --check .` |
 | **Run Tests** | Root | `python -m unittest discover tests` |
+| **Audit Ancestry** | Root | `git log origin/main..HEAD --oneline` |
+| **Monitor Remote CI** | Root | `gh run list --limit 1` & `gh run watch <run-id> --exit-status` |
 
 ---
 
@@ -60,13 +62,21 @@ Always run these commands with the project virtual environment activated (`.venv
 
 - **Always**:
   - Consult the *Mandatory Rule Routing Matrix* before editing code.
+  - Branch directly off `origin/main` (`git checkout -b <branch> origin/main`).
   - Run full local verification commands (ruff check/format, tests) prior to committing or pushing.
   - Keep commits atomic with standard Conventional Commits.
+  - Audit commit ancestry (`git log origin/main..HEAD --oneline`) before pushing.
+  - Use temporary markdown files (`.tmp_pr_body.md` / `.tmp_issue_body.md`) for `gh pr create` and `gh issue create`.
+  - Monitor GitHub Actions workflows after pushing via `gh run watch`.
 - **Ask First (Human Escalation Gateways)**:
   - Adding heavy machine learning dependencies (e.g. PyTorch, TensorFlow) or changing `requirements.txt`.
   - Refactoring core data generator signatures or shared session state keys in the dashboard.
   - Destructive filesystem actions or modifying Git branches without explicit instructions.
 - **Never (Safety & Workflow Anti-Patterns)**:
+  - Never commit or stage code directly on `main`.
+  - Never branch off stale local branches without specifying `origin/main` (prevents rogue pre-squash commits).
+  - Never pass multi-line or formatted markdown via inline `--body "..."` CLI arguments.
+  - Never include internal Git commands (e.g. `git log` ancestry audits, branch checks) or agent meta-process in the PR `## Verification` section.
   - Never commit `.env` credentials, raw data caches, or transient runtime files.
   - Never silence errors using unconditional `# noqa` or bare `except:` to bypass CI.
   - Never push failing code to remote branches.
@@ -77,12 +87,13 @@ Always run these commands with the project virtual environment activated (`.venv
 
 - `AGENTS.md`: Master entry point & rule routing matrix (this file)
 - `README.md`: Public project documentation & research overview
-- `dashboard/`: Streamlit dashboard (`app.py`, `components/`, `assets/`)
+- `.github/`: GitHub configuration, Actions workflows (`ci.yml`), PR template, and issue templates
+- `dashboard/`: Streamlit dashboard (`app.py`, `components/`, `assets/`, `config/`, `views/`)
 - `src/`: Core framework algorithms (`datasets`, `DDM`, `decision_boundary`, `feature_importance`, `clustering`, `recurrence`, `models`)
 - `tests/`: Automated test suite (`test_dashboard_regression.py`, etc.)
 - `.agents/`: Agent configuration, rules, context, and workspace skills
   - `acs.yaml`: Machine-readable agent configuration and path triggers
   - `project_context.md`: Living project state and active roadmap
-  - `rules/`: Modular declarative rules (`dashboard_standards.md`, `ml_and_drift_standards.md`, `ci_standards.md`, `agent_maintenance_standards.md`)
+  - `rules/`: Modular declarative rules (`dashboard_standards.md`, `ml_and_drift_standards.md`, `ci_standards.md`, `agent_maintenance_standards.md`, `git_and_pr_standards.md`, `python_package_standards.md`)
   - `context/`: Deep architectural specifications (`architecture.md`)
-  - `skills/`: Project-specific skills (`developing-with-streamlit`, `agent-maintenance`)
+  - `skills/`: Project-specific skills (`developing-with-streamlit`, `agent-maintenance`, `git-pr-workflow`)

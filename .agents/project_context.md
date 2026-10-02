@@ -21,6 +21,7 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 - [x] Decouple UI widget schemas from core algorithmic engine (`dashboard/config/`).
 - [x] Modular optional dependency extras (`vis`, `drift`, `clustering`, `xai`, `deeplearning`, `dashboard`, `dev`, `all`).
 - [x] Single Responsibility Principle (SRP) cleanup, decomposition of monolithic God Classes (`ClusterBasedDriftDetector`), and headless plotting execution without `plt.show()`.
+- [x] Standardized GitHub agent instructions, Git & PR workflow skill (`.agents/skills/git-pr-workflow/`), issue templates, and PR template aligned with institutional engineering standards.
 - [ ] Expand automated test coverage for core xAI algorithms in `src/stride/`.
 - [ ] Implement additional statistical drift detectors and recurring concept benchmarks.
 
@@ -28,4 +29,5 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 1. **Local Setup**: Python 3.10-3.12 with `.venv`. Run dashboard via `streamlit run dashboard/app.py`.
 2. **Deterministic Rules**: Always consult `AGENTS.md` and read the matching `.agents/rules/*.md` before modifying code.
 3. **Quality & Verification**: Execute local `ruff check .`, `ruff format --check .`, and `python -m unittest discover tests` before committing.
-4. **Self-Maintenance**: Update `.agents/` when completing features or changing dependencies using `.agents/skills/agent-maintenance/SKILL.md`.
+4. **Git & PR Workflow**: Follow `.agents/rules/git_and_pr_standards.md` and use `.agents/skills/git-pr-workflow/SKILL.md` (branch off `origin/main`, atomic commits, ancestry audit, `.tmp_pr_body.md`).
+5. **Self-Maintenance**: Update `.agents/` when completing features or changing dependencies using `.agents/skills/agent-maintenance/SKILL.md`.

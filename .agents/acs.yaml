@@ -52,6 +52,11 @@ layers:
       description: "Autonomous .agents/ context maintenance workflow."
       trigger_paths:
         - ".agents/**"
+    - path: "./skills/git-pr-workflow/SKILL.md"
+      description: "End-to-end Git and Pull Request development workflow with Conventional Commits, local CI verification, and temporary body files."
+      trigger_paths:
+        - ".git/**"
+        - ".github/**"
 metadata:
   primary_agent: "Antigravity"
   objective: "Provide explainable artificial intelligence (xAI) tools for concept drift detection and an interactive Streamlit dashboard."
