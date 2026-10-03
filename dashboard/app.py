@@ -1,6 +1,14 @@
 import os
+import sys
 import warnings
 import logging
+from pathlib import Path
+
+# Ensure repository root is on sys.path so 'dashboard' package imports work reliably
+_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
 import streamlit as st
 from dashboard.components.sidebar import render_sidebar_datasource_config, render_sidebar_window_selection
 
