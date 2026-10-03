@@ -40,14 +40,17 @@ def calculate_feature_importance(model, X, y, method="permutation", feature_name
         else:
             feature_names = [f"Feature_{i}" for i in range(X.shape[1])]
 
+    X_arr = np.asarray(X)
+    y_arr = np.asarray(y) if y is not None else None
+
     if method == FeatureImportanceMethod.PFI:
-        return _calculate_pfi(model, X, y, n_repeats, random_state)
+        return _calculate_pfi(model, X_arr, y_arr, n_repeats, random_state)
 
     elif method == FeatureImportanceMethod.SHAP:
-        return _calculate_shap(model, X, feature_names)
+        return _calculate_shap(model, X_arr, feature_names)
 
     elif method == FeatureImportanceMethod.LIME:
-        return _calculate_lime(model, X, y, feature_names, random_state)
+        return _calculate_lime(model, X_arr, y_arr, feature_names, random_state)
 
     else:
         raise ValueError(f"Unknown method: {method}. Use 'permutation', 'shap', or 'lime'")
