@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
 from stride.xai.importance import (
+    AbstainStrategy,
     FeatureImportanceMethod,
     FeatureImportanceDriftAnalyzer,
     visualize_drift_importance,
@@ -68,6 +70,52 @@ def render_feature_importance_analysis_tab(
                 help="Checked: Concept Drift (P(Y|X)). Unchecked: Data Drift (P(X)).",
             )
 
+        st.markdown("---")
+        col_abstain_1, col_abstain_2 = st.columns(2)
+
+        with col_abstain_1:
+            enable_abstain = st.checkbox(
+                "Enable Drift Localization (Abstain Option)",
+                value=True,
+                help="Excludes points where P(T|X) ≈ 0.5 where pre- and post-drift distributions coincide, preventing noise-induced feature importance.",
+            )
+            if enable_abstain:
+                strategy_options = [
+                    (AbstainStrategy.CONFIDENCE_THRESHOLD, "Confidence Threshold (Margin τ)"),
+                    (AbstainStrategy.CONFORMAL, "Conformal Predictions (p-value α)"),
+                ]
+                selected_strategy = st.selectbox(
+                    "Localization Strategy",
+                    options=[opt[0] for opt in strategy_options],
+                    format_func=lambda s: dict(strategy_options)[s],
+                    help="Method used to localize the drift subpopulation and reject invariant instances.",
+                )
+            else:
+                selected_strategy = None
+
+        with col_abstain_2:
+            tau = 0.15
+            alpha = 0.05
+            if enable_abstain:
+                if selected_strategy == AbstainStrategy.CONFIDENCE_THRESHOLD:
+                    tau = st.slider(
+                        "Abstention Indifference Margin (τ)",
+                        min_value=0.05,
+                        max_value=0.40,
+                        value=0.15,
+                        step=0.01,
+                        help="Excludes points where |P(T=1|X) - 0.5| ≤ τ where pre- and post-drift distributions coincide.",
+                    )
+                elif selected_strategy == AbstainStrategy.CONFORMAL:
+                    alpha = st.slider(
+                        "Conformal Significance Level (α)",
+                        min_value=0.01,
+                        max_value=0.20,
+                        value=0.05,
+                        step=0.01,
+                        help="Significance level for rejecting H0 ('non-drifting'). Points with min_y p_y(x) < α belong to the drift locus.",
+                    )
+
     # Initialize DriftAnalyzer
     analyzer = FeatureImportanceDriftAnalyzer(X_before, y_before, X_after, y_after, feature_names=feature_names)
 
@@ -100,7 +148,50 @@ def render_feature_importance_analysis_tab(
                 include_target=include_target,
                 model_class=model_class,
                 model_params=model_params,
+                abstain_strategy=selected_strategy,
+                tau=tau,
+                alpha=alpha,
             )
+
+            # Diagnostic KPI Metrics Display
+            if enable_abstain and "drifting_mask" in drift_result:
+                st.markdown("##### Drift Localization Diagnostics")
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1:
+                    st.metric(
+                        "Drift Coverage",
+                        f"{drift_result['drift_coverage'] * 100:.1f}%",
+                        help="Percentage of instances residing in the drift locus (spatial extent of drift).",
+                    )
+                with col_m2:
+                    acc_delta = drift_result["selective_accuracy"] - drift_result["accuracy"]
+                    st.metric(
+                        "Selective Accuracy",
+                        f"{drift_result['selective_accuracy'] * 100:.1f}%",
+                        delta=f"{acc_delta * 100:+.1f}% vs overall",
+                        help="Discriminator accuracy evaluated strictly on accepted drift locus instances.",
+                    )
+                with col_m3:
+                    n_drift = int(np.sum(drift_result["drifting_mask"]))
+                    n_total = len(drift_result["drifting_mask"])
+                    st.metric(
+                        "Drift Locus Samples",
+                        f"{n_drift} / {n_total}",
+                        help="Number of accepted instances in the drift locus.",
+                    )
+
+                if drift_result.get("drift_locus_fallback"):
+                    st.warning(
+                        "The drift locus contains too few instances (< min_samples). "
+                        "Feature importance was evaluated on the full dataset as fallback."
+                    )
+                elif drift_result["drift_coverage"] < 0.25:
+                    st.info(
+                        "The detected drift is spatially localized to a subpopulation/subspace. "
+                        "Feature importance reflects drivers strictly within this localized locus."
+                    )
+                elif drift_result["drift_coverage"] >= 0.85:
+                    st.info("The detected drift is widespread/global across the data distribution.")
 
             # Visualization
             fig_drift = visualize_drift_importance(
