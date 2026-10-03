@@ -1,4 +1,4 @@
-from .base import FeatureImportanceMethod  # noqa: F401
+from .base import AbstainStrategy, FeatureImportanceMethod  # noqa: F401
 from .methods import calculate_feature_importance  # noqa: F401
 
 try:
