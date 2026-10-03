@@ -46,7 +46,7 @@ The STRIDE framework is architected into three distinct layers:
 
 ### 2.3 Explainability (xAI) Modules (`stride.xai`)
 - **Decision Boundary (`stride.xai.boundary`)**: Estimates and projects multidimensional decision boundaries (via grid sampling or SSNP) to visually depict how the separator evolves between reference and drift windows. SSNP and TensorFlow dependencies are lazily loaded.
-- **Feature Importance (`stride.xai.importance`)**: Quantifies per-feature attribution deltas before and after drift using permutation importance and SHAP values.
+- **Feature Importance (`stride.xai.importance`)**: Quantifies per-feature attribution deltas before and after drift using permutation importance, SHAP values, and LIME. Supports selective discriminator abstention (`confidence_threshold` margin and `conformal` p-value hypothesis testing) to isolate localized drift loci ($S_{\text{drift}}$), preventing noise fitting and elevating selective accuracy.
 - **Clustering Dynamics (`stride.xai.clustering`)**: Analyzes feature-space topology, centroid movements, and cluster dispersion shifts across stream windows.
 - **Recurring Concept Analysis (`stride.xai.recurrence`)**: Extracts window prototypes (ProTree), computes pairwise concept distance matrices, and performs clustering to recognize reappearing concepts.
 - **Descriptive Statistics (`stride.xai.stats`)**: Computes univariate and multivariate distribution divergence metrics across windows.
