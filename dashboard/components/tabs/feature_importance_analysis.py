@@ -13,29 +13,19 @@ from stride.xai.importance import (
 
 
 def render_feature_importance_analysis_tab(
-    X_before, y_before, X_after, y_after, feature_names, model_class=None, model_params=None
+    X_before, y_before, X_after, y_after, feature_names, model_class=None, model_params=None, dataset=None
 ):
     """
     Renders the Feature Importance Analysis tab.
-
-    Parameters
-    ----------
-    X_before : array-like
-        Feature matrix for 'before' window
-    y_before : array-like
-        Target variable for 'before' window
-    X_after : array-like
-        Feature matrix for 'after' window
-    y_after : array-like
-        Target variable for 'after' window
-    feature_names : list
-        List of feature names
-    model_class : class (optional)
-        The model class to use for drift detection
-    model_params : dict (optional)
-        Parameters for the model
     """
     st.header("Feature Importance Analysis")
+
+    drifting_features = getattr(dataset, "drifting_features", None) or st.session_state.get("drifting_features", [])
+    if drifting_features:
+        st.info(
+            f"🎯 **Ground Truth Drifting Features**: `{', '.join(drifting_features)}` "
+            "— Compare whether top SHAP / Permutation importance shift aligns with these true physical drift loci."
+        )
 
     # --- Controls Section ---
 
