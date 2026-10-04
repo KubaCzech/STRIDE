@@ -50,3 +50,8 @@ class DualADWIN:
     def width(self) -> int:
         """Returns the width of the main drift instance window."""
         return self.adwin_drift.width
+
+    @property
+    def estimation(self) -> float:
+        """Returns the mean estimation of the main drift instance window."""
+        return self.adwin_drift.estimation

@@ -52,6 +52,8 @@ def run_drift_detection(
     lookforward_method="peak",
     confidence_level=None,
     adwin_params=None,
+    degradation_only=True,
+    burn_in=0,
 ):
     # Create detector
     if detector_type == "DDM":
@@ -75,11 +77,17 @@ def run_drift_detection(
         ddm=detector,
         lookback_method=lookback_method,
         lookforward_method=lookforward_method,
+        degradation_only=degradation_only,
     )
 
     drift_descriptions = []
 
     for i, error in enumerate(error_stream):
+        if i < burn_in:
+            drift_descriptor.complete_error_history.append(error)
+            drift_descriptor.current_index += 1
+            continue
+
         drift_descriptor.update(error)
 
         if drift_descriptor.drift_detected:
@@ -240,6 +248,16 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             key="prototype_fix_outliers",
         )
 
+        burn_in_samples = st.slider(
+            "Warm-up / Burn-in (Samples)",
+            min_value=0,
+            max_value=500,
+            value=0,
+            step=50,
+            help="Number of initial samples to skip before evaluating drift. Helps avoid false alarms during online model initialization.",
+            key="ddm_burn_in",
+        )
+
     st.markdown("---")
 
     # Convert data to numpy once
@@ -346,6 +364,8 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                     lookforward_method=lookforward_method,
                     confidence_level=confidence,
                     adwin_params=adwin_params,
+                    degradation_only=True,
+                    burn_in=burn_in_samples,
                 )
 
                 # Store results in session state

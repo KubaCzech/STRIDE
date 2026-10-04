@@ -120,6 +120,55 @@ class TestADWINSyntheticIntegration(unittest.TestCase):
         drifts = self._run_prequential_pipeline(X, y, adwin)
         self.assertIsInstance(drifts, list)
 
+    def test_hyperplane_mlp_clean_detection(self):
+        """Verify Hyperplane drift with MLPClassifier produces clean detection around t=1000 without warm-up false alarms."""
+        from sklearn.neural_network import MLPClassifier
+
+        dataset = HyperplaneDriftDataset()
+        X, y = dataset.generate(
+            n_samples_before=1000,
+            n_samples_after=1000,
+            drift_width=50,
+            random_seed=self.random_state,
+        )
+        X_arr = X.values if hasattr(X, "values") else np.asarray(X)
+        y_arr = y.values if hasattr(y, "values") else np.asarray(y)
+
+        model = MLPClassifier(random_state=self.random_state)
+        classes = np.unique(y_arr)
+        model.partial_fit(X_arr[0].reshape(1, -1), [y_arr[0]], classes=classes)
+
+        adwin = ADWIN(delta=0.002, clock=32, min_window_length=5, grace_period=10)
+        descriptor = BinaryErrorDriftDescriptor(
+            ddm=adwin,
+            lookback_method="cusum",
+            lookforward_method="peak",
+            rate_calculation_sample_size=100,
+            degradation_only=True,
+        )
+
+        drifts = []
+        for i in range(1, len(X_arr)):
+            x_i = X_arr[i].reshape(1, -1)
+            y_true = y_arr[i]
+            y_pred = model.predict(x_i)[0]
+            error = int(y_pred != y_true)
+
+            descriptor.update(error)
+            if descriptor.drift_detected:
+                drift = descriptor.last_detected_drift
+                drift.detected_at = i
+                drifts.append(drift)
+
+            model.partial_fit(x_i, [y_true])
+
+        processed = descriptor.post_process_drift_ends(drifts)
+        # Should detect exactly 1 drift (at the true transition), no warm-up or recovery false alarms
+        self.assertEqual(len(processed), 1)
+        self.assertTrue(1000 <= processed[0].detected_at <= 1250)
+        # CUSUM should identify start very close to true drift (t=1000)
+        self.assertTrue(950 <= processed[0].drift_start_index <= 1050)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -62,9 +62,54 @@ class TestADWINUnit(unittest.TestCase):
             f"Warning step ({warning_step}) should be <= drift step ({drift_step})",
         )
 
+    def test_dual_adwin_estimation(self):
+        """Test that DualADWIN exposes estimation property."""
+        dual = DualADWIN(delta_warn=0.05, delta_drift=0.002)
+        self.assertEqual(dual.estimation, 0.0)
+        for _ in range(50):
+            dual.update(1)
+        self.assertAlmostEqual(dual.estimation, 1.0)
+
 
 class TestBinaryErrorDriftDescriptorADWIN(unittest.TestCase):
     """Unit tests for BinaryErrorDriftDescriptor handling ADWIN and DualADWIN."""
+
+    def test_directional_filtering_ignores_error_drop(self):
+        """Test that degradation_only=True suppresses drift detection when error rate improves."""
+        # 1. With degradation_only=True: dropping error should NOT trigger drift
+        adwin_suppressed = RiverADWIN(delta=0.002, clock=8)
+        desc_suppressed = BinaryErrorDriftDescriptor(
+            ddm=adwin_suppressed,
+            degradation_only=True,
+            rate_calculation_sample_size=20,
+        )
+
+        for _ in range(200):
+            desc_suppressed.update(1 if _ % 2 == 0 else 0)  # 50% error rate
+        for _ in range(200):
+            desc_suppressed.update(0)  # Drops to 0% error rate (model improves)
+
+        self.assertFalse(
+            desc_suppressed.drift_detected,
+            "Drop in error rate should not be flagged as concept drift when degradation_only=True",
+        )
+
+        # 2. With degradation_only=False: dropping error triggers raw ADWIN two-sided shift
+        adwin_raw = RiverADWIN(delta=0.002, clock=8)
+        desc_raw = BinaryErrorDriftDescriptor(
+            ddm=adwin_raw,
+            degradation_only=False,
+            rate_calculation_sample_size=20,
+        )
+        for _ in range(200):
+            desc_raw.update(1 if _ % 2 == 0 else 0)
+        raw_drifts = 0
+        for _ in range(200):
+            desc_raw.update(0)
+            if desc_raw.drift_detected:
+                raw_drifts += 1
+
+        self.assertGreaterEqual(raw_drifts, 1, "Raw ADWIN without directional filter triggers on error drops")
 
     def test_safe_handling_of_detector_without_warning(self):
         """Verify that BinaryErrorDriftDescriptor does not raise AttributeError for detectors without warning_detected."""
@@ -143,6 +188,32 @@ class TestBinaryErrorDriftDescriptorADWIN(unittest.TestCase):
                 for d in processed:
                     self.assertGreaterEqual(d.drift_start_index, 0)
                     self.assertLessEqual(d.drift_start_index, d.detected_at)
+
+    def test_lookback_cusum_inflection_point_localization(self):
+        """Test that CUSUM accurately localizes the inflection point within the lookback window."""
+        detector = RiverADWIN(delta=0.01, clock=8)
+        descriptor = BinaryErrorDriftDescriptor(
+            ddm=detector,
+            lookback_method="cusum",
+            lookforward_method="none",
+            rate_calculation_sample_size=15,
+        )
+
+        drift = None
+        # Injected step increase at sample 100
+        for i in range(160):
+            x = 0 if i < 100 else 1
+            descriptor.update(x)
+            if descriptor.drift_detected:
+                drift = descriptor.last_detected_drift
+                drift.detected_at = descriptor.current_index
+                break
+
+        self.assertIsNotNone(drift)
+        # Drift occurred at 100, detected shortly after (e.g. ~130)
+        # CUSUM should identify start close to 100, NOT clamp all the way to the window boundary
+        self.assertGreaterEqual(drift.drift_start_index, 80)
+        self.assertLessEqual(drift.drift_start_index, 115)
 
 
 if __name__ == "__main__":

@@ -32,12 +32,14 @@ class BinaryErrorDriftDescriptor:
         ddm=drift.binary.DDM(),
         lookback_method="cusum",
         lookforward_method="peak",
+        degradation_only=True,
     ):
         self.warning_grace_period = warning_grace_period
         self.rate_calculation_sample_size = rate_calculation_sample_size
         self.ddm = ddm
         self.lookback_method = lookback_method  # 'cusum', 'threshold', 'gradient', or 'none
         self.lookforward_method = lookforward_method  # 'peak', 'recovery', or 'none'
+        self.degradation_only = degradation_only
 
         self.warning_grace_period_left = warning_grace_period
         self.error_history = []
@@ -228,11 +230,19 @@ class BinaryErrorDriftDescriptor:
         return end_idx - 1
 
     def update(self, x):
+        prev_estimation = getattr(self.ddm, "estimation", None)
+        prev_warn_est = None
+        if hasattr(self.ddm, "adwin_warn") and hasattr(self.ddm.adwin_warn, "estimation"):
+            prev_warn_est = self.ddm.adwin_warn.estimation
+
         self.ddm.update(x)
         self.complete_error_history.append(x)
         self.drift_detected = False
 
         warning_detected = getattr(self.ddm, "warning_detected", False)
+        if self.degradation_only and warning_detected and prev_warn_est is not None:
+            if hasattr(self.ddm, "adwin_warn") and self.ddm.adwin_warn.estimation < prev_warn_est:
+                warning_detected = False
 
         if warning_detected:
             self.warning_grace_period_left = self.warning_grace_period
@@ -249,6 +259,12 @@ class BinaryErrorDriftDescriptor:
         self.error_history.append(x)
 
         drift_detected = getattr(self.ddm, "drift_detected", getattr(self.ddm, "change_detected", False))
+
+        # Directional filter: only flag if error rate degraded (worsened)
+        if self.degradation_only and drift_detected and prev_estimation is not None:
+            curr_estimation = getattr(self.ddm, "estimation", None)
+            if curr_estimation is not None and curr_estimation < prev_estimation:
+                drift_detected = False
 
         if not self.assume_warning and not drift_detected:
             self.error_history = self.error_history[-self.rate_calculation_sample_size :]
@@ -272,8 +288,9 @@ class BinaryErrorDriftDescriptor:
             else:  # 'none'
                 drift_start_idx = max(0, detection_idx - lookback_window)
 
-            # Ensure the found starting point is not later than without correction.
-            drift_start_idx = min(drift_start_idx, detection_idx - lookback_window)
+            # Ensure the found starting point is within valid bounds [detection_idx - lookback_window, detection_idx]
+            min_lookback_bound = max(0, detection_idx - lookback_window)
+            drift_start_idx = max(min_lookback_bound, min(drift_start_idx, detection_idx))
 
             # Calculate error rates at drift start and detection
             window_size = self.rate_calculation_sample_size
