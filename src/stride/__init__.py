@@ -14,6 +14,7 @@ from .exceptions import (
 )
 
 # Top-level convenient access to core estimators and analyzers
+from .datasets import DriftBlender, FeatureMatcher, SemiSyntheticDriftDataset
 from .drift import BinaryErrorDriftDescriptor
 from .models import MODELS, BaseModel, MLPModel, RandomForestModel
 from .xai import (
@@ -42,6 +43,10 @@ __all__ = [
     "models",
     "plotting",
     "xai",
+    # Datasets & Semi-Synthetic Drift
+    "DriftBlender",
+    "FeatureMatcher",
+    "SemiSyntheticDriftDataset",
     # Core Analyzers
     "BinaryErrorDriftDescriptor",
     "ClusterBasedDriftDetector",
