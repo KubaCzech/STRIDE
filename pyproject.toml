@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "stride-xai"
-version = "0.1.0"
+dynamic = ["version"]
 description = "STRIDE: Explainable AI and Drift Detection Framework"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,6 +25,15 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
+keywords = [
+    "concept-drift",
+    "data-drift",
+    "explainable-ai",
+    "xai",
+    "stream-learning",
+    "drift-detection",
+    "decision-boundary",
+]
 dependencies = [
     "numpy<2.0",
     "pandas",
@@ -32,6 +41,13 @@ dependencies = [
     "scikit-learn",
     "river",
 ]
+
+[project.urls]
+Homepage = "https://michalredm.github.io/stride-website/"
+Documentation = "https://kubaczech.github.io/STRIDE/"
+Repository = "https://github.com/KubaCzech/STRIDE"
+Issues = "https://github.com/KubaCzech/STRIDE/issues"
+Changelog = "https://github.com/KubaCzech/STRIDE/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 vis = [
@@ -71,6 +87,8 @@ dashboard = [
 dev = [
     "ruff",
     "pytest",
+    "build",
+    "twine",
 ]
 all = [
     "matplotlib",
