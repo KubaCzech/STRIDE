@@ -150,7 +150,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
         st.markdown("**Detector Configuration**")
         detector_type = st.selectbox(
             "Detector Type",
-            ["DDM", "EDDM", "FHDDM", "HDDM_A", "HDDM_W", "ADWIN"],
+            ["DDM", "ADWIN", "EDDM", "FHDDM", "HDDM_A", "HDDM_W"],
             help="Type of drift detector to use",
             key="ddm_detector_type",
         )
