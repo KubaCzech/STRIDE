@@ -4,12 +4,13 @@ A Python Toolkit for Concept Drift Detection, Characterization, and Explanation
 
 [![ECML PKDD 2026](https://img.shields.io/badge/ECML--PKDD_2026-Demo_Track-1E88E5.svg)](https://michalredm.github.io/stride-website/assets/pdf/paper.pdf)
 [![DOI: 10.1007/978-3-032-37685-5_32](https://img.shields.io/badge/DOI-10.1007%2F978--3--032--37685--5__32-blue.svg)](https://link.springer.com/chapter/10.1007/978-3-032-37685-5_32)
+[![PyPI version](https://img.shields.io/pypi/v/stride-xai.svg)](https://pypi.org/project/stride-xai/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/stride-xai.svg)](https://pypi.org/project/stride-xai/)
 [![Website](https://img.shields.io/badge/Website-STRIDE-0A66C2?logo=googlechrome&logoColor=white)](https://michalredm.github.io/stride-website/)
 [![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stream-insight-and-drift-explanation.streamlit.app/)
 [![CI](https://github.com/KubaCzech/STRIDE/actions/workflows/ci.yml/badge.svg)](https://github.com/KubaCzech/STRIDE/actions/workflows/ci.yml)
-![Python 3.10 | 3.11 | 3.12](https://img.shields.io/badge/python-3.10_%7C_3.11_%7C_3.12-3776AB?logo=python&logoColor=white)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/KubaCzech/STRIDE/blob/main/LICENSE)
 
 [Website](https://michalredm.github.io/stride-website/) &bull; [Live Dashboard](https://stream-insight-and-drift-explanation.streamlit.app/) &bull; [Springer Chapter](https://link.springer.com/chapter/10.1007/978-3-032-37685-5_32) &bull; [Paper (PDF)](https://michalredm.github.io/stride-website/assets/pdf/paper.pdf) &bull; [Architecture](#three-layer-architecture) &bull; [Quickstart](#quickstart) &bull; [Citation](#citation)
 
@@ -31,7 +32,7 @@ Instead of triggering post-hoc explanations only after significant performance d
 
 ## Three-Layer Architecture
 
-![STRIDE Synchronous Processing Pipeline](assets/pipeline.png)
+![STRIDE Synchronous Processing Pipeline](https://raw.githubusercontent.com/KubaCzech/STRIDE/main/assets/pipeline.png)
 
 ### 1. Data Layer (Statistical & Geometric Shifts)
 Evaluates covariate shifts independent of the predictive model:
@@ -129,7 +130,22 @@ detector = stride.DescriptiveStatisticsDriftDetector(...)
 * Python 3.10, 3.11, or 3.12
 * Git
 
-### Setup
+### From PyPI (Recommended for Users)
+
+Install the core package directly from PyPI:
+
+```bash
+pip install stride-xai
+```
+
+Optional capability extras can be installed as needed:
+```bash
+pip install "stride-xai[all]"        # All extras (visualizations, XAI, deep learning, dashboard)
+pip install "stride-xai[dashboard]"  # Interactive Streamlit dashboard dependencies
+pip install "stride-xai[xai]"        # SHAP and LIME explainers
+```
+
+### From Source (Development)
 
 1. **Clone the repository**:
    ```bash
@@ -277,4 +293,4 @@ Project Website: [https://michalredm.github.io/stride-website/](https://michalre
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/KubaCzech/STRIDE/blob/main/LICENSE) file for details.
