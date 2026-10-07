@@ -26,6 +26,8 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 - [x] Selective / abstaining discriminator and conformal drift localization in feature importance engine and dashboard (#7).
 - [x] PyPI Packaging, Metadata Standardization, and Automated OIDC Trusted Publishing Workflow (#10).
 - [x] Semi-Synthetic Concept Drift Generation via Dataset Splicing & Feature Alignment (Shaker Protocol) (#11).
+- [x] Autonomous Agent Release Management Protocol, SemVer Rules, and `release-management` Skill.
+- [ ] Prepare and publish `v0.2.0` release to PyPI via GitHub Release workflow.
 - [ ] Expand automated test coverage for core xAI algorithms in `src/stride/`.
 - [ ] Implement additional statistical drift detectors and recurring concept benchmarks.
 
