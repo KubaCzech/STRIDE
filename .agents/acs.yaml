@@ -32,6 +32,13 @@ layers:
       trigger_paths:
         - ".git/**"
         - ".github/**"
+    - path: "./rules/release_standards.md"
+      description: "Semantic versioning, changelog maintenance, pre-release checklist, and PyPI publication standards."
+      trigger_paths:
+        - "CHANGELOG.md"
+        - ".github/workflows/release.yml"
+        - "pyproject.toml"
+        - "src/stride/__init__.py"
     - path: "./rules/agent_maintenance_standards.md"
       description: "Autonomous self-maintenance triggers and procedure."
       trigger_paths:
@@ -57,6 +64,12 @@ layers:
       trigger_paths:
         - ".git/**"
         - ".github/**"
+    - path: "./skills/release-management/SKILL.md"
+      description: "Autonomous release management workflow for SemVer version bumps, changelog curation, packaging build checks, and GitHub release creation."
+      trigger_paths:
+        - "CHANGELOG.md"
+        - ".github/workflows/release.yml"
+        - "src/stride/__init__.py"
 metadata:
   primary_agent: "Antigravity"
   objective: "Provide explainable artificial intelligence (xAI) tools for concept drift detection and an interactive Streamlit dashboard."
