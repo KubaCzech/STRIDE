@@ -25,6 +25,7 @@ Develop, benchmark, and visualize Explainable AI (xAI) techniques for characteri
 - [x] Decouple optional dependency imports (`umap-learn`, `shap`, `lime`, `pyclustering`, `hdbscan`, `tensorflow`, `matplotlib`, `seaborn`) and establish minimal base installation guardrails (`OptionalDependencyError`).
 - [x] Selective / abstaining discriminator and conformal drift localization in feature importance engine and dashboard (#7).
 - [x] PyPI Packaging, Metadata Standardization, and Automated OIDC Trusted Publishing Workflow (#10).
+- [x] Semi-Synthetic Concept Drift Generation via Dataset Splicing & Feature Alignment (Shaker Protocol) (#11).
 - [ ] Expand automated test coverage for core xAI algorithms in `src/stride/`.
 - [ ] Implement additional statistical drift detectors and recurring concept benchmarks.
 

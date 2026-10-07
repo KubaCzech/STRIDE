@@ -39,7 +39,8 @@ The STRIDE framework is architected into three distinct layers:
 - **Hyperplane Drift**: Simulates continuous gradual drift via rotating decision hyperplanes in $d$-dimensional space.
 - **RBF Drift**: Non-linear drift shifting Gaussian cluster centroids.
 - **Linear Weight Inversion (LWI)**: Shifts feature attribution signs to benchmark explainer sensitivity.
-- **Registry**: Stream registry providing standardized instantiation and metadata.
+- **Semi-Synthetic Drift (Shaker Protocol)**: Slices and blends empirical datasets/cohorts (e.g. UCI Wine Quality Red -> White) via `FeatureMatcher` (exact, manual, statistical Wasserstein bipartite matching, PCA subspace projection) and `DriftBlender` (abrupt, gradual sigmoidal Bernoulli, incremental nearest-neighbor interpolation, recurring harmonic modulation) with ground-truth change-point annotations and drifting feature diagnostics.
+- **Registry**: Stream registry providing standardized instantiation, metadata, and semi-synthetic recipe persistence.
 
 ### 2.2 Drift Detection (`stride.drift`)
 - Statistical tests and sequential error-rate monitors that track classification error over rolling windows and trigger warning/drift flags.

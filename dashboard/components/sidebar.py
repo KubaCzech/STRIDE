@@ -4,6 +4,7 @@ import pandas as pd
 from stride.datasets import DATASETS, reload_datasets, DatasetRegistry
 from stride.models import MODELS
 from dashboard.components.modals.dataset_settings import open_dataset_settings_modal
+from dashboard.components.modals.dataset_stitcher import open_dataset_stitcher_modal
 from dashboard.components.modals.model_settings import open_model_settings_modal
 
 
@@ -75,12 +76,12 @@ def _render_dataset_selection():
     st.subheader("Dataset Selection")
 
     # 2. Select Dataset
-    # Define Import Option
     IMPORT_OPTION = "➕ Import dataset..."
+    STITCH_OPTION = "🔀 Stitch Datasets (Semi-Synthetic Drift)..."
 
-    dataset_options = list(DATASETS.keys()) + [IMPORT_OPTION]
+    dataset_options = list(DATASETS.keys()) + [IMPORT_OPTION, STITCH_OPTION]
 
-    # Check if we should select a specific dataset (e.g. after import)
+    # Check if we should select a specific dataset (e.g. after import or stitch)
     index = 0
     if "selected_dataset_key" in st.session_state and st.session_state.selected_dataset_key in dataset_options:
         index = dataset_options.index(st.session_state.selected_dataset_key)
@@ -91,12 +92,16 @@ def _render_dataset_selection():
             "Choose a Dataset",
             options=dataset_options,
             index=index,
-            format_func=lambda x: x if x == IMPORT_OPTION else DATASETS[x].display_name,
-            help="Select the synthetic dataset to analyze or import a new one.",
+            format_func=lambda x: x if x in (IMPORT_OPTION, STITCH_OPTION) else DATASETS[x].display_name,
+            help="Select the synthetic dataset to analyze or import/stitch a new one.",
         )
 
-    # Handle import modal
+    # Handle modals
     _render_import_dataset_modal(dataset_key)
+
+    if dataset_key == STITCH_OPTION:
+        open_dataset_stitcher_modal()
+        st.stop()
 
     # Process selection (if not stopped by modal)
     st.session_state.selected_dataset_key = dataset_key
