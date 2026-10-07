@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-07
+
+### Added
+- **Shaker Semi-Synthetic Concept Drift Protocol**:
+  - Implemented the empirical dataset splicing protocol (*Shaker & Hüllermeier, Neurocomputing 2015*).
+  - `stride.datasets.FeatureMatcher`: Statistical distribution alignment (Wasserstein distance with optimal bipartite assignment via Hungarian algorithm), exact column mapping, manual translation dictionary, shared PCA latent subspace projection, and feature scaling (`StandardScaler` / `MinMaxScaler`).
+  - `stride.datasets.DriftBlender`: Deterministic stream blending supporting abrupt, gradual (Shaker sigmoidal Bernoulli trials), incremental (nearest-neighbor linear interpolation), and recurring (harmonic periodic oscillation) transition schedules.
+  - `stride.datasets.SemiSyntheticDriftDataset`: Full `BaseDataset` compliance carrying ground-truth change-point timestamps, transition intervals, binary concept indicators, and statistical drifting feature diagnostics (KS test, Wasserstein distance).
+  - Canonical UCI Wine Quality benchmark (Red $\to$ White wine) offline loader and generator (`load_wine_quality_drift`).
+- **Interactive Streamlit Dataset Stitcher**:
+  - Modal dialog `open_dataset_stitcher_modal()` allowing visual concept selection, feature mapping inspection, schedule tuning, interactive transition curve preview, and instant registry persistence.
+  - Ground-truth change-point markers, shaded transition regions, and detector latency metrics in the Drift Detection tab.
+  - Ground-truth drifting features banner in the Feature Importance Analysis tab.
+- **Agentic Release Governance**:
+  - Release management standards ([`.agents/rules/release_standards.md`](.agents/rules/release_standards.md)) and autonomous deployment skill ([`.agents/skills/release-management/SKILL.md`](.agents/skills/release-management/SKILL.md)).
+
 ## [0.1.0] - 2026-10-05
 
 ### Added
