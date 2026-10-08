@@ -131,7 +131,7 @@ class FullWindowStorage:
         ] = "centroid_displacement",
         strategy: Literal["class", "total"] = "total",
         distance: Literal["l2", "tree"] = "l2",
-        verbose=False,
+        verbose: bool = False,
     ) -> pd.DataFrame:
         """Compute full distance matrix between all stored windows.
 
@@ -139,6 +139,7 @@ class FullWindowStorage:
             measure: Comparison metric to use
             strategy: "class" for class-wise, "total" for overall
             distance: "l2" for Euclidean, "tree" for tree-based distance
+            verbose: Whether to print progress during matrix calculation.
 
         Returns:
             DataFrame where rows and columns are iteration numbers, values are distances
