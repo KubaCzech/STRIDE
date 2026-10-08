@@ -1,0 +1,103 @@
+site_name: STRIDE
+site_description: Explainable AI and Concept Drift Detection Framework
+site_author: STRIDE Research Team
+site_url: https://kubaczech.github.io/STRIDE/
+repo_url: https://github.com/KubaCzech/STRIDE
+repo_name: KubaCzech/STRIDE
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: false
+            merge_init_into_class: true
+            signature_crossrefs: true
+            separate_signature: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/katex.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+
+extra_css:
+  - https://unpkg.com/katex@0/dist/katex.min.css
+
+nav:
+  - Overview: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+  - User Guide:
+      - Data Layer & Statistical Tests: user-guide/data-layer.md
+      - Model Layer & Drift Monitoring: user-guide/model-layer.md
+      - Decision Boundary Analysis: user-guide/boundary-analysis.md
+      - Feature Importance Attribution: user-guide/feature-importance.md
+      - Clustering Dynamics: user-guide/clustering-dynamics.md
+      - Recurring Concepts & Prototypes: user-guide/recurring-concepts.md
+      - Interactive Dashboard: user-guide/dashboard.md
+  - Theory:
+      - Drift Taxonomy: theory/drift-taxonomy.md
+      - Mathematical Formulations: theory/mathematical-formulations.md
+  - API Reference:
+      - Datasets & Generators: api/datasets.md
+      - Drift Detection & Descriptors: api/drift.md
+      - Estimator Models: api/models.md
+      - Visualizations: api/plotting.md
+      - "xAI: Decision Boundary": api/xai-boundary.md
+      - "xAI: Clustering Dynamics": api/xai-clustering.md
+      - "xAI: Feature Importance": api/xai-importance.md
+      - "xAI: Recurring Concepts": api/xai-recurrence.md
+      - "xAI: Statistical Tests": api/xai-stats.md
+      - Exception Hierarchy: api/exceptions.md
+  - Developer Guide:
+      - Contributing: developer/contributing.md
+      - AI Agent Documentation Standards: developer/agent-standards.md
+  - Changelog: changelog.md
