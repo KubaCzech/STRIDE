@@ -90,6 +90,11 @@ dev = [
     "build",
     "twine",
 ]
+docs = [
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.25.0",
+    "pymdown-extensions>=10.7.0",
+]
 all = [
     "matplotlib",
     "seaborn",
@@ -104,6 +109,9 @@ all = [
     "streamlit",
     "icecream",
     "ruff",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.25.0",
+    "pymdown-extensions>=10.7.0",
 ]
 
 [tool.flit.module]
@@ -120,7 +128,7 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "D417"]
 ignore = [
     "E501",  # line length handled flexibly / up to 127 chars
     "E402",  # module level import not at top of file
@@ -128,3 +136,10 @@ ignore = [
     "F401",  # imported but unused (common in package init files)
     "F841",  # local variable assigned but never used
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D417"]
+"dashboard/*" = ["D417"]
