@@ -1,42 +1,59 @@
+"""Feature importance drift analysis, temporal discriminators, and selective localization."""
+
+from typing import Any
 import warnings
 import numpy as np
+import pandas as pd
+
 from .base import AbstainStrategy
 from .methods import calculate_feature_importance
 
 
 class FeatureImportanceDriftAnalyzer:
+    r"""Analyze data drift and concept drift attributions using feature importance methods.
+
+    Trains temporal discriminators to distinguish between reference ($t=0$) and
+    detection ($t=1$) windows. Evaluates feature attributions via Permutation Feature
+    Importance (PFI), SHAP, or LIME. Distinguishes Covariate Shift ($P(X)$ changes)
+    from Real Concept Drift ($P(Y \mid X)$ changes) and supports selective classification
+    with conformal abstention to isolate the drift locus $S_{\text{drift}}$.
+
+    Attributes:
+        feature_names: Names of feature columns, or generated identifiers.
+        X_before: Pre-drift feature matrix.
+        y_before: Pre-drift target array.
+        X_after: Post-drift feature matrix.
+        y_after: Post-drift target array.
+
+    Examples:
+        >>> analyzer = FeatureImportanceDriftAnalyzer(X_ref, y_ref, X_det, y_det)
+        >>> res = analyzer.compute_drift_importance(importance_method="permutation")
+        >>> print(res["importance_mean"])
     """
-    Analyzer for detecting and explaining drift using feature importance methods.
 
-    This class provides methods to analyze data drift (changes in P(X)),
-    concept drift (changes in P(Y|X)), and predictive importance shifts.
-    It encapsulates the data splits (before/after drift) and feature names.
-    """
+    def __init__(
+        self,
+        X_before: np.ndarray | pd.DataFrame,
+        y_before: np.ndarray | pd.Series,
+        X_after: np.ndarray | pd.DataFrame,
+        y_after: np.ndarray | pd.Series,
+        feature_names: list[str] | None = None,
+    ) -> None:
+        """Initialize the analyzer with pre-drift and post-drift data splits.
 
-    def __init__(self, X_before, y_before, X_after, y_after, feature_names=None):
+        Args:
+            X_before: Feature matrix from the reference window.
+            y_before: Target values from the reference window.
+            X_after: Feature matrix from the detection window.
+            y_after: Target values from the detection window.
+            feature_names: Optional sequence of feature names. If None and inputs
+                are DataFrames, column names are extracted.
         """
-        Initialize the analyzer with data splits.
-
-        Parameters
-        ----------
-        X_before : array-like or pd.DataFrame
-            Features from the window before the drift.
-        y_before : array-like or pd.Series
-            Target values from the window before the drift.
-        X_after : array-like or pd.DataFrame
-            Features from the window after the drift.
-        y_after : array-like or pd.Series
-            Target values from the window after the drift.
-        feature_names : list, optional
-            List of feature names. If None and input is DataFrame, columns are used.
-        """
-        # Prepare features and labels
         if feature_names is None and hasattr(X_before, "columns"):
             feature_names = X_before.columns.tolist()
 
         self.feature_names = feature_names
 
-        # Convert to numpy if pandas
         if hasattr(X_before, "values"):
             X_before = X_before.values
         if hasattr(y_before, "values"):
@@ -46,12 +63,12 @@ class FeatureImportanceDriftAnalyzer:
         if hasattr(y_after, "values"):
             y_after = y_after.values
 
-        self.X_before = X_before
-        self.y_before = y_before
-        self.X_after = X_after
-        self.y_after = y_after
+        self.X_before = np.asarray(X_before)
+        self.y_before = np.asarray(y_before)
+        self.X_after = np.asarray(X_after)
+        self.y_after = np.asarray(y_after)
 
-    def _prepare_drift_data(self, include_target):
+    def _prepare_drift_data(self, include_target: bool) -> tuple[np.ndarray, np.ndarray, list[str]]:
         if include_target:
             X_combined = np.concatenate([self.X_before, self.X_after])
             y_combined = np.concatenate([self.y_before, self.y_after])
@@ -74,9 +91,13 @@ class FeatureImportanceDriftAnalyzer:
 
         return X_features, time_labels, feature_names_for_calc
 
-    def _filter_importance_results(self, fi_result, include_target, feature_names_for_calc):
+    def _filter_importance_results(
+        self,
+        fi_result: dict[str, Any],
+        include_target: bool,
+        feature_names_for_calc: list[str],
+    ) -> tuple[dict[str, Any], list[str]]:
         if include_target:
-            # 1. Update arrays in fi_result
             if "importances_mean" in fi_result:
                 fi_result["importances_mean"] = fi_result["importances_mean"][:-1]
 
@@ -84,7 +105,6 @@ class FeatureImportanceDriftAnalyzer:
                 fi_result["importances_std"] = fi_result["importances_std"][:-1]
 
             if "importances" in fi_result:
-                # Check shape to determine axis to slice
                 if fi_result["importances"].shape[0] == len(feature_names_for_calc):
                     fi_result["importances"] = fi_result["importances"][:-1]
                 elif len(fi_result["importances"].shape) > 1 and fi_result["importances"].shape[1] == len(
@@ -92,7 +112,6 @@ class FeatureImportanceDriftAnalyzer:
                 ):
                     fi_result["importances"] = fi_result["importances"][:, :-1]
 
-            # Features to return (exclude Y)
             feature_names_returned = self.feature_names if self.feature_names else feature_names_for_calc[:-1]
         else:
             feature_names_returned = feature_names_for_calc
@@ -100,12 +119,22 @@ class FeatureImportanceDriftAnalyzer:
         return fi_result, feature_names_returned
 
     @staticmethod
-    def _localize_by_confidence_threshold(model, X_features: np.ndarray, tau: float = 0.15) -> np.ndarray:
-        """
-        Localize drift using confidence threshold margin on discriminator probabilities.
+    def _localize_by_confidence_threshold(model: Any, X_features: np.ndarray, tau: float = 0.15) -> np.ndarray:
+        r"""Localize drift locus using confidence threshold margin on discriminator probabilities.
 
-        Samples with |P(T=1|x) - 0.5| > tau form the drift locus mask S_drift.
-        Samples with |P(T=1|x) - 0.5| <= tau are abstained (invariant region L^c).
+        Samples with $|P(T=1 \mid x) - 0.5| > \tau$ form the accepted drift locus $S_{\text{drift}}$.
+        Samples with $|P(T=1 \mid x) - 0.5| \le \tau$ are abstained.
+
+        Args:
+            model: Trained temporal discriminator model.
+            X_features: Combined feature matrix.
+            tau: Indifference margin threshold in $[0.0, 0.5]$.
+
+        Returns:
+            Boolean mask array where True indicates membership in $S_{\text{drift}}$.
+
+        Raises:
+            ValueError: If `tau` is not within $[0.0, 0.5]$.
         """
         if not (0.0 <= tau <= 0.5):
             raise ValueError(f"tau must be in [0.0, 0.5], got {tau}")
@@ -128,20 +157,34 @@ class FeatureImportanceDriftAnalyzer:
 
     @staticmethod
     def _localize_by_conformal(
-        model_class,
-        model_params: dict,
+        model_class: Any,
+        model_params: dict[str, Any],
         X_features: np.ndarray,
         time_labels: np.ndarray,
         alpha: float = 0.05,
         n_bootstraps: int = 25,
         random_state: int | None = 42,
     ) -> np.ndarray:
-        """
-        Localize drift using conformal predictions with out-of-bag calibration across bootstraps.
+        r"""Localize drift locus using conformal predictions with out-of-bag calibration across bootstraps.
 
-        Following Hinder et al. (ESANN 2026), derives conformal p-values:
-            p_drifting(x) = min_{y in {0, 1}} p_y(x)
-        where points with p_drifting(x) < alpha reject H0 ('non-drifting') and form S_drift.
+        Derives conformal p-values:
+            $$p_{\text{drifting}}(x) = \min_{y \in \{0, 1\}} p_y(x)$$
+        where samples with $p_{\text{drifting}}(x) < \alpha$ reject $H_0$ (invariant) and form $S_{\text{drift}}$.
+
+        Args:
+            model_class: Model estimator class for bootstrap training.
+            model_params: Initialization parameters passed to `model_class`.
+            X_features: Combined feature matrix.
+            time_labels: Binary temporal indicators ($0$ for reference, $1$ for detection).
+            alpha: Conformal significance level in $(0.0, 1.0)$.
+            n_bootstraps: Number of bootstrap iterations.
+            random_state: Seed for pseudo-random bootstrap sampling.
+
+        Returns:
+            Boolean mask array where True indicates rejection of invariant null hypothesis.
+
+        Raises:
+            ValueError: If `alpha` is not within $(0.0, 1.0)$.
         """
         if not (0.0 < alpha < 1.0):
             raise ValueError(f"alpha must be in (0.0, 1.0), got {alpha}")
@@ -158,7 +201,6 @@ class FeatureImportanceDriftAnalyzer:
             in_bag_set = set(in_bag)
             oob = np.array([i for i in range(n_samples) if i not in in_bag_set])
 
-            # Ensure OOB has samples and both splits contain both classes
             if len(oob) < 5 or len(np.unique(time_labels[in_bag])) < 2 or len(np.unique(time_labels[oob])) < 2:
                 continue
 
@@ -190,17 +232,14 @@ class FeatureImportanceDriftAnalyzer:
                 full_p1 = (full_preds == 1).astype(float)
                 full_p0 = 1.0 - full_p1
 
-            # Non-conformity score on calibration (OOB) samples: s_i = 1 - P(T = T_i | x_i)
             oob_y = time_labels[oob]
             s_cal = np.where(oob_y == 1, 1.0 - oob_p1, 1.0 - oob_p0)
             sorted_s_cal = np.sort(s_cal)
             n_cal = len(sorted_s_cal)
 
-            # Test non-conformity scores for candidate classes 0 and 1
             s_test_0 = 1.0 - full_p0
             s_test_1 = 1.0 - full_p1
 
-            # Vectorized conformal p-values: (1 + count(s_cal >= s_test)) / (n_cal + 1)
             count_ge_0 = n_cal - np.searchsorted(sorted_s_cal, s_test_0, side="left")
             p0 = (1.0 + count_ge_0) / (n_cal + 1.0)
 
@@ -218,72 +257,55 @@ class FeatureImportanceDriftAnalyzer:
 
     def compute_drift_importance(
         self,
-        importance_method="permutation",
-        include_target=True,
-        model_class=None,
-        model_params=None,
-        abstain_strategy=None,
-        tau=0.15,
-        alpha=0.05,
-        min_samples=20,
-        n_bootstraps=25,
-        random_state=42,
-    ):
+        importance_method: str = "permutation",
+        include_target: bool = True,
+        model_class: Any | None = None,
+        model_params: dict[str, Any] | None = None,
+        abstain_strategy: str | None = None,
+        tau: float = 0.15,
+        alpha: float = 0.05,
+        min_samples: int = 20,
+        n_bootstraps: int = 25,
+        random_state: int = 42,
+    ) -> dict[str, Any]:
+        r"""Compute data drift or concept drift feature attributions with optional model abstention.
+
+        When `include_target=True`, analyzes Concept Drift ($P(Y \mid X)$ shifts) by
+        concatenating features and labels $[X, Y]$ to classify the temporal window.
+        When `include_target=False`, analyzes Covariate Shift ($P(X)$ shifts) using
+        only feature representations $X$.
+
+        Args:
+            importance_method: Method to calculate feature importance ("permutation", "shap", "lime").
+            include_target: Whether to append the target label $Y$ into the discriminator input matrix.
+            model_class: Classifier wrapper class used for temporal discrimination. Defaults to `MLPModel`.
+            model_params: Optional initialization dictionary passed to `model_class`.
+            abstain_strategy: Optional strategy to isolate drift locus (None, "confidence_threshold", "conformal").
+            tau: Indifference margin threshold for confidence_threshold abstention.
+            alpha: Significance level for conformal prediction hypothesis testing.
+            min_samples: Minimum samples in drift locus required before falling back to full dataset.
+            n_bootstraps: Number of bootstrap iterations for conformal calibration.
+            random_state: Random seed for reproducibility.
+
+        Returns:
+            Dictionary containing:
+                - 'model': Trained classifier instance.
+                - 'accuracy': Overall discriminator classification accuracy.
+                - 'importance_result': Detailed attribution metrics dictionary.
+                - 'importance_mean': Mean importance array across evaluated features.
+                - 'importance_std': Standard deviation array across permutations.
+                - 'feature_names': List of feature names corresponding to the scores.
+                - 'drift_coverage': Proportion of instances in the drift locus ($|S_{\text{drift}}| / N$).
+                - 'selective_accuracy': Accuracy evaluated strictly on accepted drift locus instances.
+                - 'rejection_rate': Proportion of abstained invariant instances ($1.0 - \text{coverage}$).
+                - 'drifting_mask': Boolean array indicating which samples belong to the drift locus.
+                - 'drift_locus_fallback': Boolean indicating whether fallback to full dataset occurred.
+
+        Raises:
+            ValueError: If `abstain_strategy` is unknown or parameter ranges are violated.
         """
-        Compute drift analysis (data drift or concept drift) importance with optional model abstention.
-
-        If include_target is True, this analyzes Concept Drift (P(Y|X) changes) by using both
-        features and target (X, Y) to classify time periods.
-        If include_target is False, this analyzes Data Drift (P(X) changes) by using only
-        features (X) to classify time periods.
-
-        Parameters
-        ----------
-        importance_method : str, default="permutation"
-            Method to calculate feature importance ("permutation", "shap", "lime").
-        include_target : bool, default=True
-            Whether to include the target variable 'Y' in the analysis.
-        model_class : class, optional
-            Class of the model to use for classification. Defaults to MLPModel.
-        model_params : dict, optional
-            Parameters to initialize the model.
-        abstain_strategy : str or None, default=None
-            Abstention strategy to isolate the drift locus:
-            - None: No abstention, full dataset evaluated.
-            - "confidence_threshold": Indifference margin thresholding (|P(T=1|x) - 0.5| > tau).
-            - "conformal": Conformal prediction hypothesis testing (p_drifting < alpha).
-        tau : float, default=0.15
-            Indifference margin threshold for confidence_threshold abstention.
-        alpha : float, default=0.05
-            Significance level for conformal prediction hypothesis testing.
-        min_samples : int, default=20
-            Minimum samples in drift locus required to evaluate conditional feature importance.
-            If fewer, gracefully falls back to full-dataset evaluation with a diagnostic warning.
-        n_bootstraps : int, default=25
-            Number of bootstrap calibrations for conformal prediction.
-        random_state : int, default=42
-            Random seed for reproducibility.
-
-        Returns
-        -------
-        dict
-            A dictionary containing:
-            - 'model': The trained classifier.
-            - 'accuracy': The overall accuracy on all time-period instances.
-            - 'importance_result': Full feature importance results.
-            - 'importance_mean': Mean importance scores.
-            - 'importance_std': Standard deviation of importance scores.
-            - 'feature_names': List of feature names.
-            - 'drift_coverage': Proportion of instances in the drift locus (|S_drift| / N).
-            - 'selective_accuracy': Accuracy evaluated strictly on accepted drift locus instances.
-            - 'rejection_rate': Proportion of abstained invariant instances (1.0 - drift_coverage).
-            - 'drifting_mask': Boolean array indicating which samples belong to the drift locus.
-            - 'drift_locus_fallback': Boolean indicating whether fallback to full dataset was triggered.
-        """
-        # Prepare Data
         X_features, time_labels, feature_names_for_calc = self._prepare_drift_data(include_target)
 
-        # Train Model
         if model_class is None:
             from stride.models.mlp import MLPModel
 
@@ -296,7 +318,6 @@ class FeatureImportanceDriftAnalyzer:
         model.fit(X_features, time_labels)
         accuracy = float(model.score(X_features, time_labels))
 
-        # Localize Drift via Abstention
         drift_locus_fallback = False
         n_samples = len(X_features)
 
@@ -351,12 +372,10 @@ class FeatureImportanceDriftAnalyzer:
                 time_eval = time_labels
                 drift_locus_fallback = True
 
-        # Calculate Feature Importance
         fi_result = calculate_feature_importance(
             model, X_eval, time_eval, method=importance_method, feature_names=feature_names_for_calc
         )
 
-        # Filter results
         fi_result, feature_names_returned = self._filter_importance_results(fi_result, include_target, feature_names_for_calc)
 
         importance_mean = fi_result["importances_mean"]
@@ -376,39 +395,34 @@ class FeatureImportanceDriftAnalyzer:
             "drift_locus_fallback": drift_locus_fallback,
         }
 
-    def compute_predictive_importance_shift(self, importance_method="permutation", model_class=None, model_params=None):
-        """
-        Compute how predictive feature importance shifts before and after drift.
+    def compute_predictive_importance_shift(
+        self,
+        importance_method: str = "permutation",
+        model_class: Any | None = None,
+        model_params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Compute how predictive feature importance shifts before and after drift.
 
-        This method trains two separate models: one on 'before' data and one on
-        'after' data. It then calculates feature importance for both models to
-        predict the target variable 'Y'. Changes in feature importance rankings
-        or magnitudes indicate that the underlying predictive mechanism has shifted.
+        Trains separate classifiers on reference and detection data, evaluates feature
+        attributions for predicting label $Y$, and returns comparative importance scores.
 
-        Parameters
-        ----------
-        importance_method : str, default="permutation"
-            Method to calculate feature importance.
-        model_class : class, optional
-            Class of the model to use. Defaults to MLPModel.
-        model_params : dict, optional
-            Parameters for the model.
+        Args:
+            importance_method: Method to calculate feature importance ("permutation", "shap", "lime").
+            model_class: Classifier class to fit on splits. Defaults to `MLPModel`.
+            model_params: Optional initialization dictionary passed to `model_class`.
 
-        Returns
-        -------
-        dict
-            A dictionary containing:
-            - 'model_before': Model trained on pre-drift data.
-            - 'model_after': Model trained on post-drift data.
-            - 'accuracy_before': Accuracy of the pre-drift model on pre-drift data.
-            - 'accuracy_after': Accuracy of the post-drift model on post-drift data.
-            - 'fi_before': Feature importance results for the pre-drift model.
-            - 'fi_after': Feature importance results for the post-drift model.
+        Returns:
+            Dictionary containing:
+                - 'model_before': Classifier trained on pre-drift window.
+                - 'model_after': Classifier trained on post-drift window.
+                - 'accuracy_before': Accuracy on pre-drift window.
+                - 'accuracy_after': Accuracy on post-drift window.
+                - 'fi_before': Feature importance results for pre-drift model.
+                - 'fi_after': Feature importance results for post-drift model.
         """
         X_features_before = self.X_before
         X_features_after = self.X_after
 
-        # Train Models
         if model_class is None:
             from stride.models.mlp import MLPModel
 
@@ -417,22 +431,18 @@ class FeatureImportanceDriftAnalyzer:
         if model_params is None:
             model_params = {}
 
-        # Model trained BEFORE drift
         model_before = model_class(**model_params)
         model_before.fit(X_features_before, self.y_before)
-        acc_before = model_before.score(X_features_before, self.y_before)
+        acc_before = float(model_before.score(X_features_before, self.y_before))
 
-        # Model trained AFTER drift
         model_after = model_class(**model_params)
         model_after.fit(X_features_after, self.y_after)
-        acc_after = model_after.score(X_features_after, self.y_after)
+        acc_after = float(model_after.score(X_features_after, self.y_after))
 
-        # Feature Importance for BEFORE drift
         fi_before = calculate_feature_importance(
             model_before, X_features_before, self.y_before, method=importance_method, feature_names=self.feature_names
         )
 
-        # Feature Importance for AFTER drift
         fi_after = calculate_feature_importance(
             model_after, X_features_after, self.y_after, method=importance_method, feature_names=self.feature_names
         )

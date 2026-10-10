@@ -13,7 +13,14 @@ class OptionalDependencyError(StrideError):
         package_name: str,
         feature_name: str | None = None,
         extra_name: str | None = None,
-    ):
+    ) -> None:
+        """Initialize the missing dependency error.
+
+        Args:
+            package_name: Name of the missing PyPI dependency package.
+            feature_name: High-level feature requiring the dependency.
+            extra_name: Optional install extra target (e.g. `stride-xai[xai]`).
+        """
         if feature_name is None:
             super().__init__(package_name)
             self.package_name = package_name

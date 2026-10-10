@@ -44,6 +44,12 @@ layers:
       trigger_paths:
         - ".agents/**"
         - "AGENTS.md"
+    - path: "./rules/documentation_standards.md"
+      description: "Google-style docstring standards, LaTeX formulations, and API reference synchronization."
+      trigger_paths:
+        - "src/stride/**"
+        - "docs/**"
+        - "pyproject.toml"
   context:
     - path: "./context/architecture.md"
       description: "Detailed architecture of src/ modules, data flow, and dashboard layout."

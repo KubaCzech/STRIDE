@@ -31,71 +31,29 @@ if not hasattr(np, "warnings"):
 
 
 class ClusterBasedDriftDetector:
-    """Cluster-based data drift detector using X-Means clustering.
+    r"""Cluster-based concept and data drift detector using X-Means clustering.
 
-    Clustering is performed independently within each class label
-    (per class). The resulting clusters are then remapped and merged
-    into a global cluster labeling space to allow cross-class
-    comparison and unified drift assessment.
-
-    Drift is detected based on four complementary criteria:
-
+    Performs dynamic X-Means clustering independently within each class label.
+    Remaps and matches clusters across stream windows using the Hungarian optimal
+    bipartite assignment algorithm. Drift is evaluated across four criteria:
     1. Changes in the number of clusters within a class.
     2. Changes in descriptive statistics computed for each cluster.
-    3. Shifts of cluster centroids between the old and new datasets.
-    4. Changes in average distance of samples to their cluster centroids.
+    3. Spatial shifts of cluster centroids ($\|c_{\text{before}} - c_{\text{after}}\|_2$).
+    4. Changes in average sample-to-centroid dispersion.
 
-    Clusters from the new dataset are matched to clusters from the old dataset
-    using the Hungarian algorithm applied to pairwise centroid distances.
+    Attributes:
+        drift_flag: Whether aggregate drift score exceeded `decision_thr`.
+        strength_of_drift: Weighted-average strength of detected drift in $[0.0, 1.0]$.
+        drift_details: Detailed breakdown of per-class criteria triggers.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature matrix of the old dataset.
-    y_before : pd.Series or np.ndarray
-        Class labels of the old dataset.
-    X_after : pd.DataFrame
-        Feature matrix of the new dataset.
-    y_after : pd.Series or np.ndarray
-        Class labels of the new dataset.
-    k_init : int, default=2
-        Minimal number of clusters passed to the k-means++ initialiser.
-    k_max : int, default=10
-        Maximal number of clusters allowed per X-Means run.
-    thr_clusters : int, default=1
-        Minimal difference in cluster count to acknowledge drift.
-    thr_centroid_shift : float, default=0.15
-        Minimal centroid shift (Euclidean, pre-dimensionality scaling) to
-        acknowledge drift.
-    thr_centroid_disappear : float, default=0.5
-        Euclidean distance above which a centroid pair is considered a
-        disappearance + appearance rather than a migration.
-    thr_desc_stats : float, default=0.2
-        Minimal relative change in a descriptive statistic to acknowledge drift.
-    thr_avg_distance_to_center_change : float, default=0.1
-        Minimal relative change in average sample-to-centroid distance to
-        acknowledge drift.
-    decision_thr : float, default=0.5
-        Weighted-average threshold above which overall drift is flagged.
-    weights : Sequence[float], default=[0.4, 0.25, 0.25, 0.1]
-        Weights for the four drift criteria (automatically normalised to sum 1).
-        Length must be exactly 4.
-    random_state : int, default=42
-        Seed for reproducibility of X-Means clustering.
-
-    Attributes
-    ----------
-    drift_flag : bool
-        Whether drift was detected.
-    strength_of_drift : float
-        Weighted-average strength of detected drift (0–1).
-    drift_details : dict | None
-        Detailed per-class breakdown of which criteria fired.
+    Examples:
+        >>> detector = ClusterBasedDriftDetector(X_ref, y_ref, X_det, y_det)
+        >>> flag, details = detector.detect()
     """
 
-    X_old: Union[np.ndarray, pd.DataFrame]
+    X_old: np.ndarray | pd.DataFrame
     y_old: np.ndarray
-    X_new: Union[np.ndarray, pd.DataFrame]
+    X_new: np.ndarray | pd.DataFrame
     y_new: np.ndarray
     X_old_unscaled: np.ndarray | None
     X_new_unscaled: np.ndarray | None
@@ -134,9 +92,9 @@ class ClusterBasedDriftDetector:
     def __init__(
         self,
         X_before: pd.DataFrame,
-        y_before: Union[np.ndarray, pd.Series],
+        y_before: np.ndarray | pd.Series,
         X_after: pd.DataFrame,
-        y_after: Union[np.ndarray, pd.Series],
+        y_after: np.ndarray | pd.Series,
         k_init: int = 2,
         k_max: int = 10,
         thr_clusters: int = 1,
@@ -148,7 +106,24 @@ class ClusterBasedDriftDetector:
         weights: Sequence[float] = [0.4, 0.25, 0.25, 0.1],
         random_state: int = 42,
     ) -> None:
-        """Validate inputs, scale feature matrices, and store hyperparameters."""
+        """Initialize the cluster-based drift detector.
+
+        Args:
+            X_before: Feature matrix of the reference data block.
+            y_before: Class labels of the reference data block.
+            X_after: Feature matrix of the detection data block.
+            y_after: Class labels of the detection data block.
+            k_init: Initial number of clusters for X-Means initialization.
+            k_max: Maximum allowable clusters per class.
+            thr_clusters: Cluster count difference threshold to flag drift.
+            thr_centroid_shift: Normalized Euclidean centroid displacement threshold.
+            thr_centroid_disappear: Distance threshold separating migration from cluster disappearance.
+            thr_desc_stats: Relative descriptive statistic shift threshold.
+            thr_avg_distance_to_center_change: Dispersion shift threshold.
+            decision_thr: Weighted score threshold required to declare global drift.
+            weights: 4-element sequence specifying relative weights for each criterion.
+            random_state: Random state for deterministic clustering.
+        """
 
         X_before, X_after = self._scale_data(X_before, X_after)
 
@@ -311,14 +286,12 @@ class ClusterBasedDriftDetector:
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Jointly standardise both data blocks.
 
-        Parameters
-        ----------
-        X_before : pd.DataFrame | np.ndarray
-        X_after : pd.DataFrame | np.ndarray
+        Args:
+            X_before: Reference feature data block.
+            X_after: Detection feature data block.
 
-        Returns
-        -------
-        X_before_scaled, X_after_scaled : pd.DataFrame
+        Returns:
+            Tuple of `(X_before_scaled, X_after_scaled)` standardized DataFrames.
         """
         X_old_raw = X_before.values.copy() if hasattr(X_before, "values") else X_before.copy()
         X_new_raw = X_after.values.copy() if hasattr(X_after, "values") else X_after.copy()
