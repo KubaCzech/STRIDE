@@ -54,3 +54,31 @@ where:
 - $R$ is the number of points in the evaluated cluster.
 
 A parent cluster is split if and only if $\text{BIC}(\text{split}) > \text{BIC}(\text{parent})$.
+
+---
+
+## 5. ADWIN (Adaptive Windowing) Drift Bound
+
+ADWIN (*Bifet & Gavaldà, 2007*) adaptively maintains a sliding window $W$ of observed stream values (such as binary prediction errors $e_t \in \{0, 1\}$). For every contiguous split $W = W_0 \cdot W_1$ with subwindow lengths $n_0 = |W_0|$ and $n_1 = |W_1|$, the harmonic mean sample size is:
+
+$$m = \frac{1}{\frac{1}{n_0} + \frac{1}{n_1}}$$
+
+ADWIN tests the null hypothesis that subwindows $W_0$ and $W_1$ have equal expectations:
+
+$$H_0: \mathbb{E}[\mu_{W_0}] = \mathbb{E}[\mu_{W_1}]$$
+
+Drift is flagged whenever the empirical mean divergence exceeds the Hoeffding cut threshold:
+
+$$|\hat{\mu}_{W_0} - \hat{\mu}_{W_1}| \ge \epsilon_{\text{cut}}$$
+
+where:
+
+$$\epsilon_{\text{cut}} = \sqrt{\frac{1}{2m} \ln \left(\frac{4 |W|}{\delta}\right)}$$
+
+and $\delta \in (0, 1)$ bounds the probability of a false positive alarm under stationary conditions. When the threshold is exceeded, older observations in $W_0$ are discarded.
+
+In STRIDE, `DualADWIN` runs dual estimators with $\delta_{\text{warn}} > \delta_{\text{drift}}$:
+
+$$\epsilon_{\text{cut}}(\delta_{\text{warn}}) < \epsilon_{\text{cut}}(\delta_{\text{drift}})$$
+
+ensuring that the warning signal provides conservative pre-drift caching before final drift confirmation.

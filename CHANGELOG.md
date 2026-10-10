@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **ADWIN Drift Detection & Adaptive Characterization**:
+  - `stride.drift.DualADWIN`: Dual-threshold ADWIN wrapper providing simultaneous warning ($\delta_{\text{warn}}$) and confirmed drift ($\delta_{\text{drift}}$) signals with Hoeffding confidence bounds and $O(\log W)$ memory.
+  - Directional degradation filtering in `BinaryErrorDriftDescriptor` ensuring drift and warning alarms only fire upon performance deterioration.
+  - Adaptive lookback window calibration bounded dynamically by ADWIN subwindow width ($W$).
+  - Streamlit dashboard integration: added ADWIN to detector selection dropdown with dedicated confidence and window tuning widgets.
+
 ## [0.2.0] - 2026-10-07
 
 ### Added
