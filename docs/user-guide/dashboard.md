@@ -21,7 +21,7 @@ The app will start on `http://localhost:8501`.
 The dashboard organizes drift analysis into six dedicated tabs:
 
 1. **Stream Overview & Data Layer**: View raw stream distributions, inspect class balance over time, and run statistical two-sample tests.
-2. **Model Performance & Drift Detection**: Real-time error rate curves, DDM warning and drift threshold indicators, and CUSUM change-point overlays.
+2. **Model Performance & Drift Detection**: Real-time error rate curves, sequential detectors (DDM, ADWIN, EDDM, FHDDM, HDDM), adaptive lookback horizons, and CUSUM/gradient change-point overlays with ground-truth latency metrics.
 3. **Decision Boundary Shift**: Interactive 2D SSNP projections comparing decision surfaces pre- and post-drift with disagreement heatmaps.
 4. **Feature Importance Shift**: Bar charts comparing PFI and SHAP values for data drift ($P(X)$) versus real concept drift ($P(Y \mid X)$).
 5. **Clustering Dynamics**: Centroid migration vectors, cluster assignment changes, and displacement statistics.

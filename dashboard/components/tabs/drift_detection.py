@@ -51,6 +51,9 @@ def run_drift_detection(
     lookback_method="gradient",
     lookforward_method="peak",
     confidence_level=None,
+    adwin_params=None,
+    degradation_only=True,
+    burn_in=0,
 ):
     # Create detector
     if detector_type == "DDM":
@@ -63,6 +66,10 @@ def run_drift_detection(
         detector = river_drift.binary.HDDM_A()
     elif detector_type == "HDDM_W":
         detector = river_drift.binary.HDDM_W()
+    elif detector_type == "ADWIN":
+        if adwin_params is None:
+            adwin_params = {}
+        detector = river_drift.ADWIN(**adwin_params)
 
     drift_descriptor = BinaryErrorDriftDescriptor(
         warning_grace_period=warning_grace_period,
@@ -70,11 +77,17 @@ def run_drift_detection(
         ddm=detector,
         lookback_method=lookback_method,
         lookforward_method=lookforward_method,
+        degradation_only=degradation_only,
     )
 
     drift_descriptions = []
 
     for i, error in enumerate(error_stream):
+        if i < burn_in:
+            drift_descriptor.complete_error_history.append(error)
+            drift_descriptor.current_index += 1
+            continue
+
         drift_descriptor.update(error)
 
         if drift_descriptor.drift_detected:
@@ -109,7 +122,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
         Parameters to initialize the model with
     """
 
-    st.header("DDM Analysis")
+    st.header("Performance-Based Drift Detection (DDM & ADWIN)")
     st.markdown("Binary Error Drift Detection using Online Learning")
 
     # Show which model is being used
@@ -137,7 +150,7 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
         st.markdown("**Detector Configuration**")
         detector_type = st.selectbox(
             "Detector Type",
-            ["DDM", "EDDM", "FHDDM", "HDDM_A", "HDDM_W"],
+            ["DDM", "ADWIN", "EDDM", "FHDDM", "HDDM_A", "HDDM_W"],
             help="Type of drift detector to use",
             key="ddm_detector_type",
         )
@@ -150,6 +163,38 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                 value=0.001,
                 help="Confidence level for FHDDM detector",
                 key="ddm_confidence",
+            )
+        elif detector_type == "ADWIN":
+            adwin_delta = st.select_slider(
+                "Confidence Level (delta)",
+                options=[0.0001, 0.001, 0.002, 0.01, 0.05],
+                value=0.002,
+                help="Confidence level (delta) for ADWIN detector",
+                key="adwin_delta",
+            )
+            adwin_clock = st.number_input(
+                "Clock Rate",
+                min_value=1,
+                max_value=100,
+                value=32,
+                help="Evaluates change every N samples",
+                key="adwin_clock",
+            )
+            adwin_min_window_length = st.slider(
+                "Min Window Length",
+                min_value=1,
+                max_value=100,
+                value=5,
+                help="Minimum subwindow length",
+                key="adwin_min_window",
+            )
+            adwin_grace_period = st.slider(
+                "Grace Period",
+                min_value=1,
+                max_value=100,
+                value=10,
+                help="Minimum warm-up samples before testing",
+                key="adwin_grace",
             )
 
     with col2:
@@ -201,6 +246,16 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
             value=True,
             help="Take the sample with the maximum error rate as our peak, instead of the last sample",
             key="prototype_fix_outliers",
+        )
+
+        burn_in_samples = st.slider(
+            "Warm-up / Burn-in (Samples)",
+            min_value=0,
+            max_value=500,
+            value=0,
+            step=50,
+            help="Number of initial samples to skip before evaluating drift. Helps avoid false alarms during online model initialization.",
+            key="ddm_burn_in",
         )
 
     st.markdown("---")
@@ -291,6 +346,15 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
 
                 # Run drift detection with current parameters using helper function
                 confidence = confidence_level if detector_type == "FHDDM" else None
+                adwin_params = None
+                if detector_type == "ADWIN":
+                    adwin_params = {
+                        "delta": adwin_delta,
+                        "clock": adwin_clock,
+                        "min_window_length": adwin_min_window_length,
+                        "grace_period": adwin_grace_period,
+                    }
+
                 drift_descriptions = run_drift_detection(
                     error_stream,
                     detector_type,
@@ -299,6 +363,9 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                     lookback_method=lookback_method,
                     lookforward_method=lookforward_method,
                     confidence_level=confidence,
+                    adwin_params=adwin_params,
+                    degradation_only=True,
+                    burn_in=burn_in_samples,
                 )
 
                 # Store results in session state

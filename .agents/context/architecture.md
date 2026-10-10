@@ -43,7 +43,10 @@ The STRIDE framework is architected into three distinct layers:
 - **Registry**: Stream registry providing standardized instantiation, metadata, and semi-synthetic recipe persistence.
 
 ### 2.2 Drift Detection (`stride.drift`)
-- Statistical tests and sequential error-rate monitors that track classification error over rolling windows and trigger warning/drift flags.
+- Statistical tests and sequential error-rate monitors that track classification error over rolling windows and trigger warning/drift flags:
+  - `BinaryErrorDriftDescriptor`: Encapsulates sequential detectors, onset estimation algorithms (CUSUM, threshold, gradient), recovery peak detection, dynamic lookback bounding, and directional degradation filtering.
+  - `DualADWIN`: Adaptive sliding window detector maintaining dual warning ($\delta_{\text{warn}}$) and drift ($\delta_{\text{drift}}$) instances with $O(\log W)$ memory and adaptive Hoeffding bounds.
+  - River detector wrappers (DDM, EDDM, ADWIN).
 
 ### 2.3 Explainability (xAI) Modules (`stride.xai`)
 - **Decision Boundary (`stride.xai.boundary`)**: Estimates and projects multidimensional decision boundaries (via grid sampling or SSNP) to visually depict how the separator evolves between reference and drift windows. SSNP and TensorFlow dependencies are lazily loaded.

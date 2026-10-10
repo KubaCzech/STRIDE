@@ -6,7 +6,7 @@ The model layer monitors the streaming performance of classification pipelines u
 
 ## Binary Error Drift Descriptor
 
-The `BinaryErrorDriftDescriptor` wraps river detectors (such as DDM and EDDM) and estimates drift characteristics (duration, onset point, peak error rate):
+The `BinaryErrorDriftDescriptor` wraps river detectors (such as DDM, EDDM, and ADWIN) and estimates drift characteristics (duration, onset point, peak error rate):
 
 ```python
 from stride.drift import BinaryErrorDriftDescriptor
@@ -18,6 +18,7 @@ descriptor = BinaryErrorDriftDescriptor(
     ddm=drift.binary.DDM(),
     lookback_method="cusum",
     lookforward_method="peak",
+    degradation_only=True,
 )
 
 # In streaming loop:
@@ -33,3 +34,38 @@ for y_true, y_pred in stream_evaluation:
 1. **CUSUM (`lookback_method="cusum"`)**: Computes cumulative sums of deviations to pinpoint the earliest sample where error rates began to diverge upwards.
 2. **Threshold (`lookback_method="threshold"`)**: Traces backwards to the sample where the error rate was strictly below the baseline warning threshold.
 3. **Gradient (`lookback_method="gradient"`)**: Identifies the steepest acceleration point of error accumulation.
+
+---
+
+## Adaptive Windowing with DualADWIN
+
+Standard detectors like DDM assume a static distribution model and rely on fixed warning levels. In contrast, **ADWIN (Adaptive Windowing)** automatically adjusts its window length $W$ based on statistical significance without needing prior knowledge of drift rate.
+
+STRIDE provides `DualADWIN`, a two-threshold wrapper that maintains two internal ADWIN estimators with distinct confidence bounds ($\delta_{\text{warn}} > \delta_{\text{drift}}$):
+
+- **Early Warning ($\delta_{\text{warn}}$)**: Triggers early warning signals, prompting the descriptor to cache the error stream for lookback analysis.
+- **Confirmed Drift ($\delta_{\text{drift}}$)**: Triggers the confirmed drift alert when subwindow divergence is statistically proven.
+
+```python
+from stride.drift import BinaryErrorDriftDescriptor, DualADWIN
+
+# Configure dual-threshold ADWIN
+adwin_detector = DualADWIN(
+    delta_warn=0.05,
+    delta_drift=0.002,
+    clock=32,
+    max_buckets=5,
+)
+
+descriptor = BinaryErrorDriftDescriptor(
+    ddm=adwin_detector,
+    lookback_method="cusum",
+    lookforward_method="peak",
+    degradation_only=True,
+)
+```
+
+### Key ADWIN Features in STRIDE
+
+1. **Dynamic Lookback Window**: When paired with `DualADWIN`, the descriptor extracts `detector.width` (the actual adaptive subwindow size) to bound the lookback search horizon, avoiding fixed-length lookback heuristic mismatches.
+2. **Directional Degradation Filter (`degradation_only=True`)**: Because ADWIN naturally detects any significant distribution shift (including performance *improvements* where error rates fall), STRIDE applies directional degradation filtering to ensure drift alarms only fire when error rates deteriorate.

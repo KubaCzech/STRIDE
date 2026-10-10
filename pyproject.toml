@@ -93,7 +93,7 @@ dev = [
 docs = [
     "mkdocs-material>=9.5.0",
     "mkdocstrings[python]>=0.25.0",
-    "pymdown-extensions>=10.7.0",
+    "pymdown-extensions>=10.7.0,<12.2",
 ]
 all = [
     "matplotlib",
@@ -111,7 +111,7 @@ all = [
     "ruff",
     "mkdocs-material>=9.5.0",
     "mkdocstrings[python]>=0.25.0",
-    "pymdown-extensions>=10.7.0",
+    "pymdown-extensions>=10.7.0,<12.2",
 ]
 
 [tool.flit.module]
