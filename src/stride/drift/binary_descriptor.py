@@ -1,3 +1,6 @@
+"""Sequential binary error drift descriptor and change-point characterization."""
+
+from typing import Any
 import numpy as np
 from river import drift
 
@@ -5,54 +8,71 @@ from ._types import DriftDescription
 
 
 class BinaryErrorDriftDescriptor:
-    """
-    Binary Error Drift Descriptor creates descriptions of drifts identified by detectors
-    from BinaryDriftAndWarningDetector family of river.
+    r"""Track and characterize concept drifts identified by sequential error detectors.
 
-    The moment a drift signal is detected is also considered the end of the drift.
-    The amount of iterations where warning is not detected by BinaryDriftAndWarningDetector,
-    but BinaryErrorDriftDescriptor assumes the chain of warnings was not interrupted in a row
-    can be set using warning grace period.
-    When warning grace period is equal to n, there can be n-1 non-warning iterations between
-    warning iterations such that the algorithm assumes the chain of warnings was not broken.
-    The method with which the start of the drift is determined depends on lookback_method.
-    The method with which the end of the drift is determined depends on lookforward_method.
+    Wraps River detectors (such as DDM and EDDM) to continuously monitor the binary
+    error stream of an online model ($e_t \in \{0, 1\}$). When a warning or drift signal
+    is triggered, it applies change-point lookback algorithms (CUSUM, threshold, gradient)
+    to estimate the actual onset timestamp and lookforward methods to locate the drift peak.
 
-    The detected drifts are described using  DritDescription object.
-    When describing a drift 3 statistics are noted:
-    - The duration of the drift
-    - The error rate at the time of the first warning
-    - The error rate at the time of the drift being detected
+    Attributes:
+        warning_grace_period: Allowed consecutive non-warning steps before warning chain resets.
+        rate_calculation_sample_size: Number of samples used to calculate local error rates.
+        ddm: Underlying River binary drift and warning detector instance.
+        lookback_method: Change-point algorithm used to locate onset ("cusum", "threshold", "gradient", "none").
+        lookforward_method: Algorithm used to estimate stabilization ("peak", "recovery", "none").
+        error_history: Window of recent error signals.
+        complete_error_history: Full recorded error stream sequence.
+        drift_detected: Flag indicating whether drift occurred at current timestep.
+        last_detected_drift: Most recent `DriftDescription` object, or `None`.
+        current_index: Current stream iteration index.
+        degradation_only: Whether to restrict detections to error degradation rather than improvement.
     """
 
     def __init__(
         self,
-        warning_grace_period=3,
-        rate_calculation_sample_size=100,
-        ddm=drift.binary.DDM(),
-        lookback_method="cusum",
-        lookforward_method="peak",
-        degradation_only=True,
-    ):
+        warning_grace_period: int = 3,
+        rate_calculation_sample_size: int = 100,
+        ddm: Any = drift.binary.DDM(),
+        lookback_method: str = "cusum",
+        lookforward_method: str = "peak",
+        degradation_only: bool = True,
+    ) -> None:
+        """Initialize the binary error drift descriptor.
+
+        Args:
+            warning_grace_period: Allowed non-warning steps within a warning chain.
+            rate_calculation_sample_size: Window size for moving error rate averages.
+            ddm: River drift detector instance with `warning_detected` and `drift_detected`.
+            lookback_method: Method for onset estimation ("cusum", "threshold", "gradient", "none").
+            lookforward_method: Method for end/peak estimation ("peak", "recovery", "none").
+            degradation_only: Whether to restrict detections to error degradation rather than improvement.
+        """
         self.warning_grace_period = warning_grace_period
         self.rate_calculation_sample_size = rate_calculation_sample_size
         self.ddm = ddm
-        self.lookback_method = lookback_method  # 'cusum', 'threshold', 'gradient', or 'none
-        self.lookforward_method = lookforward_method  # 'peak', 'recovery', or 'none'
+        self.lookback_method = lookback_method
+        self.lookforward_method = lookforward_method
         self.degradation_only = degradation_only
 
         self.warning_grace_period_left = warning_grace_period
-        self.error_history = []
-        self.complete_error_history = []
+        self.error_history: list[int | float] = []
+        self.complete_error_history: list[int | float] = []
         self.previous_was_warning = False
         self.assume_warning = False
-        self.last_detected_drift = None
+        self.last_detected_drift: DriftDescription | None = None
         self.drift_detected = False
         self.current_index = 0
 
-    def find_drift_start_cusum(self, detection_idx, lookback_window=300):
-        """
-        Use CUSUM to detect change point - where error rate started increasing.
+    def find_drift_start_cusum(self, detection_idx: int, lookback_window: int = 300) -> int:
+        """Estimate drift onset using CUSUM change-point detection.
+
+        Args:
+            detection_idx: Stream index where drift alarm was raised.
+            lookback_window: Maximum history window examined prior to detection.
+
+        Returns:
+            Estimated sample index representing drift onset.
         """
         if detection_idx < 50:
             return 0
@@ -63,26 +83,28 @@ class BinaryErrorDriftDescriptor:
         if len(history_segment) < 20:
             return start_idx
 
-        # Establish baseline from early portion
         baseline_size = min(50, len(history_segment) // 4)
         baseline_mean = np.mean(history_segment[:baseline_size])
 
-        # Apply CUSUM
-        cusum = 0
-        threshold = 1.5  # Sensitivity parameter
+        cusum = 0.0
+        threshold = 1.5
 
         for i in range(baseline_size, len(history_segment)):
-            cusum = max(0, cusum + (history_segment[i] - baseline_mean - 0.1))
-
-            # Detect when CUSUM exceeds threshold
+            cusum = max(0.0, cusum + (history_segment[i] - baseline_mean - 0.1))
             if cusum > threshold:
                 return start_idx + i
 
         return start_idx + baseline_size
 
-    def find_drift_start_threshold(self, detection_idx, lookback_window=300):
-        """
-        Find drift start by looking for sustained error rate increase.
+    def find_drift_start_threshold(self, detection_idx: int, lookback_window: int = 300) -> int:
+        """Estimate drift onset by searching for sustained error rate elevation.
+
+        Args:
+            detection_idx: Stream index where drift alarm was raised.
+            lookback_window: Maximum history window examined prior to detection.
+
+        Returns:
+            Estimated sample index representing drift onset.
         """
         if detection_idx < 50:
             return 0
@@ -90,18 +112,16 @@ class BinaryErrorDriftDescriptor:
         window_size = self.rate_calculation_sample_size
         start_idx = max(0, detection_idx - lookback_window)
 
-        # Calculate baseline from early history
         baseline_end = min(start_idx + window_size, detection_idx - 50)
         if baseline_end <= start_idx:
             return start_idx
 
         baseline = self.complete_error_history[start_idx:baseline_end]
-        baseline_rate = np.mean(baseline)
+        baseline_rate = float(np.mean(baseline))
 
-        # Look for point where error rate exceeds baseline significantly
-        increase_threshold = 1.5  # 50% increase
+        increase_threshold = 1.5
         sustained_count = 0
-        sustained_threshold = 20  # Need 20 consecutive high-error samples
+        sustained_threshold = 20
 
         for i in range(baseline_end, detection_idx):
             if i + window_size > detection_idx:
@@ -113,7 +133,7 @@ class BinaryErrorDriftDescriptor:
                 continue
 
             window = self.complete_error_history[i : i + window_size_local]
-            current_rate = np.mean(window)
+            current_rate = float(np.mean(window))
 
             if current_rate > baseline_rate * increase_threshold:
                 sustained_count += 1
@@ -124,9 +144,15 @@ class BinaryErrorDriftDescriptor:
 
         return baseline_end
 
-    def find_drift_start_gradient(self, detection_idx, lookback_window=300):
-        """
-        Find drift start using error rate gradient analysis.
+    def find_drift_start_gradient(self, detection_idx: int, lookback_window: int = 300) -> int:
+        """Estimate drift onset using error rate gradient acceleration.
+
+        Args:
+            detection_idx: Stream index where drift alarm was raised.
+            lookback_window: Maximum history window examined prior to detection.
+
+        Returns:
+            Estimated sample index representing drift onset.
         """
         if detection_idx < 50:
             return 0
@@ -134,30 +160,31 @@ class BinaryErrorDriftDescriptor:
         window_size = 20
         start_idx = max(0, detection_idx - lookback_window)
 
-        # Calculate moving average of error rate
         error_rates = []
         for i in range(start_idx, detection_idx - window_size):
             window = self.complete_error_history[i : i + window_size]
-            error_rates.append(np.mean(window))
+            error_rates.append(float(np.mean(window)))
 
         if len(error_rates) < 2:
             return start_idx
 
-        # Calculate gradient
         gradients = np.diff(error_rates)
-
-        # Find first significant positive gradient
-        gradient_threshold = 0.01  # Adjust based on your data
+        gradient_threshold = 0.01
         for i, grad in enumerate(gradients):
             if grad > gradient_threshold:
                 return start_idx + i
 
         return start_idx
 
-    def find_drift_end_peak(self, detection_idx, lookforward_window=200):
-        """
-        Find the actual peak of error rate after drift detection.
-        Ascends the slope by comparing consecutive windows - stops when error rate decreases.
+    def find_drift_end_peak(self, detection_idx: int, lookforward_window: int = 200) -> int:
+        """Estimate peak error rate timestamp following drift alarm.
+
+        Args:
+            detection_idx: Stream index where drift alarm was raised.
+            lookforward_window: Maximum subsequent samples evaluated.
+
+        Returns:
+            Sample index corresponding to maximum error rate window.
         """
         max_idx = len(self.complete_error_history)
         end_idx = min(detection_idx + lookforward_window, max_idx)
@@ -166,43 +193,40 @@ class BinaryErrorDriftDescriptor:
             return detection_idx
 
         window_size = self.rate_calculation_sample_size
-
-        # Start from detection point
         current_idx = detection_idx
 
-        # Calculate initial error rate at detection
         if current_idx + window_size <= max_idx:
             current_window = self.complete_error_history[current_idx : current_idx + window_size]
-            previous_error_rate = np.mean(current_window)
+            previous_error_rate = float(np.mean(current_window))
         else:
             return detection_idx
 
         best_idx = detection_idx
-
-        # Move forward window by window
-        step_size = window_size  # Move by full window each time
+        step_size = window_size
         current_idx += step_size
 
         while current_idx + window_size <= end_idx:
             window = self.complete_error_history[current_idx : current_idx + window_size]
-            current_error_rate = np.mean(window)
+            current_error_rate = float(np.mean(window))
 
-            # If error rate decreased, previous window was the peak
             if current_error_rate < previous_error_rate:
                 return best_idx
 
-            # Otherwise, continue ascending
             best_idx = current_idx
             previous_error_rate = current_error_rate
             current_idx += step_size
 
-        # If we reached the end without finding a decrease, return the last checked position
         return best_idx
 
-    def find_drift_end_recovery(self, detection_idx, lookforward_window=200):
-        """
-        Find when error rate starts recovering (decreasing) after drift.
-        Uses CUSUM in reverse to detect when error rate stabilizes or decreases.
+    def find_drift_end_recovery(self, detection_idx: int, lookforward_window: int = 200) -> int:
+        """Estimate stabilization point where error rates return toward baseline.
+
+        Args:
+            detection_idx: Stream index where drift alarm was raised.
+            lookforward_window: Maximum subsequent samples evaluated.
+
+        Returns:
+            Sample index representing error recovery point.
         """
         max_idx = len(self.complete_error_history)
         end_idx = min(detection_idx + lookforward_window, max_idx)
@@ -210,26 +234,26 @@ class BinaryErrorDriftDescriptor:
         if detection_idx >= max_idx or end_idx - detection_idx < 20:
             return detection_idx
 
-        # Calculate baseline high error rate around detection
         window_size = min(20, end_idx - detection_idx)
         baseline_window = self.complete_error_history[detection_idx : detection_idx + window_size]
-        baseline_high = np.mean(baseline_window)
+        baseline_high = float(np.mean(baseline_window))
 
-        # Look for sustained decrease from baseline
-        cusum = 0
+        cusum = 0.0
         threshold = 1.5
 
         for i in range(detection_idx + window_size, end_idx):
-            # Negative contribution when error is below baseline (recovery)
-            cusum = max(0, cusum + (baseline_high - self.complete_error_history[i] - 0.1))
-
+            cusum = max(0.0, cusum + (baseline_high - self.complete_error_history[i] - 0.1))
             if cusum > threshold:
                 return i
 
-        # If no recovery detected, return the last point checked
         return end_idx - 1
 
-    def update(self, x):
+    def update(self, x: int | float) -> None:
+        """Update detector state with a binary error signal ($0$ for correct, $1$ for error).
+
+        Args:
+            x: Binary prediction error indicator.
+        """
         prev_estimation = getattr(self.ddm, "estimation", None)
         prev_warn_est = None
         if hasattr(self.ddm, "adwin_warn") and hasattr(self.ddm.adwin_warn, "estimation"):
@@ -292,22 +316,16 @@ class BinaryErrorDriftDescriptor:
             min_lookback_bound = max(0, detection_idx - lookback_window)
             drift_start_idx = max(min_lookback_bound, min(drift_start_idx, detection_idx))
 
-            # Calculate error rates at drift start and detection
             window_size = self.rate_calculation_sample_size
-
-            # Error rate at actual drift start
             start_window_begin = max(0, drift_start_idx - window_size // 2)
             start_window_end = min(drift_start_idx + window_size // 2, len(self.complete_error_history))
             start_window = self.complete_error_history[start_window_begin:start_window_end]
-            error_rate_at_warning = np.mean(start_window) if len(start_window) > 0 else 0
+            error_rate_at_warning = float(np.mean(start_window)) if len(start_window) > 0 else 0.0
 
-            # Error rate at detection
             detection_window_begin = max(0, detection_idx - window_size)
             detection_window = self.complete_error_history[detection_window_begin:detection_idx]
-            error_rate_at_detection = np.mean(detection_window) if len(detection_window) > 0 else 0
+            error_rate_at_detection = float(np.mean(detection_window)) if len(detection_window) > 0 else 0.0
 
-            # NOTE: drift_end_index will be set during post-processing
-            # Duration is from actual start to detection (will be updated in post-processing)
             drift_duration = detection_idx - drift_start_idx
 
             self.last_detected_drift = DriftDescription(
@@ -315,13 +333,13 @@ class BinaryErrorDriftDescriptor:
                 error_rate_at_warning=error_rate_at_warning,
                 drift_duration=drift_duration,
                 drift_start_index=drift_start_idx,
-                drift_end_index=detection_idx,  # Temporary, will be updated
-                error_rate_at_peak=error_rate_at_detection,  # Temporary, will be updated
+                drift_end_index=detection_idx,
+                error_rate_at_peak=error_rate_at_detection,
+                detected_at=detection_idx,
             )
 
             self.drift_detected = True
 
-            # Reset after drift
             self.warning_grace_period_left = self.warning_grace_period
             self.error_history = []
             self.previous_was_warning = False
@@ -330,28 +348,29 @@ class BinaryErrorDriftDescriptor:
         self.previous_was_warning = self.assume_warning
         self.current_index += 1
 
-    def post_process_drift_ends(self, drift_descriptions):
+    def describe_drift(self) -> DriftDescription | None:
+        """Return the `DriftDescription` object for the most recent drift event.
+
+        Returns:
+            Description object containing duration, onset, and error rates, or `None`.
         """
-        Post-process detected drifts to find actual end points (peak or recovery).
-        This must be called after all data has been processed.
+        return self.last_detected_drift
 
-        Parameters
-        ----------
-        drift_descriptions : list of DriftDescription
-            List of detected drifts to post-process
+    def post_process_drift_ends(self, drift_descriptions: list[DriftDescription]) -> list[DriftDescription]:
+        """Post-process a collection of detected drifts to compute peak or recovery timestamps.
 
-        Returns
-        -------
-        list of DriftDescription
-            Updated drift descriptions with corrected end points
+        Args:
+            drift_descriptions: Sequence of `DriftDescription` objects to update.
+
+        Returns:
+            Updated sequence of descriptions with resolved end indices and peak rates.
         """
         if self.lookforward_method == "none":
             return drift_descriptions
 
         for drift_description in drift_descriptions:
-            detection_idx = drift_description.detected_at
+            detection_idx = drift_description.detected_at or 0
 
-            # Find actual drift end using selected method
             if self.lookforward_method == "peak":
                 drift_end_idx = self.find_drift_end_peak(detection_idx)
             elif self.lookforward_method == "recovery":
@@ -359,17 +378,15 @@ class BinaryErrorDriftDescriptor:
             else:
                 drift_end_idx = detection_idx
 
-            # Update drift description with actual end point
             drift_description.drift_end_index = drift_end_idx
 
-            # Calculate error rate at peak/end
             window_size = self.rate_calculation_sample_size
             end_window_begin = max(0, drift_end_idx - window_size // 2)
             end_window_end = min(drift_end_idx + window_size // 2, len(self.complete_error_history))
             end_window = self.complete_error_history[end_window_begin:end_window_end]
-            drift_description.error_rate_at_peak = np.mean(end_window) if len(end_window) > 0 else 0
+            drift_description.error_rate_at_peak = float(np.mean(end_window)) if len(end_window) > 0 else 0.0
 
-            # Update duration to actual start -> actual end
-            drift_description.drift_duration = drift_end_idx - drift_description.drift_start_index
+            if drift_description.drift_start_index is not None:
+                drift_description.drift_duration = drift_end_idx - drift_description.drift_start_index
 
         return drift_descriptions

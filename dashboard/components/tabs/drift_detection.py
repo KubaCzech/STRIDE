@@ -101,7 +101,7 @@ def run_drift_detection(
     return drift_descriptions
 
 
-def render_drift_detection_tab(X, y, window_length, model_class=None, model_params=None):  # noqa: C901
+def render_drift_detection_tab(X, y, window_length, model_class=None, model_params=None, dataset=None):  # noqa: C901
     """
     Main entry point for DDM (Drift Detection Method) Analysis tab.
 
@@ -496,6 +496,38 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                 )
             )
 
+        # Add ground-truth change-point markers and transition windows if present
+        gt_points = getattr(dataset, "ground_truth_drift_points", None) or st.session_state.get(
+            "ground_truth_drift_points", []
+        )
+        gt_intervals = getattr(dataset, "drift_intervals", None) or st.session_state.get("drift_intervals", [])
+
+        if gt_points:
+            for gt_idx, gt_t0 in enumerate(gt_points):
+                fig.add_vline(
+                    x=gt_t0,
+                    line_width=2.5,
+                    line_dash="dash",
+                    line_color="crimson",
+                    annotation_text=f"Ground Truth #{gt_idx + 1} (t={gt_t0})",
+                    annotation_position="top left",
+                )
+
+        if gt_intervals:
+            for start_int, end_int in gt_intervals:
+                if start_int < end_int:
+                    fig.add_vrect(
+                        x0=start_int,
+                        x1=end_int,
+                        fillcolor="rgba(220, 20, 60, 0.12)",
+                        layer="below",
+                        line_width=1,
+                        line_dash="dot",
+                        line_color="rgba(220, 20, 60, 0.45)",
+                        annotation_text="Transition Window",
+                        annotation_position="bottom right",
+                    )
+
         # Update layout
         fig.update_layout(
             title=f"Drift Detection using {detector_type}",
@@ -622,5 +654,19 @@ def render_drift_detection_tab(X, y, window_length, model_class=None, model_para
                             else 0
                         )
                         st.metric("Change Percentage", f"{change_pct:.1f}%")
+
+                    if gt_points:
+                        closest_gt = min(gt_points, key=lambda p: abs(actual_start - p))
+                        latency_mid = actual_start - closest_gt
+                        matching_inv = next((inv for inv in gt_intervals if inv[0] <= closest_gt <= inv[1]), None)
+                        inv_text = (
+                            f" | From Transition Start (t={matching_inv[0]}): {actual_start - matching_inv[0]:+d} samples"
+                            if matching_inv
+                            else ""
+                        )
+                        st.info(
+                            f"🎯 **Ground Truth Latency**: Nearest Inflection Point $t_0={closest_gt}$ | "
+                            f"Delay relative to midpoint: **{latency_mid:+d} samples**{inv_text}"
+                        )
         else:
             st.info("No drifts detected with current configuration. Try adjusting the parameters.")

@@ -96,6 +96,13 @@ def generate_data(dataset_name, window_length_val, **kwargs):
 
 X, y = generate_data(dataset_key, window_length, **dataset_params)
 
+dataset_instance = DATASETS.get(dataset_key)
+if dataset_instance is not None:
+    st.session_state.active_dataset_instance = dataset_instance
+    st.session_state.ground_truth_drift_points = getattr(dataset_instance, "ground_truth_drift_points", [])
+    st.session_state.drift_intervals = getattr(dataset_instance, "drift_intervals", [])
+    st.session_state.drifting_features = getattr(dataset_instance, "drifting_features", [])
+
 if X is not None:
     feature_names = X.columns.tolist()
 else:
@@ -196,7 +203,9 @@ if active_tab == tabs[0]:
     )
 
 elif active_tab == tabs[1]:
-    render_drift_detection_tab(X, y, window_length, model_class=selected_model_class, model_params=model_params)
+    render_drift_detection_tab(
+        X, y, window_length, model_class=selected_model_class, model_params=model_params, dataset=dataset_instance
+    )
 
 elif active_tab == tabs[2]:
     render_decision_boundary_tab(
@@ -211,7 +220,14 @@ elif active_tab == tabs[2]:
 
 elif active_tab == tabs[3]:
     render_feature_importance_analysis_tab(
-        X_before, y_before, X_after, y_after, feature_names, model_class=selected_model_class, model_params=model_params
+        X_before,
+        y_before,
+        X_after,
+        y_after,
+        feature_names,
+        model_class=selected_model_class,
+        model_params=model_params,
+        dataset=dataset_instance,
     )
 
 elif active_tab == tabs[4]:

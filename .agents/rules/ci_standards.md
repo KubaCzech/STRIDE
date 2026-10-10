@@ -28,6 +28,12 @@ Execute these commands from the repository root:
    ```
    *Requirement: All test cases must pass (OK).*
 
+4. **Strict Documentation Build**:
+   ```bash
+   mkdocs build --strict
+   ```
+   *Requirement: Must exit with 0 errors, 0 warnings, and 0 broken links.*
+
 ---
 
 ## Pre-Push Verification Protocol

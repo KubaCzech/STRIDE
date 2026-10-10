@@ -76,11 +76,12 @@ class DimensionalityError(StrideError):
 
 ## 4. Documentation Standards
 
-All public classes, methods, and functions must maintain NumPy/Google-style docstrings with explicit sections:
-- `Parameters`: Parameter name, type, default, and semantic description.
-- `Returns`: Return type and description of the output.
-- `Raises`: Specific exceptions raised and under what conditions.
-- `Examples` (optional for complex routines): Doctrinal code snippet.
+All public classes, methods, functions, and exceptions must adhere strictly to **Google-style docstrings** as specified in [`.agents/rules/documentation_standards.md`](./documentation_standards.md):
+- **Single Convention**: Google style is mandatory across the repository (NumPy style and freeform docstrings are prohibited).
+- **Type Deduplication**: Parameter types are defined exclusively in Python signatures (Python 3.10+ syntax) and omitted from docstrings (`param: description`, NOT `param (int): description`).
+- **Mandatory Sections**: Public APIs must provide `Args:` (with semantic explanations for every parameter), `Returns:`, and explicit `Raises:` sections documenting raised exceptions from `stride.exceptions`.
+- **LaTeX Mathematical Formulations**: Mathematical definitions ($P(X)$, $P(Y \mid X)$, $\mathcal{W}_1$, $\alpha$) must use LaTeX math formatting.
+- **API Reference Sync**: When introducing new modules or classes, add or update the corresponding `::: stride.<module>` block in `docs/api/`.
 
 ---
 
