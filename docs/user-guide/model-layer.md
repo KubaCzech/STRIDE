@@ -1,19 +1,53 @@
 # Model Layer & Sequential Drift Monitoring
 
-The model layer monitors the streaming performance of classification pipelines using error-based sequential detectors.
+The model layer evaluates classifier performance over time by monitoring sequential prediction error streams and reconstructing the onset, duration, and magnitude of detected distribution shifts.
+
+---
+
+## Overview
+
+In production streaming systems, raw statistical differences in input features do not always harm downstream task performance. A model may remain accurate if shifts occur along dimensions orthogonal to the true decision boundary. Conversely, small perturbations directly on the decision boundary can cause rapid classification failure.
+
+The model layer operates directly on the binary error sequence:
+
+$$e_t = \mathbb{I}\left( \hat{y}_t \neq y_t \right) \in \{0, 1\}$$
+
+where $\hat{y}_t$ is the model's prediction at step $t$ and $y_t$ is the true target label.
+
+---
+
+## Drift Detection Method (DDM) Principles
+
+STRIDE integrates with the [River](https://riverml.xyz/) stream learning ecosystem, leveraging the **Drift Detection Method (DDM)** (*Gama et al., 2004*) and related sequential algorithms.
+
+DDM models the error rate $p_t$ as a Bernoulli process. For $t$ sequential predictions, the estimated error rate and standard deviation are:
+
+$$p_t = \frac{1}{t} \sum_{i=1}^t e_i, \qquad s_t = \sqrt{\frac{p_t (1 - p_t)}{t}}$$
+
+The detector tracks the minimum observed error parameters $p_{\min}$ and $s_{\min}$ over the current stationary regime:
+
+1. **Warning Level**: Triggered when the current error rate satisfies:
+   $$p_t + s_t \ge p_{\min} + 2 s_{\min}$$
+   At this point, a new candidate model may begin pre-training in the background on incoming samples.
+2. **Drift Level**: Triggered when the error rate breaches:
+   $$p_t + s_t \ge p_{\min} + 3 s_{\min}$$
+   At this point, a permanent concept shift is declared, the old model is replaced, and the detector statistics are reset.
 
 ---
 
 ## Binary Error Drift Descriptor
 
-The `BinaryErrorDriftDescriptor` wraps river detectors (such as DDM, EDDM, and ADWIN) and estimates drift characteristics (duration, onset point, peak error rate):
+Standard drift detectors only fire a binary alarm at the timestamp of statistical significance ($t_{\text{detected}}$). By the time an alert triggers, the drift process may have been active for hundreds of time steps.
+
+`BinaryErrorDriftDescriptor` wraps River detectors to reconstruct complete drift event profiles:
 
 ```python
 from stride.drift import BinaryErrorDriftDescriptor
 from river import drift
 
+# Initialize descriptor wrapping River's DDM
 descriptor = BinaryErrorDriftDescriptor(
-    warning_grace_period=3,
+    warning_grace_period=5,
     rate_calculation_sample_size=100,
     ddm=drift.binary.DDM(),
     lookback_method="cusum",
@@ -21,35 +55,76 @@ descriptor = BinaryErrorDriftDescriptor(
     degradation_only=True,
 )
 
-# In streaming loop:
-for y_true, y_pred in stream_evaluation:
-    error = 1 if y_true != y_pred else 0
+# Simulated streaming loop:
+# baseline error rate 5%, transitioning to 35% error rate at sample 500
+for step in range(1, 1000):
+    true_error_prob = 0.05 if step < 500 else 0.35
+    error = 1 if (step % int(1 / true_error_prob) == 0) else 0
+
     descriptor.update(error)
+
     if descriptor.drift_detected:
         description = descriptor.describe_drift()
-        print(f"Drift started at sample {description.drift_start_index}")
+        print(f"Drift alert triggered at step: {description.detected_at}")
+        print(f"Estimated onset sample:        {description.drift_start_index}")
+        print(f"Estimated duration:            {description.duration} steps")
+        print(f"Pre-drift error rate:          {description.error_rate_at_start:.2%}")
+        print(f"Peak error rate:               {description.error_rate_at_peak:.2%}")
+        break
 ```
 
-### Onset Localization Algorithms
-1. **CUSUM (`lookback_method="cusum"`)**: Computes cumulative sums of deviations to pinpoint the earliest sample where error rates began to diverge upwards.
-2. **Threshold (`lookback_method="threshold"`)**: Traces backwards to the sample where the error rate was strictly below the baseline warning threshold.
-3. **Gradient (`lookback_method="gradient"`)**: Identifies the steepest acceleration point of error accumulation.
+---
+
+## Onset Localization Algorithms
+
+When an alert fires, `BinaryErrorDriftDescriptor` executes one of three lookback algorithms to locate the true transition start index ($t_{\text{start}} \le t_{\text{detected}}$):
+
+### 1. Cumulative Sum (`lookback_method="cusum"`)
+Computes the cumulative sum of negative deviations from the baseline mean error rate:
+
+$$S_k = \sum_{i=1}^k (e_i - \bar{e}_{\text{baseline}})$$
+
+The onset sample corresponds to the minimum value of $S_k$ prior to the persistent upward trend. This method is resilient to stochastic noise spikes in the stream.
+
+### 2. Threshold Lookback (`lookback_method="threshold"`)
+Traces backwards from $t_{\text{detected}}$ until the rolling error rate falls below the warning threshold. This provides a conservative estimate suitable for abrupt concept shifts.
+
+### 3. Gradient Acceleration (`lookback_method="gradient"`)
+Evaluates the second numerical derivative of the smoothed error curve to locate the point of maximum error acceleration. This is particularly effective for gradual, sigmoidal drift transitions.
+
+---
+
+## Output Data Structure
+
+The `describe_drift()` method returns a structured `DriftDescription` dataclass containing:
+
+| Attribute | Type | Description |
+| :--- | :--- | :--- |
+| `detected_at` | `int` | Stream sample index where the detector fired its alarm. |
+| `drift_start_index` | `int` | Reconstructed sample index where distribution divergence initiated. |
+| `drift_end_index` | `int` | Sample index where error rates reached peak displacement or stabilized. |
+| `duration` | `int` | Estimated span of the transition window ($t_{\text{end}} - t_{\text{start}}$). |
+| `error_rate_at_start` | `float` | Estimated baseline error rate immediately prior to onset. |
+| `error_rate_at_peak` | `float` | Maximum error rate observed during the transition phase. |
+| `severity` | `float` | Relative elevation between peak and baseline error rates. |
+
+This rich description provides downstream xAI modules with exact temporal bounds for partitioning reference and detection windows.
 
 ---
 
 ## Adaptive Windowing with DualADWIN
 
-Standard detectors like DDM assume a static distribution model and rely on fixed warning levels. In contrast, **ADWIN (Adaptive Windowing)** automatically adjusts its window length $W$ based on statistical significance without needing prior knowledge of drift rate.
+While sequential algorithms such as DDM rely on tracking stationary minimum variance baselines, **ADWIN (Adaptive Windowing)** (*Bifet & Gavaldà, 2007*) adaptively resizes its sliding observation window based on rigorous Hoeffding divergence bounds without prior knowledge of the underlying drift rate.
 
-STRIDE provides `DualADWIN`, a two-threshold wrapper that maintains two internal ADWIN estimators with distinct confidence bounds ($\delta_{\text{warn}} > \delta_{\text{drift}}$):
+STRIDE implements `DualADWIN`, a two-threshold wrapper running coupled ADWIN estimators configured with distinct confidence parameters ($\delta_{\text{warn}} > \delta_{\text{drift}}$):
 
-- **Early Warning ($\delta_{\text{warn}}$)**: Triggers early warning signals, prompting the descriptor to cache the error stream for lookback analysis.
-- **Confirmed Drift ($\delta_{\text{drift}}$)**: Triggers the confirmed drift alert when subwindow divergence is statistically proven.
+* **Early Warning ($\delta_{\text{warn}}$)**: Triggers sensitive warning alerts, directing the descriptor to cache error history across the preceding subwindow.
+* **Confirmed Drift ($\delta_{\text{drift}}$)**: Triggers the confirmed drift alert once subwindow divergence satisfies statistical significance.
 
 ```python
 from stride.drift import BinaryErrorDriftDescriptor, DualADWIN
 
-# Configure dual-threshold ADWIN
+# Initialize coupled dual-threshold ADWIN detector
 adwin_detector = DualADWIN(
     delta_warn=0.05,
     delta_drift=0.002,
@@ -65,7 +140,7 @@ descriptor = BinaryErrorDriftDescriptor(
 )
 ```
 
-### Key ADWIN Features in STRIDE
+### Algorithmic Mechanics in STRIDE
 
-1. **Dynamic Lookback Window**: When paired with `DualADWIN`, the descriptor extracts `detector.width` (the actual adaptive subwindow size) to bound the lookback search horizon, avoiding fixed-length lookback heuristic mismatches.
-2. **Directional Degradation Filter (`degradation_only=True`)**: Because ADWIN naturally detects any significant distribution shift (including performance *improvements* where error rates fall), STRIDE applies directional degradation filtering to ensure drift alarms only fire when error rates deteriorate.
+1. **Dynamic Lookback Horizon**: When coupled with `DualADWIN`, `BinaryErrorDriftDescriptor` dynamically retrieves the current window width (`detector.width`) to bound the lookback horizon. This eliminates arbitrary fixed window heuristics and scales the search interval to the empirical regime size.
+2. **Directional Degradation Filtering (`degradation_only=True`)**: ADWIN triggers on any statistically significant shift in subwindow expectations, including scenarios where classification accuracy improves (error rate decreases). STRIDE evaluates rolling window estimations (`detector.estimation`) prior to raising alarms, suppressing false alarms caused by positive model adaptation and firing exclusively on performance deterioration.
