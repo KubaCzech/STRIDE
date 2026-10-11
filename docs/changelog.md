@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deterministic AI Agent Documentation Standards**:
     - Codified rules in `.agents/rules/documentation_standards.md` governing all future agent-generated code.
 
+### Changed
+- **Documentation Refinement & Professionalization**:
+    - Eliminated promotional tropes, conversational filler, and decorative emojis across the documentation suite.
+    - Expanded user guides, mathematical derivations, and architecture overviews into publication-grade technical prose.
+    - Enriched all API reference pages with module architectures, exported component matrices, and standard import workflows.
+
 ## [0.2.0] - 2026-10-07
 
 ### Added
