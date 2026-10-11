@@ -1,95 +1,150 @@
 # Quickstart Tutorial
 
-This 5-minute tutorial walks through generating a synthetic concept drift stream, training an online classifier, detecting the drift point, and explaining why and where the drift occurred.
+This guide demonstrates an end-to-end workflow in STRIDE: generating a synthetic data stream with concept drift, evaluating distribution shifts at the data layer, monitoring model error sequentially, and attributing the root causes of drift using Explainable AI (xAI).
 
 ---
 
-## 1. Generate a Concept Drift Data Stream
+## 1. Stream Generation & Window Partitioning
 
-Let us generate a stream from the classic **SEA Concepts** benchmark with a drift transition between variant 0 and variant 3:
+First, generate a synthetic stream using the rotating hyperplane generator (`HyperplaneDriftDataset`). The stream simulates gradual concept drift where feature weights continuously rotate across a specified transition window:
 
 ```python
-from stride.datasets import SeaDriftDataset
+from stride.datasets import HyperplaneDriftDataset
 
-# Initialize SEA generator
-dataset = SeaDriftDataset()
+# Initialize synthetic stream generator
+dataset = HyperplaneDriftDataset()
 X, y = dataset.generate(
     n_samples_before=1000,
     n_samples_after=1000,
+    n_features=5,
+    n_drift_features=2,
+    drift_width=100,
     random_seed=42,
-    drift_width=50,  # Gradual transition over 50 samples
 )
 
-print("Stream shape:", X.shape)
-print("Features:", list(X.columns))
+# Partition into pre-drift (reference) and post-drift (detection) windows
+X_ref, y_ref = X.iloc[:1000], y.iloc[:1000]
+X_det, y_det = X.iloc[1000:], y.iloc[1000:]
+
+print(f"Stream generated: {X.shape[0]} total samples across {X.shape[1]} features.")
+print(f"Reference window: {X_ref.shape[0]} samples | Detection window: {X_det.shape[0]} samples.")
 ```
 
 ---
 
-## 2. Detect Drift in the Error Stream
+## 2. Statistical Drift Detection (Data Layer)
 
-We use `BinaryErrorDriftDescriptor` to evaluate stream performance sequentially and pinpoint the drift's onset:
+Before evaluating predictive models, assess whether the marginal feature distribution $P(X)$ shifted between the two windows using non-parametric two-sample hypothesis testing:
 
 ```python
+from stride.xai.stats import StatisticalTestsDriftDetector, StatisticalTestType
+
+detector = StatisticalTestsDriftDetector(
+    X_before=X_ref,
+    y_before=y_ref,
+    X_after=X_det,
+    y_after=y_det,
+    significance_level=0.05,
+)
+
+# Execute two-sample Kolmogorov-Smirnov tests across all features
+ks_results = detector.detect(StatisticalTestType.KolmogorovSmirnov)
+
+print(f"Data layer drift detected: {detector.drift_flag}")
+for feature, p_val in ks_results["p_values"].items():
+    is_drifting = ks_results["drift_flags"][feature]
+    print(f"  Feature {feature:10s} -> p-value: {p_val:.4e} | Drifting: {is_drifting}")
+```
+
+The detector reports whether the null hypothesis (identical distributions across windows) is rejected for each individual feature at the chosen significance level $\alpha = 0.05$.
+
+---
+
+## 3. Sequential Error Monitoring (Model Layer)
+
+To monitor classification health over time, fit a classifier on the reference window, simulate an online prediction stream, and pipe the binary error stream into `BinaryErrorDriftDescriptor`:
+
+```python
+from stride.models import RandomForestModel
 from stride.drift import BinaryErrorDriftDescriptor
 from river import drift
 
+# Fit classifier on pre-drift baseline
+model = RandomForestModel(n_estimators=50, random_state=42)
+model.fit(X_ref, y_ref)
+
+# Initialize sequential detector wrapping River's DDM
 descriptor = BinaryErrorDriftDescriptor(
-    warning_grace_period=3,
+    warning_grace_period=5,
     lookback_method="cusum",
     lookforward_method="peak",
     ddm=drift.binary.DDM(),
 )
 
-# Simulate error stream where error rises near sample 1000
-for i, (idx, row) in enumerate(X.iterrows()):
-    error = 1 if (i >= 1000 and (i % 3 != 0)) else (1 if (i % 10 == 0) else 0)
+# Stream post-drift instances sequentially
+for idx, (x_row, y_true) in enumerate(zip(X_det.to_dict(orient="records"), y_det)):
+    y_pred = model.predict([list(x_row.values())])[0]
+    error = int(y_true != y_pred)
     descriptor.update(error)
+
     if descriptor.drift_detected:
         desc = descriptor.describe_drift()
-        print(f"Drift detected at sample {desc.detected_at}!")
-        print(f"Estimated onset: sample {desc.drift_start_index}")
-        print(f"Peak error rate: {desc.error_rate_at_peak:.2%}")
+        print(f"Model alert triggered at sample {desc.detected_at} in detection window.")
+        print(f"Estimated drift onset index: sample {desc.drift_start_index}")
+        print(f"Peak error rate reached: {desc.error_rate_at_peak:.2%}")
         break
 ```
 
+`BinaryErrorDriftDescriptor` goes beyond binary alert flags by applying CUSUM lookback analysis to estimate the exact time sample where the error rate diverged.
+
 ---
 
-## 3. Explain Drift with Feature Importance
+## 4. Feature Importance Attribution (Explanation Layer)
 
-To understand which features drove the drift, use `FeatureImportanceDriftAnalyzer`:
+When drift is detected, determine which features drove the shift. STRIDE uses an auxiliary temporal discriminator that classifies whether instances belong to the reference window ($t=0$) or detection window ($t=1$):
 
 ```python
-from stride.xai import FeatureImportanceDriftAnalyzer
+from stride.xai.importance import FeatureImportanceDriftAnalyzer
 
-X_before = X.iloc[:1000]
-y_before = y.iloc[:1000]
-X_after = X.iloc[1000:2000]
-y_after = y.iloc[1000:2000]
+analyzer = FeatureImportanceDriftAnalyzer(
+    X_before=X_ref,
+    y_before=y_ref,
+    X_after=X_det,
+    y_after=y_det,
+    random_state=42,
+)
 
-analyzer = FeatureImportanceDriftAnalyzer(X_before, y_before, X_after, y_after)
-
-# Analyze Covariate Shift (P(X)) without label concatenation
-p_x_results = analyzer.compute_drift_importance(
+# 1. Analyze Covariate Shift (P(X)) - data drift without labels
+covariate_shift = analyzer.compute_drift_importance(
     importance_method="permutation",
     include_target=False,
 )
-print("Data Drift Importance (P(X)):", p_x_results["importance_mean"])
 
-# Analyze Real Concept Drift (P(Y|X)) by including target labels
-p_yx_results = analyzer.compute_drift_importance(
+# 2. Analyze Real Concept Drift (P(Y | X)) - joint distribution with labels
+concept_drift = analyzer.compute_drift_importance(
     importance_method="permutation",
     include_target=True,
 )
-print("Concept Drift Importance (P(Y|X)):", p_yx_results["importance_mean"])
+
+print("\nCovariate Shift Attributions (P(X)):")
+for name, score in zip(covariate_shift["feature_names"], covariate_shift["importance_mean"]):
+    print(f"  {name:10s}: {score:.4f}")
+
+print("\nConcept Drift Attributions (P(Y | X)):")
+for name, score in zip(concept_drift["feature_names"], concept_drift["importance_mean"]):
+    print(f"  {name:10s}: {score:.4f}")
 ```
+
+By comparing attributions with and without target concatenation, analysts determine whether distribution changes stem from feature displacement alone or true modifications to the posterior decision boundary $P(Y \mid X)$.
 
 ---
 
-## 4. Launch the Interactive Dashboard
+## 5. Visual Exploration via Dashboard
 
-To visually explore the entire stream, run the Streamlit dashboard:
+To inspect stream behavior interactively, launch the Streamlit dashboard:
 
 ```bash
 streamlit run dashboard/app.py
 ```
+
+The application opens at `http://localhost:8501`, allowing visual exploration of sliding windows, 2D decision boundary projections, feature importance rankings, and cluster migration dynamics.

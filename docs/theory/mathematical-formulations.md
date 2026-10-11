@@ -1,56 +1,144 @@
 # Mathematical Formulations in STRIDE
 
-This document outlines the core mathematical definitions, divergences, and loss functions underpinning STRIDE's xAI algorithms.
+This document provides formal mathematical definitions, objective functions, statistical formulations, and algorithmic mechanics for the Explainable AI (xAI) algorithms implemented in STRIDE.
 
 ---
 
-## 1. Wasserstein Metric (Earth Mover's Distance)
+## 1. Distribution Divergences & Hypothesis Tests
 
-For two univariate probability measures $u$ and $v$ with cumulative distribution functions $U(x)$ and $V(x)$, the first Wasserstein distance $\mathcal{W}_1$ is defined as:
+### 1.1 First Wasserstein Metric ($\mathcal{W}_1$)
 
-$$\mathcal{W}_1(u, v) = \int_{-\infty}^{+\infty} |U(x) - V(x)| \, dx$$
+Given two univariate probability measures $u$ and $v$ defined over $\mathbb{R}$ with cumulative distribution functions $U(x) = P(X \le x)$ and $V(x) = P(Y \le x)$, the **1D First Wasserstein Distance** (Earth Mover's Distance) is defined as:
 
-Unlike the Kullback-Leibler divergence, $\mathcal{W}_1$ remains defined and non-zero even when the supports of $u$ and $v$ are disjoint.
+$$\mathcal{W}_1(u, v) = \int_{-\infty}^{+\infty} \left| U(x) - V(x) \right| \, dx$$
 
----
+By the **Kantorovich-Rubinstein duality**, $\mathcal{W}_1$ admits the equivalent dual representation:
 
-## 2. SSNP Bidirectional Projection Loss
+$$\mathcal{W}_1(u, v) = \sup_{f \in \text{Lip}_1} \left( \mathbb{E}_{X \sim u}[f(X)] - \mathbb{E}_{Y \sim v}[f(Y)] \right)$$
 
-Self-Supervised Neighbor Projection trains a lightweight neural network consisting of an encoder $p_\theta: \mathbb{R}^D \to \mathbb{R}^2$ and an inverse decoder $q_\phi: \mathbb{R}^2 \to \mathbb{R}^D$.
+where $\text{Lip}_1$ represents the set of all 1-Lipschitz continuous functions:
 
-The objective minimizes a compound loss:
+$$\text{Lip}_1 = \left\{ f : \mathbb{R} \to \mathbb{R} \;\Big|\; |f(x) - f(y)| \le |x - y|, \; \forall x, y \in \mathbb{R} \right\}$$
 
-$$\mathcal{L}(\theta, \phi) = \mathcal{L}_{\text{recon}} + \lambda_{\text{nbr}} \mathcal{L}_{\text{nbr}}$$
-
-where the reconstruction loss measures cycle-consistency:
-
-$$\mathcal{L}_{\text{recon}} = \frac{1}{N} \sum_{i=1}^N \| x_i - q_\phi(p_\theta(x_i)) \|_2^2$$
-
-and the neighbor loss preserves $k$-nearest neighbor distances in the 2D plane:
-
-$$\mathcal{L}_{\text{nbr}} = \sum_{i=1}^N \sum_{j \in \mathcal{N}_k(i)} \left( \| p_\theta(x_i) - p_\theta(x_j) \|_2 - d(x_i, x_j) \right)^2$$
+Unlike the Kullback-Leibler (KL) divergence or Jensen-Shannon divergence, $\mathcal{W}_1$ satisfies all metric properties (non-negativity, identity of indiscernibles, symmetry, triangle inequality) and remains well-defined even when the supports of $u$ and $v$ are disjoint ($\text{supp}(u) \cap \text{supp}(v) = \emptyset$).
 
 ---
 
-## 3. Hungarian Optimal Bipartite Centroid Assignment
+### 1.2 Two-Sample Kolmogorov-Smirnov Test
 
-Given $K_1$ centroids $C_{\text{before}} = \{c_1, \dots, c_{K_1}\}$ and $K_2$ centroids $C_{\text{after}} = \{c'_1, \dots, c'_{K_2}\}$ with $K = \min(K_1, K_2)$, optimal matching minimizes total Euclidean displacement:
+Given two independent continuous empirical samples $X_{\text{ref}} = \{x_1, \dots, x_n\}$ and $X_{\text{det}} = \{x'_1, \dots, x'_m\}$, the two-sample **Kolmogorov-Smirnov statistic** $D_{n, m}$ evaluates the supremum distance between their empirical cumulative distribution functions (ECDFs):
 
-$$\min_{\pi \in \Pi} \sum_{i=1}^K \| c_i - c'_{\pi(i)} \|_2$$
+$$D_{n, m} = \sup_{x \in \mathbb{R}} \left| F_n(x) - G_m(x) \right|$$
 
-where $\Pi$ represents the set of all bijective assignments.
+where:
+
+$$F_n(x) = \frac{1}{n} \sum_{i=1}^n \mathbb{I}(x_i \le x), \qquad G_m(x) = \frac{1}{m} \sum_{j=1}^m \mathbb{I}(x'_j \le x)$$
+
+Under the null hypothesis $H_0: F = G$, the scaled test statistic converges asymptotically to the Kolmogorov distribution:
+
+$$\sqrt{\frac{n m}{n + m}} D_{n, m} \xrightarrow{d} \sup_{t \in [0, 1]} |B(t)|$$
+
+where $B(t)$ is a standard Brownian bridge. Drift is declared when the asymptotic $p$-value satisfies $p < \alpha$.
 
 ---
 
-## 4. X-Means Bayesian Information Criterion (BIC)
+### 1.3 Two-Sample Anderson-Darling Test
 
-X-Means decides whether to split a parent cluster into two children clusters using the BIC score. Assuming spherical Gaussian distributions with identical variance $\hat{\sigma}^2$:
+The **Anderson-Darling test** evaluates divergence across the entire support while assigning higher quadratic weights to deviations located in the distribution tails:
+
+$$A_{n, m}^2 = \frac{n m}{N} \int_{-\infty}^{+\infty} \frac{\left( F_n(x) - G_m(x) \right)^2}{H_N(x) \left( 1 - H_N(x) \right)} \, dH_N(x)$$
+
+where $N = n + m$ and $H_N(x) = \frac{n F_n(x) + m G_m(x)}{N}$ represents the pooled empirical distribution function.
+
+The denominator weight $w(t) = \frac{1}{t(1 - t)}$ penalizes divergences near the tails ($t \to 0$ and $t \to 1$), enabling earlier detection of boundary shifts and outlier density drifts than the Kolmogorov-Smirnov test.
+
+---
+
+## 2. Self-Supervised Neighbor Projection (SSNP)
+
+To construct Supervised Decision Boundary Maps (SDBM) in high dimensions ($D > 2$), STRIDE implements **SSNP** (*Espadoto et al., 2020*), training a neural autoencoder consisting of:
+
+* An encoder network $p_\theta: \mathbb{R}^D \to \mathbb{R}^2$ parameterized by weights $\theta$.
+* An inverse decoder network $q_\phi: \mathbb{R}^2 \to \mathbb{R}^D$ parameterized by weights $\phi$.
+
+### Joint Objective Function
+
+The network parameters $\theta, \phi$ are optimized jointly over training instances $\{x_1, \dots, x_N\}$:
+
+$$\min_{\theta, \phi} \mathcal{L}(\theta, \phi) = \mathcal{L}_{\text{recon}}(\theta, \phi) + \lambda_{\text{nbr}} \mathcal{L}_{\text{nbr}}(\theta)$$
+
+#### Reconstruction Loss (Cycle Consistency)
+Measures the Mean Squared Error (MSE) between original feature vectors and their decoded reconstructions:
+
+$$\mathcal{L}_{\text{recon}} = \frac{1}{N} \sum_{i=1}^N \left\| x_i - q_\phi\left( p_\theta(x_i) \right) \right\|_2^2$$
+
+#### Neighbor Distance Preservation Loss
+Preserves local topological relationships by penalizing discrepancies between high-dimensional and 2D latent distances among $k$-nearest neighbors $\mathcal{N}_k(i)$:
+
+$$\mathcal{L}_{\text{nbr}} = \frac{1}{N \cdot k} \sum_{i=1}^N \sum_{j \in \mathcal{N}_k(i)} \left( \left\| p_\theta(x_i) - p_\theta(x_j) \right\|_2 - d(x_i, x_j) \right)^2$$
+
+where $d(x_i, x_j) = \|x_i - x_j\|_2$ denotes the Euclidean distance in the original feature space $\mathbb{R}^D$.
+
+---
+
+## 3. Optimal Bipartite Centroid Matching (Hungarian Algorithm)
+
+Let $C_{\text{before}} = \{c_1, \dots, c_{K_1}\}$ and $C_{\text{after}} = \{c'_1, \dots, c'_{K_2}\}$ denote cluster centroids extracted from reference and detection windows, respectively.
+
+We construct a cost matrix $C \in \mathbb{R}^{K_1 \times K_2}$ whose entries define the pairwise Euclidean distance:
+
+$$C_{i, j} = \left\| c_i - c'_j \right\|_2$$
+
+Assuming $K = \min(K_1, K_2)$, optimal matching solves:
+
+$$\min_{\pi \in \Pi} \sum_{i=1}^K C_{i, \pi(i)}$$
+
+where $\Pi$ denotes the set of all bijective assignments. This combinatorial optimization is solved in polynomial time $\mathcal{O}(K^3)$ using the **Kuhn-Munkres (Hungarian)** algorithm.
+
+---
+
+## 4. Bayesian Information Criterion in X-Means
+
+X-Means evaluates whether a parent cluster should be partitioned into two child clusters using the **Bayesian Information Criterion (BIC)**.
+
+Under the assumption of identical spherical Gaussian distributions with pooled variance $\hat{\sigma}^2$:
+
+$$\hat{\sigma}^2 = \frac{1}{R - K} \sum_{i=1}^R \left\| x_i - c_{(i)} \right\|_2^2$$
+
+where $R$ is the number of points assigned to the cluster, $K$ is the number of clusters evaluated ($K=1$ for parent, $K=2$ for split), and $c_{(i)}$ is the centroid nearest to $x_i$.
+
+The log-likelihood of data points $D$ under model $M$ is:
+
+$$\hat{l}(D) = -\frac{R \cdot D}{2} \ln(2\pi) - \frac{R \cdot D}{2} \ln(\hat{\sigma}^2) - \frac{R - K}{2} + R \ln(R) - R \ln(N)$$
+
+The BIC score is then computed as:
 
 $$\text{BIC}(M) = \hat{l}(D) - \frac{p}{2} \ln(R)$$
 
-where:
-- $\hat{l}(D)$ is the log-likelihood of data points $D$,
-- $p$ is the number of estimated parameters,
-- $R$ is the number of points in the evaluated cluster.
+where $p = K(D + 1)$ represents the number of estimated parameters. The parent cluster is split if and only if:
 
-A parent cluster is split if and only if $\text{BIC}(\text{split}) > \text{BIC}(\text{parent})$.
+$$\text{BIC}(\text{split}) > \text{BIC}(\text{parent})$$
+
+---
+
+## 5. Conformal Selective Classification for Drift Attribution
+
+Let $W_{\text{cal}} = \{(z_i, t_i)\}_{i=1}^{n_{\text{cal}}}$ denote a held-out calibration window where $t_i \in \{0, 1\}$ represents the time window label. Given an auxiliary discriminator $g(z)$ outputting class probability estimates $\hat{P}(t \mid z)$, the non-conformity score for instance $i$ under label $y$ is defined as:
+
+$$\alpha_i = 1 - \hat{P}(y \mid z_i)$$
+
+For an unlabelled test sample $z_{n+1}$ and candidate label $y \in \{0, 1\}$, the conformal $p$-value is:
+
+$$p_y(z_{n+1}) = \frac{1}{|W_{\text{cal}}| + 1} \left( 1 + \sum_{i \in W_{\text{cal}}} \mathbb{I}\left( \alpha_i \ge \alpha_{n+1}^y \right) \right)$$
+
+### Abstention Condition
+
+At user-specified significance level $\epsilon \in (0, 1)$:
+
+$$\text{Decision}(z_{n+1}) = \begin{cases}
+0, & \text{if } p_0(z_{n+1}) > \epsilon \text{ and } p_1(z_{n+1}) \le \epsilon \\
+1, & \text{if } p_1(z_{n+1}) > \epsilon \text{ and } p_0(z_{n+1}) \le \epsilon \\
+\text{Abstain}, & \text{otherwise (ambiguous region)}
+\end{cases}$$
+
+Attribution algorithms (such as PFI or SHAP) are computed exclusively on non-abstained instances, isolating features that unambiguously distinguish the reference window from the detection window.
