@@ -126,9 +126,7 @@ res = analyzer.compute_drift_importance(
 )
 
 print("Drift Attribution Scores:")
-for name, mean_score, std_score in zip(
-    res["feature_names"], res["importance_mean"], res["importance_std"]
-):
+for name, mean_score, std_score in zip(res["feature_names"], res["importance_mean"], res["importance_std"]):
     print(f"  {name:10s} -> Importance: {mean_score:+.4f} (+/- {std_score:.4f})")
 ```
 
