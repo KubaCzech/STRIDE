@@ -1,70 +1,106 @@
 # Installation
 
-STRIDE is published on the Python Package Index (**PyPI**) as `stride-xai`. It supports Python 3.10, 3.11, and 3.12.
+STRIDE is published on the Python Package Index as [`stride-xai`](https://pypi.org/project/stride-xai/). It supports Python 3.10, 3.11, and 3.12.
 
 ---
 
-## Minimal Base Installation
+## Prerequisites
 
-To install STRIDE with core algorithms (data stream generators, statistical testing, basic models, sequential error tracking):
+Before installing STRIDE, ensure that your environment meets the following requirements:
+
+* **Python**: Version 3.10, 3.11, or 3.12.
+* **Package Manager**: `pip` (version 21.0 or higher is recommended).
+* **Virtual Environment**: Using an isolated virtual environment (`venv` or `conda`) is strongly advised to prevent dependency conflicts.
+
+---
+
+## PyPI Installation
+
+### Core Package
+
+To install STRIDE with its core algorithmic suite (synthetic stream generators, statistical testing, model wrappers, and sequential error tracking):
 
 ```bash
 pip install stride-xai
 ```
 
 The core installation includes:
-- `numpy<2.0`
-- `pandas`
-- `scipy`
-- `scikit-learn`
-- `river`
+* `numpy<2.0`
+* `pandas`
+* `scipy`
+* `scikit-learn`
+* `river`
 
----
+### Optional Extras
 
-## Optional Dependency Extras
+STRIDE uses a modular dependency architecture. Install additional capabilities as needed for your specific deployment:
 
-STRIDE is architected with modular dependency extras so users only install what their target pipelines require:
+| Extra | Command | Included Dependencies & Capabilities |
+| :--- | :--- | :--- |
+| **Visualizations** | `pip install "stride-xai[vis]"` | `matplotlib`, `seaborn`, `plotly` for headless figure generation. |
+| **Online Learning** | `pip install "stride-xai[drift]"` | `river` streaming algorithms and online drift monitors. |
+| **Clustering** | `pip install "stride-xai[clustering]"` | `pyclustering`, `hdbscan`, and `umap-learn` for X-means and recurrence clustering. |
+| **Explainable AI** | `pip install "stride-xai[xai]"` | `shap` and `lime` for model-agnostic feature attributions. |
+| **Deep Learning** | `pip install "stride-xai[deeplearning]"` | `tensorflow>=2.15` for SSNP neural 2D boundary projections. |
+| **Dashboard** | `pip install "stride-xai[dashboard]"` | `streamlit` and `icecream` for the interactive multi-tab application. |
+| **Documentation** | `pip install "stride-xai[docs]"` | `mkdocs-material`, `mkdocstrings`, and KaTeX rendering extensions. |
+| **Full Suite** | `pip install "stride-xai[all]"` | Installs all optional dependencies listed above. |
+
+To install multiple extras simultaneously, provide a comma-separated list:
 
 ```bash
-# Data stream and metric plotting (matplotlib, seaborn, plotly)
-pip install stride-xai[vis]
-
-# Advanced clustering (pyclustering, hdbscan, umap-learn)
-pip install stride-xai[clustering]
-
-# Advanced xAI explainers (SHAP, LIME)
-pip install stride-xai[xai]
-
-# Deep learning boundary projection (TensorFlow 2.15+)
-pip install stride-xai[deeplearning]
-
-# Interactive Streamlit dashboard
-pip install stride-xai[dashboard]
-
-# Documentation building (MkDocs Material, mkdocstrings)
-pip install stride-xai[docs]
-
-# Complete installation with all dependencies
-pip install stride-xai[all]
+pip install "stride-xai[xai,clustering,dashboard]"
 ```
 
 ---
 
-## Development Installation
+## Source Installation
 
-To install from source for development or contributions:
+For local development or running experimental branches, clone the repository and install in editable mode:
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/KubaCzech/STRIDE.git
 cd STRIDE
-python -m venv .venv
-source .venv/bin/activate  # Or on Windows: .venv\Scripts\activate
-pip install --upgrade pip
-pip install -e ".[all,docs,dev]"
 ```
 
-Verify your installation:
+### 2. Create and Activate a Virtual Environment
+
+**Linux / macOS**:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+**Windows (PowerShell)**:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Install in Editable Mode
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e ".[all]"
+```
+
+The editable flag (`-e`) installs the package in place, allowing source edits in `src/stride/` to take effect immediately without reinstallation.
+
+---
+
+## Verifying Installation
+
+Verify that STRIDE is correctly registered in your Python environment:
 
 ```bash
 python -c "import stride; print('STRIDE Version:', stride.__version__)"
+```
+
+To run the automated test suite locally:
+
+```bash
+python -m unittest discover tests
 ```
