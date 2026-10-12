@@ -26,6 +26,7 @@ class BinaryErrorDriftDescriptor:
         drift_detected: Flag indicating whether drift occurred at current timestep.
         last_detected_drift: Most recent `DriftDescription` object, or `None`.
         current_index: Current stream iteration index.
+        degradation_only: Whether to restrict detections to error degradation rather than improvement.
     """
 
     def __init__(
@@ -35,6 +36,7 @@ class BinaryErrorDriftDescriptor:
         ddm: Any = drift.binary.DDM(),
         lookback_method: str = "cusum",
         lookforward_method: str = "peak",
+        degradation_only: bool = True,
     ) -> None:
         """Initialize the binary error drift descriptor.
 
@@ -44,12 +46,14 @@ class BinaryErrorDriftDescriptor:
             ddm: River drift detector instance with `warning_detected` and `drift_detected`.
             lookback_method: Method for onset estimation ("cusum", "threshold", "gradient", "none").
             lookforward_method: Method for end/peak estimation ("peak", "recovery", "none").
+            degradation_only: Whether to restrict detections to error degradation rather than improvement.
         """
         self.warning_grace_period = warning_grace_period
         self.rate_calculation_sample_size = rate_calculation_sample_size
         self.ddm = ddm
         self.lookback_method = lookback_method
         self.lookforward_method = lookforward_method
+        self.degradation_only = degradation_only
 
         self.warning_grace_period_left = warning_grace_period
         self.error_history: list[int | float] = []
@@ -250,40 +254,67 @@ class BinaryErrorDriftDescriptor:
         Args:
             x: Binary prediction error indicator.
         """
+        prev_estimation = getattr(self.ddm, "estimation", None)
+        prev_warn_est = None
+        if hasattr(self.ddm, "adwin_warn") and hasattr(self.ddm.adwin_warn, "estimation"):
+            prev_warn_est = self.ddm.adwin_warn.estimation
+
         self.ddm.update(x)
         self.complete_error_history.append(x)
         self.drift_detected = False
 
-        if self.ddm.warning_detected:
+        warning_detected = getattr(self.ddm, "warning_detected", False)
+        if self.degradation_only and warning_detected and prev_warn_est is not None:
+            if hasattr(self.ddm, "adwin_warn") and self.ddm.adwin_warn.estimation < prev_warn_est:
+                warning_detected = False
+
+        if warning_detected:
             self.warning_grace_period_left = self.warning_grace_period
         elif self.previous_was_warning is True:
             self.warning_grace_period_left -= 1
 
         if self.previous_was_warning and self.warning_grace_period_left > 0:
             self.assume_warning = True
-        elif self.ddm.warning_detected:
+        elif warning_detected:
             self.assume_warning = True
         else:
             self.assume_warning = False
 
         self.error_history.append(x)
 
-        if not self.assume_warning and not self.ddm.drift_detected:
+        drift_detected = getattr(self.ddm, "drift_detected", getattr(self.ddm, "change_detected", False))
+
+        # Directional filter: only flag if error rate degraded (worsened)
+        if self.degradation_only and drift_detected and prev_estimation is not None:
+            curr_estimation = getattr(self.ddm, "estimation", None)
+            if curr_estimation is not None and curr_estimation < prev_estimation:
+                drift_detected = False
+
+        if not self.assume_warning and not drift_detected:
             self.error_history = self.error_history[-self.rate_calculation_sample_size :]
 
-        if self.ddm.drift_detected:
+        if drift_detected:
             detection_idx = self.current_index
 
-            if self.lookback_method == "cusum":
-                drift_start_idx = self.find_drift_start_cusum(detection_idx)
-            elif self.lookback_method == "threshold":
-                drift_start_idx = self.find_drift_start_threshold(detection_idx)
-            elif self.lookback_method == "gradient":
-                drift_start_idx = self.find_drift_start_gradient(detection_idx)
+            # Determine dynamic lookback window
+            if hasattr(self.ddm, "width"):
+                lookback_window = int(self.ddm.width)
             else:
-                drift_start_idx = max(0, detection_idx - len(self.error_history))
+                lookback_window = len(self.error_history)
 
-            drift_start_idx = min(drift_start_idx, detection_idx - len(self.error_history))
+            # Find actual drift start using selected method
+            if self.lookback_method == "cusum":
+                drift_start_idx = self.find_drift_start_cusum(detection_idx, lookback_window=lookback_window)
+            elif self.lookback_method == "threshold":
+                drift_start_idx = self.find_drift_start_threshold(detection_idx, lookback_window=lookback_window)
+            elif self.lookback_method == "gradient":
+                drift_start_idx = self.find_drift_start_gradient(detection_idx, lookback_window=lookback_window)
+            else:  # 'none'
+                drift_start_idx = max(0, detection_idx - lookback_window)
+
+            # Ensure the found starting point is within valid bounds [detection_idx - lookback_window, detection_idx]
+            min_lookback_bound = max(0, detection_idx - lookback_window)
+            drift_start_idx = max(min_lookback_bound, min(drift_start_idx, detection_idx))
 
             window_size = self.rate_calculation_sample_size
             start_window_begin = max(0, drift_start_idx - window_size // 2)

@@ -16,7 +16,8 @@ from stride.drift import BinaryErrorDriftDescriptor, DriftDescription
 
 | Class / Structure | Description |
 | :--- | :--- |
-| `BinaryErrorDriftDescriptor` | Wraps River drift detectors (e.g. DDM, EDDM) and applies CUSUM, threshold, or gradient lookback to estimate drift onset and duration. |
+| `BinaryErrorDriftDescriptor` | Wraps River drift detectors (e.g. DDM, EDDM, ADWIN) and applies CUSUM, threshold, or gradient lookback to estimate drift onset and duration. |
+| `DualADWIN` | Dual-threshold ADWIN wrapper running coupled estimators for simultaneous early warning ($\delta_{\text{warn}}$) and confirmed drift ($\delta_{\text{drift}}$). |
 | `DriftDescription` | Dataclass storing reconstructed drift event parameters (`detected_at`, `drift_start_index`, `drift_end_index`, `duration`, `error_rate_at_start`, `error_rate_at_peak`, `severity`). |
 
 ---

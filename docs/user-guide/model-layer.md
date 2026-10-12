@@ -52,6 +52,7 @@ descriptor = BinaryErrorDriftDescriptor(
     ddm=drift.binary.DDM(),
     lookback_method="cusum",
     lookforward_method="peak",
+    degradation_only=True,
 )
 
 # Simulated streaming loop:
@@ -108,3 +109,38 @@ The `describe_drift()` method returns a structured `DriftDescription` dataclass 
 | `severity` | `float` | Relative elevation between peak and baseline error rates. |
 
 This rich description provides downstream xAI modules with exact temporal bounds for partitioning reference and detection windows.
+
+---
+
+## Adaptive Windowing with DualADWIN
+
+While sequential algorithms such as DDM rely on tracking stationary minimum variance baselines, **ADWIN (Adaptive Windowing)** (*Bifet & Gavaldà, 2007*) adaptively resizes its sliding observation window based on rigorous Hoeffding divergence bounds without prior knowledge of the underlying drift rate.
+
+STRIDE implements `DualADWIN`, a two-threshold wrapper running coupled ADWIN estimators configured with distinct confidence parameters ($\delta_{\text{warn}} > \delta_{\text{drift}}$):
+
+* **Early Warning ($\delta_{\text{warn}}$)**: Triggers sensitive warning alerts, directing the descriptor to cache error history across the preceding subwindow.
+* **Confirmed Drift ($\delta_{\text{drift}}$)**: Triggers the confirmed drift alert once subwindow divergence satisfies statistical significance.
+
+```python
+from stride.drift import BinaryErrorDriftDescriptor, DualADWIN
+
+# Initialize coupled dual-threshold ADWIN detector
+adwin_detector = DualADWIN(
+    delta_warn=0.05,
+    delta_drift=0.002,
+    clock=32,
+    max_buckets=5,
+)
+
+descriptor = BinaryErrorDriftDescriptor(
+    ddm=adwin_detector,
+    lookback_method="cusum",
+    lookforward_method="peak",
+    degradation_only=True,
+)
+```
+
+### Algorithmic Mechanics in STRIDE
+
+1. **Dynamic Lookback Horizon**: When coupled with `DualADWIN`, `BinaryErrorDriftDescriptor` dynamically retrieves the current window width (`detector.width`) to bound the lookback horizon. This eliminates arbitrary fixed window heuristics and scales the search interval to the empirical regime size.
+2. **Directional Degradation Filtering (`degradation_only=True`)**: ADWIN triggers on any statistically significant shift in subwindow expectations, including scenarios where classification accuracy improves (error rate decreases). STRIDE evaluates rolling window estimations (`detector.estimation`) prior to raising alarms, suppressing false alarms caused by positive model adaptation and firing exclusively on performance deterioration.

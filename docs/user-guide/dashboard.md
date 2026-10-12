@@ -65,8 +65,9 @@ flowchart TD
 
 ### Tab 2: Model Performance & Sequential Monitoring
 * **Online Error Trajectory**: Real-time error rate curves plotted alongside cumulative accuracy.
-* **DDM Warning & Drift Bands**: Displays River's Drift Detection Method statistical bounds ($p_{\min} + 2s$ warning threshold and $p_{\min} + 3s$ drift alarm threshold).
-* **Onset & Duration Localization**: Renders CUSUM lookback change-point markers identifying where error acceleration initiated (`drift_start_index`) versus where the alarm was raised.
+* **Sequential Drift Detectors**: Selectable streaming detectors including DDM, DualADWIN, EDDM, FHDDM, and HDDM with configurable confidence thresholds.
+* **Statistical Warning & Drift Bands**: Displays detector thresholds, including River's DDM bounds ($p_{\min} + 2s$ warning threshold and $p_{\min} + 3s$ drift alarm threshold) and ADWIN adaptive Hoeffding bounds.
+* **Onset & Duration Localization**: Renders CUSUM lookback change-point markers identifying where error acceleration initiated (`drift_start_index`) versus where the alarm was raised, with adaptive lookback window calibration bounded by detector width.
 
 ### Tab 3: Decision Boundary Migration
 * **2D Latent Projection**: Renders interactive decision surfaces generated via Self-Supervised Neighbor Projection (SSNP).
