@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-16
+
 ### Added
 - **ADWIN Drift Detection & Adaptive Characterization**:
     - `stride.drift.DualADWIN`: Dual-threshold ADWIN wrapper providing simultaneous warning ($\delta_{\text{warn}}$) and confirmed drift ($\delta_{\text{drift}}$) signals with Hoeffding confidence bounds and $O(\log W)$ memory.
