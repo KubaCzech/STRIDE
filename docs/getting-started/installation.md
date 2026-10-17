@@ -30,6 +30,10 @@ The core installation includes:
 * `scipy`
 * `scikit-learn`
 * `river`
+* `matplotlib`
+* `seaborn`
+
+With these core dependencies, synthetic stream generators, statistical testing, model wrappers, 2D decision boundary analysis, Permutation Feature Importance (PFI), and stream visualization are immediately functional.
 
 ### Optional Extras
 
@@ -37,14 +41,14 @@ STRIDE uses a modular dependency architecture. Install additional capabilities a
 
 | Extra | Command | Included Dependencies & Capabilities |
 | :--- | :--- | :--- |
-| **Visualizations** | `pip install "stride-xai[vis]"` | `matplotlib`, `seaborn`, `plotly` for headless figure generation. |
-| **Online Learning** | `pip install "stride-xai[drift]"` | `river` streaming algorithms and online drift monitors. |
-| **Clustering** | `pip install "stride-xai[clustering]"` | `pyclustering`, `hdbscan`, and `umap-learn` for X-means and recurrence clustering. |
+| **Full XAI Suite (Headless)** | `pip install "stride-xai[xai-full]"` | Complete analytical horsepower (`shap`, `lime`, `pyclustering`, `hdbscan`, `umap-learn`, `tensorflow>=2.15`, `plotly`) for pipelines and notebooks without the web dashboard. |
+| **Interactive Dashboard** | `pip install "stride-xai[dashboard]"` | `streamlit` and `icecream` alongside all analytical dependencies for the interactive multi-tab application. |
 | **Explainable AI** | `pip install "stride-xai[xai]"` | `shap` and `lime` for model-agnostic feature attributions. |
+| **Clustering** | `pip install "stride-xai[clustering]"` | `pyclustering`, `hdbscan`, and `umap-learn` for X-means and recurrence clustering. |
 | **Deep Learning** | `pip install "stride-xai[deeplearning]"` | `tensorflow>=2.15` for SSNP neural 2D boundary projections. |
-| **Dashboard** | `pip install "stride-xai[dashboard]"` | `streamlit` and `icecream` for the interactive multi-tab application. |
+| **Interactive Visualizations** | `pip install "stride-xai[vis]"` | `plotly` for interactive web charts. |
 | **Documentation** | `pip install "stride-xai[docs]"` | `mkdocs-material`, `mkdocstrings`, and KaTeX rendering extensions. |
-| **Full Suite** | `pip install "stride-xai[all]"` | Installs all optional dependencies listed above. |
+| **Full Suite** | `pip install "stride-xai[all]"` | Installs all optional dependencies (dashboard, complete XAI, and developer tools). |
 
 To install multiple extras simultaneously, provide a comma-separated list:
 

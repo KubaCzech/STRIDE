@@ -138,11 +138,23 @@ Install the core package directly from PyPI:
 pip install stride-xai
 ```
 
-Optional capability extras can be installed as needed:
+The base installation includes all core components: streaming datasets and generators, statistical and hypothesis drift detectors, scikit-learn model wrappers, 2D decision boundary tracking, native Permutation Feature Importance (PFI), and stream visualization via Matplotlib and Seaborn.
+
+Optional capability extras can be installed depending on your deployment needs:
+
 ```bash
-pip install "stride-xai[all]"        # All extras (visualizations, XAI, deep learning, dashboard)
-pip install "stride-xai[dashboard]"  # Interactive Streamlit dashboard dependencies
-pip install "stride-xai[xai]"        # SHAP and LIME explainers
+# Recommended for interactive exploration & research:
+pip install "stride-xai[all]"        # Full installation (dashboard, all XAI explainers, clustering, deep learning)
+pip install "stride-xai[dashboard]"  # Interactive Streamlit dashboard + core and explanation suites
+
+# Recommended for headless pipelines & scripts (no web dashboard):
+pip install "stride-xai[xai-full]"   # Complete XAI suite (SHAP, LIME, HDBSCAN, UMAP, X-Means, SSNP neural projection, Plotly)
+
+# Granular extras:
+pip install "stride-xai[xai]"          # Local explainers (SHAP and LIME)
+pip install "stride-xai[clustering]"   # Advanced clustering and manifold projection (HDBSCAN, X-Means, UMAP)
+pip install "stride-xai[deeplearning]" # Neural projection models (TensorFlow SSNP)
+pip install "stride-xai[vis]"          # Interactive charts (Plotly)
 ```
 
 ### From Source (Development)

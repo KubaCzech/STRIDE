@@ -35,8 +35,7 @@ MOCKED_ABSENT_OPTIONAL_MODULES = {
     "pyclustering.cluster.xmeans": None,
     "hdbscan": None,
     "tensorflow": None,
-    "matplotlib": None,
-    "matplotlib.pyplot": None,
+    "plotly": None,
 }
 
 
@@ -111,6 +110,28 @@ class TestMinimalInstallImport(unittest.TestCase):
         self.assertIn("pre", res_boundary)
         self.assertIn("post", res_boundary)
         self.assertTrue(res_boundary["is_2d"])
+
+        # 8. Core stream visualization (powered by matplotlib/seaborn in core dependencies)
+        fig_feat = plot_feature_space(
+            n_features=2,
+            feature_names=["f0", "f1"],
+            X_before=X[:30, :2],
+            X_after=X[30:, :2],
+            y_before=y[:30],
+            y_after=y[30:],
+            class_colors={0: "red", 1: "blue"},
+        )
+        self.assertIsNotNone(fig_feat)
+
+        fig_stream = visualize_data_stream(
+            X=X,
+            y=y,
+            window_before_start=0,
+            window_after_start=30,
+            window_length=30,
+            feature_names=["f0", "f1", "f2", "f3"],
+        )
+        self.assertIsNotNone(fig_stream)
 
 
 class TestOptionalDependencyGuardrails(unittest.TestCase):
