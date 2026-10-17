@@ -46,8 +46,9 @@ def run_xmeans(
     k_max : int
         Maximum number of clusters allowed by X-Means.
     random_state : int | None, default=42
-        Seed for NumPy and the Python ``random`` module to ensure reproducibility.
-        When ``None`` the global random state is used unchanged.
+        Seed passed to pyclustering's k-means++ initialiser and to X-Means itself,
+        so that every cluster split is reproducible.  When ``None`` the result is
+        non-deterministic.
 
     Returns
     -------
@@ -59,9 +60,12 @@ def run_xmeans(
 
     Notes
     -----
-    ``pyclustering`` relies on the global random state.  Setting ``random_state``
-    here seeds both ``numpy.random`` and the built-in ``random`` module, which is
-    sufficient for pyclustering's internal sampling.
+    pyclustering re-seeds Python's ``random`` module inside every k-means++ call
+    (``random.seed(random_state)``), including the ones X-Means performs when
+    splitting a cluster.  Seeding the global RNG beforehand is therefore not
+    enough: ``random_state`` must be forwarded to ``xmeans`` explicitly.  Because
+    this re-seeding touches the global ``random`` module, its state is saved and
+    restored around the call so that callers' random streams are left untouched.
     """
     try:
         from pyclustering.cluster.xmeans import kmeans_plusplus_initializer, xmeans
@@ -72,18 +76,16 @@ def run_xmeans(
             extra_name="clustering",
         ) from err
 
-    if random_state is not None:
-        random.seed(random_state)
-        np.random.seed(random_state)
-
-    # Try to pass random_state if the installed pyclustering version supports it
+    rng_state = random.getstate()
     try:
         init_centers = kmeans_plusplus_initializer(X, k_init, random_state=random_state).initialize()
-    except TypeError:
-        init_centers = kmeans_plusplus_initializer(X, k_init).initialize()
 
-    xm = xmeans(X, init_centers, kmax=k_max, ccore=False)
-    xm.process()
+        # ccore=False: the bundled C++ library is built for x86_64 only and fails to load on arm64.
+        xm = xmeans(X, init_centers, kmax=k_max, ccore=False, random_state=random_state)
+        xm.process()
+    finally:
+        random.setstate(rng_state)
+
     centers = np.array(xm.get_centers())
     clusters = xm.get_clusters()
     return centers, clusters
