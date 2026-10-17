@@ -347,11 +347,11 @@ def visualize_data_stream(
     class_dist_before = {cls: np.mean(y_before == cls) for cls in unique_classes}
     class_dist_after = {cls: np.mean(y_after == cls) for cls in unique_classes}
 
+    cmap = plt.get_cmap("tab10")
     if len(unique_classes) <= 2:
         _base = {0: "#FF6B6B", 1: "#4ECDC4"}
-        class_colors = {cls: _base.get(i, plt.cm.tab10(i)) for i, cls in enumerate(sorted(unique_classes))}
+        class_colors = {cls: _base.get(i, cmap(i % 10)) for i, cls in enumerate(sorted(unique_classes))}
     else:
-        cmap = plt.cm.get_cmap("tab10")
         class_colors = {cls: cmap(i % 10) for i, cls in enumerate(sorted(unique_classes))}
 
     return [
