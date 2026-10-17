@@ -40,6 +40,8 @@ dependencies = [
     "scipy",
     "scikit-learn",
     "river",
+    "matplotlib",
+    "seaborn",
 ]
 
 [project.urls]
@@ -51,8 +53,6 @@ Changelog = "https://github.com/KubaCzech/STRIDE/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 vis = [
-    "matplotlib",
-    "seaborn",
     "plotly",
 ]
 drift = [
@@ -69,6 +69,15 @@ xai = [
 ]
 deeplearning = [
     "tensorflow>=2.15.0",
+]
+xai-full = [
+    "shap",
+    "lime",
+    "pyclustering",
+    "hdbscan",
+    "umap-learn",
+    "tensorflow>=2.15.0",
+    "plotly",
 ]
 dashboard = [
     "streamlit",
