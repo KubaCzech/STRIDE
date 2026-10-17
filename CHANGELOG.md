@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-17
+
+### Added
+- **Core Visualization & Dependency Restructuring**:
+    - Promoted `matplotlib` and `seaborn` to core `dependencies` in `pyproject.toml`, ensuring out-of-the-box stream visualization and feature distribution plotting upon `pip install stride-xai` without requiring optional extras (#29).
+    - Introduced the `xai-full` optional dependency extra (`pip install "stride-xai[xai-full]"`) packaging all analytical engines (`shap`, `lime`, `pyclustering`, `hdbscan`, `umap-learn`, `tensorflow>=2.15.0`, `plotly`) for headless pipelines and automated notebooks without installing Streamlit web server dependencies (#29).
+    - Refined the `vis` optional extra to focus exclusively on `plotly` for interactive web plotting (#29).
+    - Updated minimal base installation guardrail tests in `tests/test_minimal_install_import.py` to assert native execution of stream visualizations in the core library (#29).
+    - Updated installation guides across `README.md` and documentation with the tiered installation model (#29).
+
+### Fixed
+- **Plotting**:
+    - Resolved multiclass colormap indexing by adopting `plt.get_cmap` for categorical stream visualizations (#28).
+
 ## [0.3.0] - 2026-10-16
 
 ### Added
