@@ -81,8 +81,10 @@ flowchart TD
 
 ### Tab 5: Clustering Dynamics
 * **X-Means Modality Discovery**: Dynamic estimation of sub-population cluster count $K$ in reference versus detection windows.
-* **Drift Decision**: Drift strength across four criteria (cluster birth/death, centroid shift, per-cluster statistics, cluster spread) with a permutation-test p-value.
+* **Drift Decision**: Drift strength across four criteria (cluster birth/death, centroid shift, per-cluster statistics, cluster spread) with a permutation-test p-value, and a per-class table of triggered checks and their contribution to the strength.
+* **Cluster Overview**: Status of every cluster (tracked, appeared, disappeared), its size in both windows, centroid shift and change of spread; per-cluster statistic changes in standard deviations; centroids.
 * **Centroid Shift Vectors**: 2D plots of centroid displacement paths, identifying emerging (cluster birth) or disappearing (cluster death) sub-populations.
+* **Configuration**: Range of the number of clusters, number of permutations, significance level, reference or independent (legacy) cluster matching, and optional size-aware significance tests per cluster.
 
 ### Tab 6: Recurring Concepts & Prototypes
 * **Window Memory Timeline**: Displays archived window representations throughout the stream lifetime.

@@ -2,7 +2,7 @@ import traceback
 import numpy as np
 import pandas as pd
 import streamlit as st
-from typing import Sequence, Union
+from typing import Sequence
 import matplotlib.pyplot as plt
 
 from stride.xai.clustering.clustering import ClusterBasedDriftDetector
@@ -11,6 +11,11 @@ from stride.xai.clustering.visualization import (
     plot_drift_clustered,
     plot_centers_shift,
 )
+
+# Criteria in the order used by ClusterBasedDriftDetector for `weights` and `effective_weights`.
+CRITERIA = ["Clusters appeared/disappeared", "Descriptive statistics", "Centroid shift", "Spread"]
+
+DRIFT_STYLE = "background-color: rgba(231, 76, 60, 0.25)"
 
 
 def _display_intro():
@@ -33,6 +38,80 @@ def _display_intro():
     data) decides whether the observed drift strength is larger than chance.
     """
     )
+
+
+def _render_detector_config() -> dict:
+    """
+    Renders the detector settings and returns them as keyword arguments of the detector.
+    """
+    with st.expander("Clustering Configuration", expanded=False):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            k_init = st.number_input(
+                "Initial clusters per class (k_init)",
+                min_value=1,
+                max_value=10,
+                value=2,
+                help="Number of clusters X-Means starts from in every class.",
+            )
+            k_max = st.number_input(
+                "Maximum clusters per class (k_max)",
+                min_value=int(k_init),
+                max_value=30,
+                value=max(10, int(k_init)),
+                help="Upper limit of the number of clusters X-Means may find in every class.",
+            )
+        with col2:
+            n_permutations = st.number_input(
+                "Permutations",
+                min_value=0,
+                max_value=500,
+                value=50,
+                step=10,
+                help=(
+                    "Random re-splits of the pooled windows used to calibrate the decision. "
+                    "More permutations give a finer p-value (the smallest attainable is 1 / (permutations + 1)) "
+                    "but take proportionally longer. 0 disables the test and compares the strength with 0.5."
+                ),
+            )
+            permutation_alpha = st.select_slider(
+                "Significance level",
+                options=[0.01, 0.05, 0.1],
+                value=0.05,
+                help="Drift is reported when the permutation p-value is below this level.",
+                disabled=n_permutations == 0,
+            )
+        with col3:
+            matching = st.radio(
+                "Cluster matching",
+                options=["reference", "independent"],
+                format_func=lambda m: {
+                    "reference": "Assign to reference clusters",
+                    "independent": "Independent clusterings (legacy)",
+                }[m],
+                help=(
+                    "Reference: the After window is assigned to the clusters of the Before window. "
+                    "Independent: both windows are clustered separately and centroids are paired "
+                    "with the Hungarian algorithm."
+                ),
+            )
+            use_alpha = st.checkbox(
+                "Require significant per-cluster changes",
+                value=False,
+                help=(
+                    "Additionally require a two-sample test (α = 0.01) that accounts for the cluster size before a "
+                    "centroid, statistic or spread change counts. Removes spurious flags in small clusters at the "
+                    "cost of some sensitivity."
+                ),
+            )
+    return {
+        "k_init": int(k_init),
+        "k_max": int(k_max),
+        "matching": matching,
+        "n_permutations": int(n_permutations),
+        "permutation_alpha": float(permutation_alpha),
+        "alpha": 0.01 if use_alpha else None,
+    }
 
 
 def _display_drift_summary(detector: ClusterBasedDriftDetector):
@@ -75,97 +154,72 @@ def _display_drift_summary(detector: ClusterBasedDriftDetector):
         col_p.metric("Decision Threshold", f"{detector.decision_thr:.2f}")
 
 
+def _class_name(label) -> str:
+    """Readable class label: integral numbers without decimals, anything else as text."""
+    if isinstance(label, (bool, np.bool_)):
+        return str(label)
+    if isinstance(label, (int, float, np.integer, np.floating)) and float(label).is_integer():
+        return str(int(label))
+    return str(label)
+
+
+def _criteria_counts(class_details: dict) -> tuple[np.ndarray, np.ndarray]:
+    """Triggered and evaluated checks of one class, in the order of ``CRITERIA``."""
+    stats = [
+        flag
+        for cluster in class_details["desc_stats_changes"].values()
+        for feature in cluster.values()
+        for flag in feature.values()
+    ]
+    groups = [
+        [class_details["nr_of_clusters"]],
+        stats,
+        list(class_details["centroid_shift"].values()),
+        list(class_details["avg_distance_to_center"].values()),
+    ]
+    triggered = np.array([sum(bool(f) for f in g) for g in groups])
+    evaluated = np.array([len(g) for g in groups])
+    return triggered, evaluated
+
+
 def _config_details_dataframe(details: dict, weights: Sequence[float]) -> pd.DataFrame:
     """
-    Configures a DataFrame summarizing drift details per class.
+    Summarises the checks of every criterion per class and their contribution to the strength.
 
     Parameters
     ----------
     details : dict
-        Detailed drift information per class.
+        Detailed drift information per class (``detector.drift_details``).
     weights : Sequence[float]
-        Weights for each drift criterion.
+        Effective criterion weights (``detector.effective_weights``).
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per criterion: weight, triggered/evaluated checks per class and the
+        contribution to the drift strength. The contributions sum to the drift strength.
     """
-    rows = []
-    true_counts = []
-    false_counts = []
+    counts = {cl: _criteria_counts(d) for cl, d in details.items()}
+    triggered = np.sum([t for t, _ in counts.values()], axis=0)
+    evaluated = np.sum([e for _, e in counts.values()], axis=0)
 
-    for cl in details.keys():
-        trues = np.array(
-            [
-                int(details[cl]["nr_of_clusters"]),
-                sum(
-                    [
-                        stat
-                        for cluster in details[cl]["desc_stats_changes"].values()
-                        for feature in cluster.values()
-                        for stat in feature.values()
-                    ]
-                ),
-                sum([details[cl]["centroid_shift"][label] for label in details[cl]["centroid_shift"].keys()]),
-                sum([details[cl]["avg_distance_to_center"][label] for label in details[cl]["avg_distance_to_center"].keys()]),
-            ]
-        )
-
-        falses = np.array(
-            [
-                int(not details[cl]["nr_of_clusters"]),
-                sum(
-                    [
-                        not stat
-                        for cluster in details[cl]["desc_stats_changes"].values()
-                        for feature in cluster.values()
-                        for stat in feature.values()
-                    ]
-                ),
-                sum([not details[cl]["centroid_shift"][label] for label in details[cl]["centroid_shift"].keys()]),
-                sum(
-                    [
-                        not details[cl]["avg_distance_to_center"][label]
-                        for label in details[cl]["avg_distance_to_center"].keys()
-                    ]
-                ),
-            ]
-        )
-        true_counts.append(trues)
-        false_counts.append(falses)
-
-    true_counts = np.array(true_counts)
-    false_counts = np.array(false_counts)
-    total_counts = np.sum(true_counts, axis=0) + np.sum(false_counts, axis=0)
-
-    # Same formula as ClusterBasedDriftDetector._generate_drift_flag: the per-class rows sum
-    # to the drift strength when `weights` are the detector's effective weights.
-    contributions = true_counts / np.maximum(total_counts, 1) * np.asarray(weights)
-
-    for i, class_label in enumerate(details.keys()):
-        row = dict()
-        row["Cluster Count Drift"] = contributions[i, 0]
-        row["Stats Drift"] = contributions[i, 1]
-        row["Centroid Shift Drift"] = contributions[i, 2]
-        row["Avg Distance to Center Drift"] = contributions[i, 3]
-        rows.append(row)
-
-    df = pd.DataFrame(
-        rows,
-        index=[f"Class {str(int(c))}" if not isinstance(c, str) else c for c in details.keys()],
-    )
-    cols = df.columns.tolist()
-    df = df.T
-    df["Criterion"] = cols
-    return df[["Criterion"] + [i for i in df.columns.to_list() if i != "Criterion"]]
+    df = pd.DataFrame({"Criterion": CRITERIA, "Weight": np.asarray(weights, dtype=float)})
+    for cl, (t, e) in counts.items():
+        df[f"Class {_class_name(cl)}"] = [f"{ti}/{ei}" if ei else "–" for ti, ei in zip(t, e)]
+    df["Contribution"] = triggered / np.maximum(evaluated, 1) * np.asarray(weights, dtype=float)
+    return df
 
 
 def _display_drift_details(details: dict, weights: Sequence[float]):
     """
-    Displays detailed drift information per class.
+    Displays the triggered checks per class and criterion.
 
     Parameters
     ----------
     details : dict
         Detailed drift information per class.
     weights : Sequence[float]
-        Weights for each drift criterion.
+        Effective weights of the criteria.
     """
     st.subheader("Drift Details by Class")
 
@@ -174,24 +228,29 @@ def _display_drift_details(details: dict, weights: Sequence[float]):
     st.dataframe(
         details_df,
         column_config={
-            "Criterion": st.column_config.TextColumn(
-                "Criterion",
-                help="Drift criterion",
-                disabled=True,
+            "Criterion": st.column_config.TextColumn("Criterion", help="Drift criterion"),
+            "Weight": st.column_config.NumberColumn(
+                "Weight",
+                help="Weight of the criterion, renormalised over criteria with at least one evaluated check.",
+                format="%.3f",
             ),
             **{
-                col: st.column_config.NumberColumn(
-                    col,
-                    help="Contribution to drift strength",
-                    disabled=True,
-                    format="%.4f",
-                )
+                col: st.column_config.TextColumn(col, help="Triggered / evaluated checks")
                 for col in details_df.columns
-                if col != "Criterion"
+                if col.startswith("Class ")
             },
+            "Contribution": st.column_config.NumberColumn(
+                "Contribution",
+                help="Weight × share of triggered checks; the contributions sum to the drift strength.",
+                format="%.4f",
+            ),
         },
         width="stretch",
         hide_index=True,
+    )
+    st.caption(
+        "Appeared and disappeared clusters count only towards the first criterion; centroid, statistics and "
+        "spread are compared for clusters present in both windows. “–” means the criterion had nothing to evaluate."
     )
 
 
@@ -202,10 +261,10 @@ def _display_visualization(
     y_after: np.ndarray,
     labels_old: Sequence[int],
     labels_new: Sequence[int],
-    viz_type: str = "cluster by class",
+    viz_type: str = "clusters by class",
 ):
     """
-    Helper functions to display visualizations for clustering analysis from another module.
+    Draws one of the cluster plots into the current matplotlib figure.
 
     X_before : pd.DataFrame
         Feature matrix for 'before' data block
@@ -226,19 +285,6 @@ def _display_visualization(
     plot_func(X_before, X_after, y_before, y_after, labels_old, labels_new)
 
 
-def _display_table(detector: ClusterBasedDriftDetector, table_type: str = "centroid shifts (table)"):
-    """
-    Helper functions to display tables for clustering analysis.
-
-    detector : ClusterBasedDriftDetector
-        The drift detector containing all necessary information.
-    table_type : str
-        Type of visualization to display
-    """
-    table_func = CLUSTER_TABLE_FUNCTIONS.get(table_type, _display_centroid_shift_table)
-    table_func(detector)
-
-
 CLUSTER_PLOT_FUNCTIONS = {
     "clusters by class": plot_clusters_by_class,
     "clusters overall": plot_drift_clustered,
@@ -247,54 +293,107 @@ CLUSTER_PLOT_FUNCTIONS = {
 
 
 # TABULAR DISPLAY FUNCTIONS
-def _display_cluster_assignments_table(detector: ClusterBasedDriftDetector):
+def _cluster_overview_dataframe(detector: ClusterBasedDriftDetector) -> pd.DataFrame:
     """
-    Displays a table showing cluster assignments for each class before and after drift.
+    One row per cluster: class, size in both windows, status, centroid shift and spread.
 
     Parameters
     ----------
     detector : ClusterBasedDriftDetector
-        The drift detector containing cluster labels and class labels.
+        A detector on which ``detect()`` has been called.
     """
-    y_before, y_after = detector.y_old, detector.y_new
-    labels_before, labels_after = detector.cluster_labels_old, detector.cluster_labels_new
-
-    classes_ids = sorted(set(y_before).union(set(y_after)))
+    y_old, y_new = np.asarray(detector.y_old), np.asarray(detector.y_new)
+    centroid_flags = {k: v for d in detector.drift_details.values() for k, v in d["centroid_shift"].items()}
+    spread_flags = {k: v for d in detector.drift_details.values() for k, v in d["avg_distance_to_center"].items()}
 
     rows = []
-    for class_id in classes_ids:
-        before_clusters = sorted(set(labels_before[np.array(y_before) == class_id]))
-        after_clusters = sorted(set(labels_after[np.array(y_after) == class_id]))
-
+    for k, shift in sorted(detector.cluster_shifts.items()):
+        in_old = detector.cluster_labels_old == k
+        in_new = detector.cluster_labels_new == k
+        tracked = isinstance(shift, dict)
         rows.append(
             {
-                "Class": int(class_id),
-                "Before Drift": ", ".join(map(str, before_clusters)),
-                "After Drift": ", ".join(map(str, after_clusters)),
+                "Cluster": int(k),
+                "Class": _class_name((y_old[in_old] if in_old.any() else y_new[in_new])[0]),
+                "Status": "tracked" if tracked else shift,
+                "Samples Before": int(in_old.sum()),
+                "Samples After": int(in_new.sum()),
+                "Centroid Shift": shift["euclidean_distance"] if tracked else None,
+                "Centroid Drift": bool(centroid_flags.get(k, False)),
+                "Spread Before": detector.avg_distance_old.get(k),
+                "Spread After": detector.avg_distance_new.get(k),
+                "Spread Change": detector.avg_distance_shift.get(k) * 100 if tracked else None,
+                "Spread Drift": bool(spread_flags.get(k, False)),
             }
         )
+    return pd.DataFrame(rows)
 
-    df_total = pd.DataFrame(rows)
 
+def _display_cluster_overview_table(detector: ClusterBasedDriftDetector):
+    """
+    Displays the status, size, centroid shift and spread of every cluster.
+
+    Parameters
+    ----------
+    detector : ClusterBasedDriftDetector
+        A detector on which ``detect()`` has been called.
+    """
+    df = _cluster_overview_dataframe(detector)
+    styled = df.style.map(
+        lambda s: DRIFT_STYLE if s in ("appeared", "disappeared") else "",
+        subset=["Status"],
+    )
     st.dataframe(
-        df_total,
+        styled,
         column_config={
-            "Class": st.column_config.TextColumn("Class", help="Class label"),
-            "Before Drift": st.column_config.TextColumn(
-                "Before Drift", help="Cluster IDs associated with this class before drift"
+            "Cluster": st.column_config.NumberColumn("Cluster", help="Global cluster ID, shared by both windows"),
+            "Class": st.column_config.TextColumn("Class"),
+            "Status": st.column_config.TextColumn(
+                "Status",
+                help=(
+                    "tracked: present in both windows; appeared: a region of the After window not explained by the "
+                    "Before clusters; disappeared: receives significantly fewer After samples than expected"
+                ),
             ),
-            "After Drift": st.column_config.TextColumn(
-                "After Drift", help="Cluster IDs associated with this class after drift"
+            "Samples Before": st.column_config.NumberColumn("Samples Before"),
+            "Samples After": st.column_config.NumberColumn("Samples After"),
+            "Centroid Shift": st.column_config.NumberColumn(
+                "Centroid Shift",
+                help=f"Euclidean distance between the centroids (standardised features); threshold {detector.thr_centroid_shift:.3f}",
+                format="%.3f",
             ),
+            "Centroid Drift": st.column_config.CheckboxColumn("Centroid Drift"),
+            "Spread Before": st.column_config.NumberColumn(
+                "Spread Before", help="Mean distance of the samples to their centroid", format="%.3f"
+            ),
+            "Spread After": st.column_config.NumberColumn("Spread After", format="%.3f"),
+            "Spread Change": st.column_config.NumberColumn(
+                "Spread Change",
+                help=f"Relative change of the spread; threshold ±{detector.thr_avg_distance_to_center_change:.0%}",
+                format="%+.1f%%",
+            ),
+            "Spread Drift": st.column_config.CheckboxColumn("Spread Drift"),
         },
         width="stretch",
         hide_index=True,
     )
 
 
-def _display_stats_shift_table(detector):
+def _stats_shift_dataframe(detector: ClusterBasedDriftDetector) -> pd.DataFrame:
+    """Change of the per-cluster statistics of clusters present in both windows, in σ."""
+    rows = []
+    for k, shift in sorted(detector.cluster_shifts.items()):
+        if not isinstance(shift, dict):
+            continue
+        for feature in detector.columns:
+            stats = detector.stats_shifts[k][feature]
+            rows.append({"Cluster": int(k), "Feature": str(feature), **{s: stats[s] for s in ("mean", "median", "std")}})
+    return pd.DataFrame(rows, columns=["Cluster", "Feature", "mean", "median", "std"])
+
+
+def _display_stats_shift_table(detector: ClusterBasedDriftDetector):
     """
-    Displays a table showing statistical shifts for each cluster.
+    Displays the change of the per-cluster mean, median and standard deviation.
 
     Shifts are absolute changes of standardised features, i.e. expressed in
     standard deviations (σ) of each feature.
@@ -304,61 +403,23 @@ def _display_stats_shift_table(detector):
     detector : ClusterBasedDriftDetector
         The drift detector containing statistical shift information.
     """
+    df = _stats_shift_dataframe(detector)
+    if df.empty:
+        st.info("No cluster is present in both windows, so per-cluster statistics are not compared.")
+        return
 
-    def stats_dict_to_df(stats_dict: dict) -> pd.DataFrame:
-        """
-        Converts a nested dict {cluster -> feature -> stat -> value}
-        into a flat pandas DataFrame.
-        """
-        records = []
-        for cluster_id, features in stats_dict.items():
-            row = {"Cluster": cluster_id}
-            for feature_name, stats in features.items():
-                for stat_name, value in stats.items():
-                    row[f"{feature_name} | {stat_name}"] = f"{value:+.3f} σ" if not np.isnan(value) else "N/A"
-            records.append(row)
-
-        df = pd.DataFrame(records)
-        return df
-
-    st.caption("Change of each statistic between blocks, in standard deviations (σ) of the standardised feature.")
-    stats_shifts = stats_dict_to_df(detector.stats_shifts)
-    st.dataframe(stats_shifts, use_container_width=True, hide_index=True)
-
-
-def _display_centroid_shift_table(detector: ClusterBasedDriftDetector):
-    """
-    Displays a table showing centroid shifts (in units) for each cluster.
-
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        The drift detector containing cluster shift information.
-    """
-    centroid_shifts = {
-        int(i): (
-            round(detector.cluster_shifts[i]["euclidean_distance"], 4)
-            if isinstance(detector.cluster_shifts[i], dict)
-            else detector.cluster_shifts[i]
-        )
-        for i in detector.cluster_shifts
-    }
-    centroid_shifts = pd.DataFrame.from_dict({"cluster_id": centroid_shifts.keys(), "shift": centroid_shifts.values()})
-
-    centroid_shifts["drifted"] = centroid_shifts["shift"].apply(
-        lambda x: isinstance(x, float) and x > detector.thr_centroid_shift or x == "appeared" or x == "disappeared"
+    thr = detector.thr_desc_stats
+    st.caption(
+        f"Change of each statistic between the windows for clusters present in both, in standard deviations (σ) "
+        f"of the feature. Highlighted: |change| > {thr} σ."
     )
-
+    styled = df.style.map(lambda v: DRIFT_STYLE if pd.notna(v) and abs(v) > thr else "", subset=["mean", "median", "std"])
     st.dataframe(
-        centroid_shifts,
+        styled,
         column_config={
-            "cluster_id": st.column_config.TextColumn("Cluster ID"),
-            "shift": st.column_config.TextColumn("Cluster Shift", help="How much did the cluster shift"),
-            "drifted": st.column_config.CheckboxColumn(
-                "Drifted",
-                help=f"True if the cluster centroid shifted above the threshold ({detector.thr_centroid_shift:.2f}) or the cluster appeared/disappeared",
-                disabled=True,
-            ),
+            "Cluster": st.column_config.NumberColumn("Cluster"),
+            "Feature": st.column_config.TextColumn("Feature"),
+            **{s: st.column_config.NumberColumn(f"Δ {s}", format="%+.3f σ") for s in ("mean", "median", "std")},
         },
         width="stretch",
         hide_index=True,
@@ -367,105 +428,56 @@ def _display_centroid_shift_table(detector: ClusterBasedDriftDetector):
 
 def _display_centroids_table(detector: ClusterBasedDriftDetector):
     """
-    Displays centroids in a format:
-    Cluster | Data Block (Before/After) | x1 ... xn
+    Displays the centroids of every cluster in both windows (standardised features).
 
     Parameters
     ----------
     detector : ClusterBasedDriftDetector
         The drift detector containing cluster centroids.
     """
-    centroids_before = detector.centers_old
-    centroids_after = detector.centers_new
-
+    columns = [str(c) for c in detector.columns]
     rows = []
-
-    all_cluster_ids = sorted(set(centroids_before.keys()).union(centroids_after.keys()))
-
-    # Infer feature count
-    sample_centroid = next(c for c in list(centroids_before.values()) + list(centroids_after.values()) if c is not None)
-    n_features = len(sample_centroid)
-    feature_cols = [f"x{i + 1}" for i in range(n_features)]
-
-    for cluster_id in all_cluster_ids:
-        for window, centroids in [
-            ("Before", centroids_before),
-            ("After", centroids_after),
-        ]:
+    for cluster_id in sorted(set(detector.centers_old) | set(detector.centers_new)):
+        for window, centroids in [("Before", detector.centers_old), ("After", detector.centers_new)]:
             centroid = centroids.get(cluster_id)
+            values = [None] * len(columns) if centroid is None else [float(v) for v in centroid]
+            rows.append({"Cluster": int(cluster_id), "Window": window, **dict(zip(columns, values))})
 
-            row = {
-                "Cluster": int(cluster_id),
-                "Data Block": window,
-            }
-
-            if centroid is None:
-                for f in feature_cols:
-                    row[f] = "-"
-            else:
-                for i, f in enumerate(feature_cols):
-                    row[f] = round(float(centroid[i]), 4)
-
-            rows.append(row)
-
-    df = pd.DataFrame(rows)
-
+    st.caption("Centroids in standardised feature space (mean 0, standard deviation 1 in the Before window).")
     st.dataframe(
-        df,
+        pd.DataFrame(rows),
         column_config={
             "Cluster": st.column_config.NumberColumn("Cluster"),
-            "Data Block": st.column_config.TextColumn(
-                "Data Block",
-                help="Data Block Before or After drift",
-            ),
-            **{f: st.column_config.TextColumn(f) for f in feature_cols},
+            "Window": st.column_config.TextColumn("Window"),
+            **{c: st.column_config.NumberColumn(c, format="%.3f") for c in columns},
         },
         width="stretch",
         hide_index=True,
     )
 
 
-def _display_avg_distance_to_center_change(detector: ClusterBasedDriftDetector):
-    """
-    Displays a table showing average distance to cluster center changes.
-
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        The drift detector containing average distance metrics.
-    """
-    avg_distance = pd.DataFrame.from_dict(
-        {
-            "cluster_id": [int(i) for i in sorted(detector.avg_distance_old.keys())],
-            "avg_distance_before": [i[1] for i in sorted(detector.avg_distance_old.items(), key=lambda x: x[0])],
-            "avg_distance_after": [i[1] for i in sorted(detector.avg_distance_new.items(), key=lambda x: x[0])],
-            "avg_distance_shift": [
-                f"{'+' if i[1] > 0 else '-'}{abs(round(i[1] * 100, 2))}%" if i[1] is not None else "-"
-                for i in sorted(detector.avg_distance_shift.items(), key=lambda x: x[0])
-            ],
-        }
+def _plot_permutation_test(detector: ClusterBasedDriftDetector):
+    """Histogram of the drift strength under random re-splits with the observed strength."""
+    fig, ax = plt.subplots(figsize=(8, 3.5))
+    ax.hist(detector.null_strengths, bins=15, color="#95a5a6", edgecolor="white", label="Random re-splits (no drift)")
+    ax.axvline(
+        detector.strength_of_drift,
+        color="#c0392b",
+        linewidth=2,
+        label=f"Observed strength (p = {detector.p_value:.3f})",
     )
-
-    st.dataframe(
-        avg_distance[["cluster_id", "avg_distance_shift"]],
-        column_config={
-            "cluster_id": st.column_config.TextColumn("Class", help="Class label"),
-            "avg_distance_shift": st.column_config.TextColumn(
-                "Average Distance to Center Relative Change",
-                help="How much did the average distance between data blocks to center change",
-            ),
-        },
-        width="stretch",
-        hide_index=True,
-    )
+    ax.set_xlabel("Drift strength")
+    ax.set_ylabel("Number of re-splits")
+    ax.set_title("Permutation test")
+    ax.legend()
+    fig.tight_layout()
+    return fig
 
 
 CLUSTER_TABLE_FUNCTIONS = {
-    "cluster assignments (table)": _display_cluster_assignments_table,
-    "centroid shifts (table)": _display_centroid_shift_table,
-    "stats shifts": _display_stats_shift_table,
-    "average distance to center change": _display_avg_distance_to_center_change,
-    "centroids table": _display_centroids_table,
+    "cluster overview (table)": _display_cluster_overview_table,
+    "statistics shifts (table)": _display_stats_shift_table,
+    "centroids (table)": _display_centroids_table,
 }
 
 
@@ -497,43 +509,46 @@ def _display(
     labels_old = detector.cluster_labels_old
     labels_new = detector.cluster_labels_new
 
-    if labels_old is not None and labels_new is not None:
-        col_viz_options, _ = st.columns([1, 2])
-        with col_viz_options:
-            _type = st.selectbox(
-                "Select clustering analysis view",
-                options=[
-                    "clusters by class",
-                    "clusters overall",
-                    "cluster assignments (table)",
-                    "stats shifts",
-                    "centroid shifts (plot)",
-                    "centroid shifts (table)",
-                    "centroids table",
-                    "average distance to center change",
-                ],
-                index=0,  # Default to 'cluster by class'
-                key="viz_type_selector",
-                help=("Choose how clustering results and drift-related information should be visualized or summarized."),
-            )
-        if _type in CLUSTER_PLOT_FUNCTIONS:
-            _display_visualization(X_before, X_after, y_before, y_after, labels_old, labels_new, viz_type=_type)
-            fig = plt.gcf()
-            st.pyplot(fig)
-            plt.close(fig)
-        elif _type in CLUSTER_TABLE_FUNCTIONS:
-            _display_table(detector, table_type=_type)
-    else:
+    if labels_old is None or labels_new is None:
         st.warning("Cluster labels not available for plotting.")
+        return
+
+    options = list(CLUSTER_PLOT_FUNCTIONS) + list(CLUSTER_TABLE_FUNCTIONS)
+    if detector.null_strengths is not None:
+        options.append("permutation test (plot)")
+
+    col_viz_options, _ = st.columns([1, 2])
+    with col_viz_options:
+        _type = st.selectbox(
+            "Select clustering analysis view",
+            options=options,
+            index=0,
+            key="cluster_view_selector",
+            help="Choose how clustering results and drift-related information should be visualized or summarized.",
+        )
+
+    if _type in CLUSTER_PLOT_FUNCTIONS:
+        if X_before.shape[1] > 2:
+            st.caption("More than two features: the plot shows the first two principal components (PCA).")
+        _display_visualization(X_before, X_after, y_before, y_after, labels_old, labels_new, viz_type=_type)
+        fig = plt.gcf()
+        st.pyplot(fig)
+        plt.close(fig)
+    elif _type == "permutation test (plot)":
+        fig = _plot_permutation_test(detector)
+        st.pyplot(fig)
+        plt.close(fig)
+    else:
+        CLUSTER_TABLE_FUNCTIONS[_type](detector)
 
 
 @st.cache_data(show_spinner=False)
-def _run_detector(X_before, y_before, X_after, y_after) -> ClusterBasedDriftDetector:
-    """Run the detector once per pair of windows; switching views reuses the result."""
+def _run_detector(X_before, y_before, X_after, y_after, settings: dict) -> ClusterBasedDriftDetector:
+    """Run the detector once per pair of windows and settings; switching views reuses the result."""
     # Fixed random_state: identical windows always give identical clusters and p-value.
     # Permutations run sequentially: worker processes would each re-import stride (and
     # TensorFlow), which slows down and eventually stalls a long-running dashboard session.
-    detector = ClusterBasedDriftDetector(X_before, y_before, X_after, y_after, random_state=42)
+    detector = ClusterBasedDriftDetector(X_before, y_before, X_after, y_after, random_state=42, **settings)
     detector.detect()
     return detector
 
@@ -554,10 +569,11 @@ def render_clustering_analysis_tab(X_before: pd.DataFrame, y_before: np.ndarray,
         Target variable for 'after' window
     """
     _display_intro()
+    settings = _render_detector_config()
 
     with st.spinner("Running cluster-based drift detection (with permutation test)..."):
         try:
-            detector = _run_detector(X_before, y_before, X_after, y_after)
+            detector = _run_detector(X_before, y_before, X_after, y_after, settings)
 
             _display_drift_summary(detector)
             _display_drift_details(detector.drift_details, detector.effective_weights)
