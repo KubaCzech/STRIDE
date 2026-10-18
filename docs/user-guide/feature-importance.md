@@ -67,14 +67,18 @@ In streaming applications, adjacent windows frequently exhibit high degree of ov
 STRIDE incorporates **selective classification with conformal prediction** (*Vovk et al., 2005*):
 
 ```python
+from stride.datasets import SeaDriftDataset
 from stride.xai.importance import FeatureImportanceDriftAnalyzer, AbstainStrategy
+
+X, y = SeaDriftDataset().generate(n_samples_before=1000, n_samples_after=1000, drift_width=50, random_seed=42)
+X_ref, y_ref = X.iloc[:1000], y.iloc[:1000]
+X_det, y_det = X.iloc[1000:], y.iloc[1000:]
 
 analyzer = FeatureImportanceDriftAnalyzer(
     X_before=X_ref,
     y_before=y_ref,
     X_after=X_det,
     y_after=y_det,
-    random_state=42,
 )
 
 # Run permutation importance with conformal selective abstention
@@ -82,11 +86,12 @@ results = analyzer.compute_drift_importance(
     importance_method="permutation",
     include_target=True,
     abstain_strategy=AbstainStrategy.CONFORMAL,
-    conformal_significance=0.10,  # 10% significance level for abstention
+    alpha=0.10,  # 10% significance level for abstention
+    random_state=42,
 )
 
 print(f"Discriminator accuracy: {results['accuracy']:.2%}")
-print(f"Abstention rate:        {results.get('abstain_fraction', 0.0):.2%}")
+print(f"Abstention rate:        {results['rejection_rate']:.2%}")
 ```
 
 ### How Conformal Abstention Works

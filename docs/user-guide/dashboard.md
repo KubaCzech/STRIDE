@@ -81,7 +81,8 @@ flowchart TD
 
 ### Tab 5: Clustering Dynamics
 * **X-Means Modality Discovery**: Dynamic estimation of sub-population cluster count $K$ in reference versus detection windows.
-* **Hungarian Assignment Vectors**: 2D vector plots depicting centroid displacement paths, tracking velocity, and identifying emerging (cluster birth) or disappearing (cluster death) sub-populations.
+* **Drift Decision**: Drift strength across four criteria (cluster birth/death, centroid shift, per-cluster statistics, cluster spread) with a permutation-test p-value.
+* **Centroid Shift Vectors**: 2D plots of centroid displacement paths, identifying emerging (cluster birth) or disappearing (cluster death) sub-populations.
 
 ### Tab 6: Recurring Concepts & Prototypes
 * **Window Memory Timeline**: Displays archived window representations throughout the stream lifetime.

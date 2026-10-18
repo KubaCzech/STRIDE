@@ -12,7 +12,7 @@ All generators inherit from `BaseDataset` and implement a unified `generate()` i
 from stride.datasets import (
     HyperplaneDriftDataset,
     SeaDriftDataset,
-    RbfDriftDataset,
+    RBFDriftDataset,
     LinearWeightInversionDriftDataset,
     SemiSyntheticDriftDataset,
 )

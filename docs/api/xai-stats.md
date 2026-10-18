@@ -23,8 +23,8 @@ from stride.xai.stats import (
 | :--- | :--- |
 | `StatisticalTestsDriftDetector` | Evaluates two-sample hypothesis tests across continuous features between reference and detection windows. |
 | `StatisticalTestType` | Enumeration of supported statistical tests (`KolmogorovSmirnov`, `AndersonDarling`, `Wasserstein`). |
-| `DescriptiveStatisticsDriftDetector` | Detects relative shifts across summary moments (mean, variance, skewness, kurtosis). |
-| `StatisticsType` | Enumeration of summary statistics evaluated (`Mean`, `Variance`, `Skewness`, `Kurtosis`, `All`). |
+| `DescriptiveStatisticsDriftDetector` | Detects class-conditional relative shifts of summary statistics (mean, std, min, max, median) and of the class imbalance ratio. |
+| `StatisticsType` | Enumeration of summary statistics evaluated (`Mean`, `StandardDeviation`, `Min`, `Max`, `Median`, `ImbalanceRatio`, `All`). |
 
 ---
 

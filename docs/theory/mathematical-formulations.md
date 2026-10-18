@@ -81,9 +81,19 @@ where $d(x_i, x_j) = \|x_i - x_j\|_2$ denotes the Euclidean distance in the orig
 
 ---
 
-## 3. Optimal Bipartite Centroid Matching (Hungarian Algorithm)
+## 3. Cluster Correspondence and Drift Decision
 
-Let $C_{\text{before}} = \{c_1, \dots, c_{K_1}\}$ and $C_{\text{after}} = \{c'_1, \dots, c'_{K_2}\}$ denote cluster centroids extracted from reference and detection windows, respectively.
+### 3.1 Reference-Anchored Cluster Tracking (default)
+
+Let $C = \{c_1, \dots, c_K\}$ be the X-Means centroids of one class in the reference window. A K-means partition is the Voronoi partition of its centroids, so every detection-window sample $x$ of the same class is assigned to
+
+$$j^*(x) = \arg\min_{j} \lVert x - c_j \rVert_2,$$
+
+which splits both windows by the same cell boundaries. Let $r_j$ be the $q$-quantile (default $q = 0.95$) of the distances of reference samples in cluster $j$ to $c_j$. A detection sample is **novel** if $\lVert x - c_{j^*(x)} \rVert_2 > r_{j^*(x)}$. The detection window is also clustered on its own, and a cluster whose members are mostly novel is reported as **appeared**. A reference cluster with reference share $\pi_j$ that receives $m_j$ of $n$ detection samples is reported as **disappeared** when $m_j < 0.2\, n \pi_j$ and the one-sided binomial test $P(\text{Bin}(n, \pi_j) \le m_j) < \alpha$.
+
+### 3.2 Optimal Bipartite Centroid Matching (Hungarian Algorithm)
+
+With `matching="independent"`, both windows are clustered separately. Let $C_{\text{before}} = \{c_1, \dots, c_{K_1}\}$ and $C_{\text{after}} = \{c'_1, \dots, c'_{K_2}\}$ denote cluster centroids extracted from reference and detection windows, respectively.
 
 We construct a cost matrix $C \in \mathbb{R}^{K_1 \times K_2}$ whose entries define the pairwise Euclidean distance:
 
@@ -94,6 +104,14 @@ Assuming $K = \min(K_1, K_2)$, optimal matching solves:
 $$\min_{\pi \in \Pi} \sum_{i=1}^K C_{i, \pi(i)}$$
 
 where $\Pi$ denotes the set of all bijective assignments. This combinatorial optimization is solved in polynomial time $\mathcal{O}(K^3)$ using the **Kuhn-Munkres (Hungarian)** algorithm.
+
+### 3.3 Permutation Test
+
+The drift strength $S$ (weighted share of triggered checks) is used as a test statistic. Under the null hypothesis of no drift, the samples of both windows are exchangeable within each class. For $b = 1, \dots, B$ the pooled samples of every class are randomly re-split into windows of the original sizes and the strength $S_b$ is recomputed. The p-value
+
+$$p = \frac{1 + \sum_{b=1}^{B} \mathbb{1}[S_b \geq S]}{1 + B}$$
+
+is valid for any data distribution, so rejecting when $p < \alpha$ bounds the false-alarm rate by $\alpha$ without tuning a threshold on $S$.
 
 ---
 

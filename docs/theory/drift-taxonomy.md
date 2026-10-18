@@ -123,7 +123,7 @@ Isolated anomalous instances ($P_{t}(X, Y)$ departs from $S_1$ for $1 \le \Delta
 | **Model Layer** | $P_t(\text{error})$ | River DDM, Error Descriptors | *When did classifier accuracy degrade?* |
 | **Explanation Layer** | $P(Y \mid X)$ | SSNP, SDBM, Disagreement Trees | *Where in feature space did boundaries move?* |
 | **Explanation Layer** | $[X, Y]$ vs $X$ | Temporal Discriminator (PFI / SHAP) | *Which features drove data drift vs concept drift?* |
-| **Explanation Layer** | Latent Geometry | X-Means, Hungarian Matching | *How did sub-population clusters migrate?* |
+| **Explanation Layer** | Latent Geometry | X-Means, Reference Cluster Tracking, Permutation Test | *How did sub-population clusters migrate?* |
 | **Explanation Layer** | Multi-Window Memory | ProTree, Pairwise Distances, HDBSCAN | *Is this concept novel or recurring?* |
 
 ---
