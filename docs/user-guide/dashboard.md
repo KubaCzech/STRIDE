@@ -44,52 +44,63 @@ For quick evaluation without local installation, a public deployment is hosted o
 
 ## Dashboard Workflow & Multi-Tab Layout
 
-The dashboard organizes stream forensics into six analytical tabs:
+The dashboard organizes stream forensics into eight analytical tabs:
 
 ```mermaid
 flowchart TD
     Config["Sidebar Controls\n(Dataset, Windows, Model, Drift)"] --> App["STRIDE Dashboard"]
-    App --> Tab1["1. Stream Overview & Data Layer"]
-    App --> Tab2["2. Model Layer & Drift Monitoring"]
-    App --> Tab3["3. Decision Boundary Migration"]
-    App --> Tab4["4. Feature Importance Shifts"]
-    App --> Tab5["5. Clustering Dynamics"]
-    App --> Tab6["6. Recurring Concepts & Memory"]
+    App --> Tab1["1. Dataset Overview"]
+    App --> Tab2["2. Drift Detection"]
+    App --> Tab3["3. Prototype Analysis"]
+    App --> Tab4["4. Data Comparison"]
+    App --> Tab5["5. Statistical Tests"]
+    App --> Tab6["6. Clustering"]
+    App --> Tab7["7. Feature Importance"]
+    App --> Tab8["8. Decision Boundary"]
     App -.-> Stitcher["Dataset Stitcher Modal\n(Shaker Semi-Synthetic Protocol)"]
 ```
 
-### Tab 1: Stream Overview & Data Layer
-* **Data Stream Inspection**: Visualizes raw continuous features, target label balance across stream windows, and correlation matrices.
-* **Statistical Testing Controls**: Allows interactive selection of test criteria (Kolmogorov-Smirnov, Anderson-Darling, Wasserstein) and significance threshold $\alpha$.
-* **Diagnostic Tables**: Renders per-feature test statistics, $p$-values, and visual drift indicator badges.
+### Tab 1: Dataset Overview
+* **Stream Summary**: Number of samples, features and windows, class balance, and ground-truth drift metadata of synthetic datasets (drift points, intervals, drifting features).
+* **Data Preview**: The first samples of the stream and descriptive statistics of the full stream.
 
-### Tab 2: Model Performance & Sequential Monitoring
+### Tab 2: Drift Detection
 * **Online Error Trajectory**: Real-time error rate curves plotted alongside cumulative accuracy.
 * **Sequential Drift Detectors**: Selectable streaming detectors including DDM, DualADWIN, EDDM, FHDDM, and HDDM with configurable confidence thresholds.
 * **Statistical Warning & Drift Bands**: Displays detector thresholds, including River's DDM bounds ($p_{\min} + 2s$ warning threshold and $p_{\min} + 3s$ drift alarm threshold) and ADWIN adaptive Hoeffding bounds.
 * **Onset & Duration Localization**: Renders CUSUM lookback change-point markers identifying where error acceleration initiated (`drift_start_index`) versus where the alarm was raised, with adaptive lookback window calibration bounded by detector width.
 
-### Tab 3: Decision Boundary Migration
-* **2D Latent Projection**: Renders interactive decision surfaces generated via Self-Supervised Neighbor Projection (SSNP).
-* **Supervised Decision Boundary Maps (SDBM)**: Displays side-by-side decision landscapes comparing the pre-drift reference classifier $f_{\text{pre}}$ with the post-drift detection classifier $f_{\text{post}}$.
-* **Disagreement Surface & Tree Rules**: Visualizes the geometric region of disagreement and outputs human-readable surrogate decision tree rules bounding the drift zone.
+### Tab 3: Prototype Analysis
+* **Window Memory Timeline**: Displays archived window representations throughout the stream lifetime.
+* **Pairwise Distance Heatmaps**: Visualizes similarity matrices across all historical windows using minimal prototype distance, mean distance, or explainer tree distance.
+* **HDBSCAN Regime Clustering**: Color-coded concept regime timeline grouping re-emerging historical distributions under consistent cluster identifiers.
 
-### Tab 4: Feature Importance Shifts
-* **Comparative Attribution Charts**: Bar plots contrasting feature attributions under Covariate Shift ($P(X)$) versus Real Concept Drift ($P(Y \mid X)$).
-* **Method Selection**: Toggle between Permutation Feature Importance (PFI) and SHAP (TreeExplainer / KernelExplainer).
-* **Conformal Selective Abstention**: Interactive slider controlling the significance parameter $\epsilon$ for selective discriminator prediction, displaying the abstention fraction and isolated drift attributions.
+### Tab 4: Data Comparison
+* **Window Comparison**: Feature-versus-target plots (violin, box or scatter) of the Before and After windows, sample counts and class balance of both windows.
+* **Descriptive Statistics**: Class-wise mean, median and standard deviation of every feature in both windows and their relative change.
 
-### Tab 5: Clustering Dynamics
+### Tab 5: Statistical Tests
+* **Two-Sample Tests and Distances**: Kolmogorov-Smirnov and Anderson-Darling tests and Wasserstein and Jensen-Shannon distances for every feature within every class, with configurable significance level $\alpha$ and thresholds.
+* **Decision**: Share of flagged feature-class pairs per test, the number of pairs a test flags by chance without drift ($\alpha$ times the number of pairs), and the overall decision.
+* **Feature Table**: p-values, KS statistic and distances per feature and class, with flagged pairs highlighted.
+* **Distribution Plots**: ECDF, histogram, KDE, boxplot and two-sample Q-Q plot of a selected feature in both windows.
+
+### Tab 6: Clustering
 * **X-Means Modality Discovery**: Dynamic estimation of sub-population cluster count $K$ in reference versus detection windows.
 * **Drift Decision**: Drift strength across four criteria (cluster birth/death, centroid shift, per-cluster statistics, cluster spread) with a permutation-test p-value, and a per-class table of triggered checks and their contribution to the strength.
 * **Cluster Overview**: Status of every cluster (tracked, appeared, disappeared), its size in both windows, centroid shift and change of spread; per-cluster statistic changes in standard deviations; centroids.
 * **Centroid Shift Vectors**: 2D plots of centroid displacement paths, identifying emerging (cluster birth) or disappearing (cluster death) sub-populations.
 * **Configuration**: Range of the number of clusters, number of permutations, significance level, reference or independent (legacy) cluster matching, and optional size-aware significance tests per cluster.
 
-### Tab 6: Recurring Concepts & Prototypes
-* **Window Memory Timeline**: Displays archived window representations throughout the stream lifetime.
-* **Pairwise Distance Heatmaps**: Visualizes similarity matrices across all historical windows using minimal prototype distance, mean distance, or explainer tree distance.
-* **HDBSCAN Regime Clustering**: Color-coded concept regime timeline grouping re-emerging historical distributions under consistent cluster identifiers.
+### Tab 7: Feature Importance
+* **Comparative Attribution Charts**: Bar plots contrasting feature attributions under Covariate Shift ($P(X)$) versus Real Concept Drift ($P(Y \mid X)$).
+* **Method Selection**: Toggle between Permutation Feature Importance (PFI) and SHAP (TreeExplainer / KernelExplainer).
+* **Conformal Selective Abstention**: Interactive slider controlling the significance parameter $\epsilon$ for selective discriminator prediction, displaying the abstention fraction and isolated drift attributions.
+
+### Tab 8: Decision Boundary
+* **2D Latent Projection**: Renders interactive decision surfaces generated via Self-Supervised Neighbor Projection (SSNP).
+* **Supervised Decision Boundary Maps (SDBM)**: Displays side-by-side decision landscapes comparing the pre-drift reference classifier $f_{\text{pre}}$ with the post-drift detection classifier $f_{\text{post}}$.
+* **Disagreement Surface & Tree Rules**: Visualizes the geometric region of disagreement and outputs human-readable surrogate decision tree rules bounding the drift zone.
 
 ---
 
