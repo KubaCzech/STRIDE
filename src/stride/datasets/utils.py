@@ -3,6 +3,28 @@ import itertools
 import pandas as pd
 
 
+def feature_frame(records) -> pd.DataFrame:
+    """Build a feature DataFrame from River sample dictionaries.
+
+    Some River generators key features by position (``0, 1, ...``). Integer column
+    names break tools that expect named features (e.g. LIME), so they are renamed
+    to ``x0, x1, ...``; string names are kept.
+
+    Parameters
+    ----------
+    records : list[dict]
+        One feature dictionary per sample.
+
+    Returns
+    -------
+    pd.DataFrame
+        Features with string column names.
+    """
+    X = pd.DataFrame(records)
+    X.columns = [f"x{c}" if isinstance(c, (int, np.integer)) else str(c) for c in X.columns]
+    return X
+
+
 def generate_river_data(river_stream, total_samples, n_features=2):
     # TODO: return feature names
     """
