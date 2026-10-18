@@ -56,7 +56,8 @@ def run_xmeans(
         2-D array of cluster-centroid coordinates.
     clusters : list[list[int]]
         List of lists where each sublist contains the sample indices belonging to
-        the corresponding centroid.
+        the corresponding centroid.  Empty input yields no clusters, and input with
+        fewer than ``k_init`` samples yields a single cluster.
 
     Notes
     -----
@@ -75,6 +76,14 @@ def run_xmeans(
             feature_name="X-Means clustering",
             extra_name="clustering",
         ) from err
+
+    X = np.asarray(X)
+    n_samples = len(X)
+    if n_samples == 0:
+        return np.empty((0, X.shape[1])), []
+    if n_samples < k_init:
+        # k-means++ needs at least k_init points; such a small group is a single cluster.
+        return X.mean(axis=0, keepdims=True), [list(range(n_samples))]
 
     rng_state = random.getstate()
     try:

@@ -246,10 +246,17 @@ def calculate_avg_distance_from_centroid(
                 result[cid] = float(np.linalg.norm(pts - center, axis=1).mean())
         return result
 
+    eps = 1e-10
     avg_old = _mean_dist(X_old, centers_old, cluster_labels_old)
     avg_new = _mean_dist(X_new, centers_new, cluster_labels_new)
 
+    # A single-sample (or fully degenerate) cluster has zero spread; fall back to the
+    # absolute change, as compare_desc_stats_for_clusters does for near-zero statistics.
     return {
-        i: ((avg_new[i] - avg_old[i]) / avg_old[i] if avg_old[i] is not None and avg_new[i] is not None else None)
+        i: (
+            (avg_new[i] - avg_old[i]) / (avg_old[i] if avg_old[i] >= eps else 1.0)
+            if avg_old[i] is not None and avg_new[i] is not None
+            else None
+        )
         for i in avg_old
     }

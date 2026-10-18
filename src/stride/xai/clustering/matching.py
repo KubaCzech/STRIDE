@@ -5,6 +5,8 @@ applied independently to two data blocks: the resulting cluster IDs are
 arbitrary and must be aligned before any shift comparison can be made.
 """
 
+from typing import Sequence
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
@@ -138,6 +140,7 @@ def get_final_labels(
 def merge_clusters(
     clusters: list[list[list[int]]],
     y: np.ndarray,
+    classes: Sequence,
     maps: list[tuple[dict[int, int | str], list[int], list[int]]] | None = None,
 ) -> np.ndarray:
     """Flatten per-class X-Means results into a single global label array.
@@ -148,6 +151,9 @@ def merge_clusters(
         3-D list: outer = classes, middle = clusters, inner = sample indices.
     y : np.ndarray
         Class-label vector aligned with the original sample order.
+    classes : Sequence
+        Class labels in the same order as the outer level of *clusters* (and of
+        *maps*).  Classes absent from *y* must have an empty cluster list.
     maps : list[tuple[dict, list, list]] | None
         Per-class matching tuples.  When ``None`` (old block), the identity
         mapping is used — no renaming needed.
@@ -157,6 +163,10 @@ def merge_clusters(
     np.ndarray
         Integer label array of shape ``(n_samples,)`` with globally unique IDs.
     """
+    if len(classes) != len(clusters):
+        raise ValueError(f"Got {len(classes)} classes but cluster results for {len(clusters)} classes.")
+
+    y = np.asarray(y)
     final_labels = np.zeros(len(y))
     transformed_labels = []
 
@@ -173,8 +183,7 @@ def merge_clusters(
 
     transformed_labels = get_final_labels(transformed_labels, maps)
 
-    classes = sorted(set(y))
     for klass, labels in zip(classes, transformed_labels):
-        final_labels[np.array(y) == klass] = np.array(labels)
+        final_labels[y == klass] = np.array(labels)
 
     return final_labels.astype(int)

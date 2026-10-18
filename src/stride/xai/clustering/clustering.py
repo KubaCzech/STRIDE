@@ -88,6 +88,7 @@ class ClusterBasedDriftDetector:
     drift_details: dict | None
 
     random_state: int
+    classes: list | None
 
     def __init__(
         self,
@@ -178,6 +179,7 @@ class ClusterBasedDriftDetector:
         self.strength_of_drift = 0.0
 
         self.random_state = random_state
+        self.classes = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -193,7 +195,10 @@ class ClusterBasedDriftDetector:
         details : dict[int, dict]
             Per-class drift breakdown keyed by class label.
         """
-        classes = set(self.y_old).union(set(self.y_new))
+        # A single, fixed class order: the per-class results below are matched to
+        # samples by position, so every consumer must iterate classes identically.
+        classes = sorted(set(self.y_old).union(set(self.y_new)))
+        self.classes = classes
 
         clusters_all: dict[str, list] = {"old": [], "new": []}
         details: dict = {cl: {} for cl in classes}
@@ -213,8 +218,8 @@ class ClusterBasedDriftDetector:
             clusters_all["new"].append(clusters_new)
             maps.append(mapp)
 
-        self.cluster_labels_old = merge_clusters(clusters_all["old"], self.y_old)
-        self.cluster_labels_new = merge_clusters(clusters_all["new"], self.y_new, maps=maps)
+        self.cluster_labels_old = merge_clusters(clusters_all["old"], self.y_old, classes)
+        self.cluster_labels_new = merge_clusters(clusters_all["new"], self.y_new, classes, maps=maps)
 
         self.number_of_clusters_old = len(set(self.cluster_labels_old))
         self.number_of_clusters_new = len(set(self.cluster_labels_new))
@@ -306,7 +311,7 @@ class ClusterBasedDriftDetector:
     def _generate_drift_flag(self) -> None:
         """Compute the weighted-average drift score and set :attr:`drift_flag`."""
         eps = 1e-10
-        classes = set(self.y_old).union(set(self.y_new))
+        classes = self.classes
 
         true_counts = np.array(
             [
