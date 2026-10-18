@@ -2,62 +2,95 @@
     --primary-color: #ff4b4b;
 }
 
+/* Tab bar container */
+div[data-testid="stRadio"] div[role="radiogroup"],
 div[role="radiogroup"] {
-    flex-direction: row;
-    width: 100%;
-    gap: 5px;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    gap: 4px !important;
+    border-bottom: 2px solid rgba(128, 128, 128, 0.2) !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 1.25rem !important;
+    overflow-x: auto !important;
 }
 
+/* Base Tab Button (Radio Label) */
+div[data-testid="stRadio"] div[role="radiogroup"] label[data-testid="stRadioOption"],
+div[data-testid="stRadio"] div[role="radiogroup"] label,
 div[role="radiogroup"] label {
     flex: 1 1 0px !important;
+    min-width: max-content !important;
     border: none !important;
-    background-color: transparent !important;
-    padding: 0 !important;
+    background: transparent !important;
+    padding: 8px 16px !important;
     margin: 0 !important;
-}
-
-/* Hide radio circle (and input) */
-div[role="radiogroup"] label>div:first-child,
-div[role="radiogroup"] label>input {
-    display: none !important;
-    position: absolute !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-
-/* Base Tab Style (Apply to content div) */
-div[role="radiogroup"] label>div:not(:first-child) {
-    padding: 10px;
-    border-radius: 5px 5px 0 0;
-    text-align: center;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    border-bottom: 2px solid rgba(128, 128, 128, 0.2);
-    cursor: pointer;
-    transition: filter 0.2s;
-    font-weight: normal;
-
-    /* Control expansion */
-    width: 100% !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    display: flex !important;
+    cursor: pointer !important;
+    border-radius: 4px 4px 0 0 !important;
+    border-bottom: 2px solid transparent !important;
+    transition: all 0.2s ease-in-out !important;
     justify-content: center !important;
     align-items: center !important;
+    display: flex !important;
+    text-align: center !important;
 }
 
-div[role="radiogroup"] label:hover>div:not(:first-child) {
-    filter: brightness(90%);
+/* Completely hide radio input and radio circle indicator */
+div[data-testid="stRadio"] div[role="radiogroup"] label input,
+div[data-testid="stRadio"] div[role="radiogroup"] label > span,
+div[data-testid="stRadio"] div[role="radiogroup"] label div > div > div:first-child,
+div[role="radiogroup"] label input,
+div[role="radiogroup"] label > span,
+div[role="radiogroup"] label div > div > div:first-child {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Selected Tab Style - Simplest robust selector: input checked + div */
-/* Note: Streamlit structure is input + div for the content */
-input[type="radio"]:checked+div {
-    color: var(--primary-color) !important;
-    font-weight: bold !important;
-    border-top: 4px solid var(--primary-color) !important;
-    border-left: 1px solid rgba(128, 128, 128, 0.2) !important;
-    border-right: 1px solid rgba(128, 128, 128, 0.2) !important;
-    filter: none !important;
+/* Tab Text Styling */
+div[data-testid="stRadio"] div[role="radiogroup"] label div,
+div[data-testid="stRadio"] div[role="radiogroup"] label p,
+div[role="radiogroup"] label div,
+div[role="radiogroup"] label p {
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+}
+
+/* Hover Tab Style */
+div[data-testid="stRadio"] div[role="radiogroup"] label[data-testid="stRadioOption"]:hover,
+div[data-testid="stRadio"] div[role="radiogroup"] label:hover,
+div[role="radiogroup"] label:hover {
+    background-color: rgba(128, 128, 128, 0.1) !important;
+    border-bottom: 2px solid rgba(128, 128, 128, 0.4) !important;
+}
+
+/* Selected Tab Style */
+div[data-testid="stRadio"] div[role="radiogroup"] label[data-selected="true"],
+div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked),
+div[role="radiogroup"] label[data-selected="true"],
+div[role="radiogroup"] label:has(input:checked) {
+    background-color: rgba(255, 75, 75, 0.08) !important;
+    border-bottom: 2px solid var(--primary-color, #ff4b4b) !important;
+}
+
+div[data-testid="stRadio"] div[role="radiogroup"] label[data-selected="true"] p,
+div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) p,
+div[role="radiogroup"] label[data-selected="true"] p,
+div[role="radiogroup"] label:has(input:checked) p,
+div[data-testid="stRadio"] div[role="radiogroup"] label[data-selected="true"] div,
+div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div,
+div[role="radiogroup"] label[data-selected="true"] div,
+div[role="radiogroup"] label:has(input:checked) div {
+    color: var(--primary-color, #ff4b4b) !important;
+    font-weight: 700 !important;
 }
