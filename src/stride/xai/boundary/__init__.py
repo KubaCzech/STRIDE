@@ -9,11 +9,7 @@ except ImportError:
     pass
 
 try:
-    from .visualization import (
-        plot_categorical_drift_map,
-        plot_decision_boundary,
-        plot_decision_boundary_shift,
-    )
+    from .visualization import plot_categorical_drift_map, visualize_decision_boundary
 except ImportError:
     pass
 
