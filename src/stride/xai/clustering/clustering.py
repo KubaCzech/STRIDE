@@ -195,7 +195,9 @@ class ClusterBasedDriftDetector:
                 within-cluster distances beyond which a new sample counts as novel.
             n_jobs: Number of worker processes for the permutation test (joblib
                 semantics; ``None`` or 1 runs sequentially). The result does not
-                depend on this value.
+                depend on this value. Each worker imports ``stride`` anew, which
+                takes a few seconds, so parallelism pays off for long series of
+                detections in batch jobs rather than for single interactive calls.
         """
 
         X_before, X_after = self._scale_data(X_before, X_after)

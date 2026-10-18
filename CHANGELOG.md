@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `ClusterBasedDriftDetector`: `p_value`, `null_strengths`, `alpha` (optional size-aware significance tests), `xmeans_repeat`, `novelty_quantile` and `n_jobs` (parallel permutations).
 - `stride.xai.clustering`: `assign_to_reference`, `calculate_shift_significance`, `bic_score`; `run_xmeans(repeat=...)` keeps the run with the best BIC.
-- Dashboard clustering tab: drift decision, strength and permutation p-value as metrics, method description, cached results.
+- Dashboard clustering tab: drift decision, strength and permutation p-value as metrics, method description, results cached per pair of windows.
 
 ### Fixed
 - `run_xmeans` was not reproducible for a given `random_state` and changed the global `random` state (#31).
