@@ -531,7 +531,9 @@ def _display(
 def _run_detector(X_before, y_before, X_after, y_after) -> ClusterBasedDriftDetector:
     """Run the detector once per pair of windows; switching views reuses the result."""
     # Fixed random_state: identical windows always give identical clusters and p-value.
-    detector = ClusterBasedDriftDetector(X_before, y_before, X_after, y_after, random_state=42)
+    # n_jobs: the permutation test is CPU-bound pure Python; a few worker processes cut
+    # the waiting time roughly threefold without changing the result.
+    detector = ClusterBasedDriftDetector(X_before, y_before, X_after, y_after, random_state=42, n_jobs=4)
     detector.detect()
     return detector
 

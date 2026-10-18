@@ -181,6 +181,14 @@ class TestDetectorCalibration(unittest.TestCase):
         self.assertLess(detector.p_value, 0.05)
         self.assertTrue(detector.drift_flag)
 
+    def test_parallel_permutations_match_sequential(self):
+        data = self._data(0.5)
+        sequential = self._detector(*data, n_permutations=8)
+        parallel = self._detector(*data, n_permutations=8, n_jobs=2)
+
+        np.testing.assert_array_equal(sequential.null_strengths, parallel.null_strengths)
+        self.assertEqual(sequential.p_value, parallel.p_value)
+
     def test_reference_matching_has_no_structural_change_without_drift(self):
         detector = self._detector(*self._data(0.0), matching="reference")
 

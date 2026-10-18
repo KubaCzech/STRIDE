@@ -118,6 +118,7 @@ class ClusterBasedDriftDetector:
     permutation_alpha: float
     xmeans_repeat: int
     novelty_quantile: float
+    n_jobs: int | None
     p_value: float | None
     null_strengths: np.ndarray | None
     shift_significance: dict[int, dict] | None
@@ -144,6 +145,7 @@ class ClusterBasedDriftDetector:
         permutation_alpha: float = 0.05,
         xmeans_repeat: int = 1,
         novelty_quantile: float = 0.95,
+        n_jobs: int | None = None,
     ) -> None:
         """Initialize the cluster-based drift detector.
 
@@ -191,6 +193,9 @@ class ClusterBasedDriftDetector:
                 BIC is kept.
             novelty_quantile: In ``"reference"`` matching, quantile of reference
                 within-cluster distances beyond which a new sample counts as novel.
+            n_jobs: Number of worker processes for the permutation test (joblib
+                semantics; ``None`` or 1 runs sequentially). The result does not
+                depend on this value.
         """
 
         X_before, X_after = self._scale_data(X_before, X_after)
@@ -268,6 +273,7 @@ class ClusterBasedDriftDetector:
         self.permutation_alpha = permutation_alpha
         self.xmeans_repeat = xmeans_repeat
         self.novelty_quantile = novelty_quantile
+        self.n_jobs = n_jobs
         self.p_value = None
         self.null_strengths = None
         self.shift_significance = None
@@ -445,8 +451,10 @@ class ClusterBasedDriftDetector:
         """Drift strength under random re-splits of the pooled data within each class."""
         rng = np.random.default_rng(self.random_state)
         y_old, y_new = np.asarray(self.y_old), np.asarray(self.y_new)
-        strengths = np.empty(self.n_permutations)
-        for i in range(self.n_permutations):
+
+        # All splits are drawn up front, so the result does not depend on n_jobs.
+        splits = []
+        for _ in range(self.n_permutations):
             X_old_p = np.empty_like(self.X_old)
             X_new_p = np.empty_like(self.X_new)
             for cl in self.classes:
@@ -456,12 +464,34 @@ class ClusterBasedDriftDetector:
                 n_old_cl = int(mask_old.sum())
                 X_old_p[mask_old] = pooled[order[:n_old_cl]]
                 X_new_p[mask_new] = pooled[order[n_old_cl:]]
+            splits.append((X_old_p, X_new_p))
 
-            clone = copy.copy(self)
-            clone.X_old, clone.X_new = X_old_p, X_new_p
-            clone._run()
-            strengths[i] = clone.strength_of_drift
-        return strengths
+        template = self._permutation_template()
+        if self.n_jobs is None or self.n_jobs == 1:
+            return np.array([_permuted_strength(template, X_old_p, X_new_p) for X_old_p, X_new_p in splits])
+
+        from joblib import Parallel, delayed
+
+        strengths = Parallel(n_jobs=self.n_jobs)(
+            delayed(_permuted_strength)(template, X_old_p, X_new_p) for X_old_p, X_new_p in splits
+        )
+        return np.array(strengths)
+
+    def _permutation_template(self) -> "ClusterBasedDriftDetector":
+        """Copy of the detector without results, cheap to send to worker processes."""
+        template = copy.copy(self)
+        for attr in (
+            "stats_combined",
+            "stats_shifts",
+            "cluster_shifts",
+            "drift_details",
+            "shift_significance",
+            "X_old_unscaled",
+            "X_new_unscaled",
+            "null_strengths",
+        ):
+            setattr(template, attr, None)
+        return template
 
     def _scale_data(
         self,
@@ -547,3 +577,11 @@ class ClusterBasedDriftDetector:
         weights = np.where(evaluated > 0, self.weights, 0.0)
         self.effective_weights = weights / weights.sum() if weights.sum() > 0 else weights
         self.strength_of_drift = float((true_counts / np.maximum(evaluated, 1)) @ self.effective_weights)
+
+
+def _permuted_strength(template: ClusterBasedDriftDetector, X_old: np.ndarray, X_new: np.ndarray) -> float:
+    """Drift strength of *template*'s configuration on one permuted split of the data."""
+    clone = copy.copy(template)
+    clone.X_old, clone.X_new = X_old, X_new
+    clone._run()
+    return clone.strength_of_drift
