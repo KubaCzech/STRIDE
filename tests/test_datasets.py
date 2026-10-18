@@ -111,3 +111,39 @@ class TestSyntheticDatasets(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMultiWindowFeatureNames(unittest.TestCase):
+    """River generators key some features by position; datasets must still expose
+    string feature names (LIME and other explainers require them)."""
+
+    def test_all_multi_window_datasets_use_string_feature_names(self):
+        from stride.datasets import (
+            MixedMultiWindowDataset,
+            PlaneMultiWindowDataset,
+            RandomTreeMultiWindowDataset,
+            RbfMultiWindowDataset,
+            SeaMultiWindowDataset,
+            SineMultiWindowDataset,
+            StaggerMultiWindowDataset,
+        )
+
+        for dataset_cls in (
+            MixedMultiWindowDataset,
+            PlaneMultiWindowDataset,
+            RandomTreeMultiWindowDataset,
+            RbfMultiWindowDataset,
+            SeaMultiWindowDataset,
+            SineMultiWindowDataset,
+            StaggerMultiWindowDataset,
+        ):
+            with self.subTest(dataset=dataset_cls.__name__):
+                X, _ = dataset_cls().generate(num_windows=3, window_length=50, drift_positions=[50], random_seed=0)
+                self.assertTrue(all(isinstance(c, str) for c in X.columns), list(X.columns))
+
+    def test_feature_frame_renames_positional_keys(self):
+        from stride.datasets.utils import feature_frame
+
+        X = feature_frame([{0: 1.0, 1: 2.0}, {0: 3.0, 1: 4.0}])
+        self.assertEqual(list(X.columns), ["x0", "x1"])
+        self.assertEqual(list(feature_frame([{"size": 1}]).columns), ["size"])

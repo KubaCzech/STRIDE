@@ -187,3 +187,111 @@ def merge_clusters(
         final_labels[y == klass] = np.array(labels)
 
     return final_labels.astype(int)
+
+
+def assign_to_reference(
+    X_old: np.ndarray,
+    centers_old: np.ndarray,
+    clusters_old: list[list[int]],
+    X_new: np.ndarray,
+    clusters_new: list[list[int]],
+    novelty_quantile: float = 0.95,
+    alpha: float = 0.01,
+    min_share_ratio: float = 0.2,
+) -> tuple[np.ndarray, np.ndarray, list[int], list[int]]:
+    """Label the new block with the clusters of the reference (old) block.
+
+    Instead of matching two independent clusterings, new samples are assigned to
+    the nearest *old* centroid, so both blocks are split by the same Voronoi
+    cells (the cells of a k-means/X-Means partition).  Differences between the
+    blocks then reflect sampling noise or genuine change rather than two
+    different, equally valid partitions of the same data.
+
+    Structural changes are detected relative to the reference model:
+
+    * **appeared** — a cluster of the new block's own clustering (*clusters_new*)
+      whose members are mostly *novel*, i.e. farther from their nearest old
+      centroid than ``novelty_quantile`` of that old cluster's own samples;
+    * **disappeared** — an old cluster that receives significantly fewer new
+      samples than its reference share (one-sided binomial test at *alpha*) and
+      less than ``min_share_ratio`` of the expected count.  Its new samples are
+      reassigned to the nearest remaining old cluster.
+
+    Parameters
+    ----------
+    X_old : np.ndarray
+        Reference samples of one class, shape ``(n_old, d)``.
+    centers_old : np.ndarray
+        X-Means centroids of *X_old*, shape ``(k, d)``.
+    clusters_old : list[list[int]]
+        X-Means clusters of *X_old* (sample indices per centroid).
+    X_new : np.ndarray
+        New samples of the same class, shape ``(n_new, d)``.
+    clusters_new : list[list[int]]
+        Independent X-Means clusters of *X_new*, used only to find appeared clusters.
+    novelty_quantile : float, default=0.95
+        Quantile of the old within-cluster distances defining each cluster's radius.
+    alpha : float, default=0.01
+        Significance level of the disappearance test.
+    min_share_ratio : float, default=0.2
+        A cluster can only disappear if it keeps less than this fraction of its
+        expected number of new samples.
+
+    Returns
+    -------
+    labels_old : np.ndarray
+        Local cluster label per old sample (``0 .. k-1``).
+    labels_new : np.ndarray
+        Local cluster label per new sample: an old cluster ID, or ``k + i`` for
+        the *i*-th appeared cluster.
+    appeared : list[int]
+        Local IDs of appeared clusters.
+    disappeared : list[int]
+        Local IDs of disappeared old clusters.
+    """
+    from scipy.stats import binomtest
+
+    k = len(centers_old)
+    n_old, n_new = len(X_old), len(X_new)
+    labels_old = reshape_clusters(clusters_old) if n_old else np.empty(0, dtype=int)
+
+    if n_new == 0:
+        return labels_old, np.empty(0, dtype=int), [], list(range(k))
+    if k == 0:
+        labels_new = reshape_clusters(clusters_new)
+        return labels_old, labels_new, sorted(set(labels_new.tolist())), []
+
+    radius = np.array(
+        [np.quantile(np.linalg.norm(X_old[labels_old == j] - centers_old[j], axis=1), novelty_quantile) for j in range(k)]
+    )
+    dist = cdist(X_new, centers_old)
+    nearest = dist.argmin(axis=1)
+    novel = dist[np.arange(n_new), nearest] > radius[nearest]
+
+    labels_new = nearest.copy()
+    appeared = []
+    for members in clusters_new:
+        members = np.asarray(members)
+        if len(members) and novel[members].mean() > 0.5:
+            appeared.append(k + len(appeared))
+            labels_new[members] = appeared[-1]
+
+    shares = np.bincount(labels_old, minlength=k) / n_old
+    counts = np.bincount(labels_new[labels_new < k], minlength=k)
+    disappeared = [
+        j
+        for j in range(k)
+        if counts[j] < min_share_ratio * shares[j] * n_new
+        and binomtest(int(counts[j]), n_new, shares[j], alternative="less").pvalue < alpha
+    ]
+
+    if disappeared:
+        orphans = np.isin(labels_new, disappeared)
+        remaining = [j for j in range(k) if j not in disappeared]
+        if remaining:
+            labels_new[orphans] = np.asarray(remaining)[dist[np.ix_(orphans, remaining)].argmin(axis=1)]
+        elif orphans.any():
+            appeared.append(k + len(appeared))
+            labels_new[orphans] = appeared[-1]
+
+    return labels_old, labels_new, appeared, disappeared

@@ -1,5 +1,6 @@
 from .protree_data.stream_generators import RandomTree
 from .base import BaseDataset
+from .utils import feature_frame
 import pandas as pd
 
 
@@ -86,7 +87,7 @@ class RandomTreeMultiWindowDataset(BaseDataset):
 
         # Convert to DataFrame and Series
         # The x_block items are dictionaries with feature names as keys
-        X = pd.DataFrame(all_x)
+        X = feature_frame(all_x)
         y = pd.Series(all_y, name="target")
 
         return X, y

@@ -42,6 +42,7 @@ Standard drift detectors only fire a binary alarm at the timestamp of statistica
 `BinaryErrorDriftDescriptor` wraps River detectors to reconstruct complete drift event profiles:
 
 ```python
+import numpy as np
 from stride.drift import BinaryErrorDriftDescriptor
 from river import drift
 
@@ -57,9 +58,10 @@ descriptor = BinaryErrorDriftDescriptor(
 
 # Simulated streaming loop:
 # baseline error rate 5%, transitioning to 35% error rate at sample 500
+rng = np.random.default_rng(42)
 for step in range(1, 1000):
     true_error_prob = 0.05 if step < 500 else 0.35
-    error = 1 if (step % int(1 / true_error_prob) == 0) else 0
+    error = int(rng.random() < true_error_prob)
 
     descriptor.update(error)
 
@@ -67,10 +69,14 @@ for step in range(1, 1000):
         description = descriptor.describe_drift()
         print(f"Drift alert triggered at step: {description.detected_at}")
         print(f"Estimated onset sample:        {description.drift_start_index}")
-        print(f"Estimated duration:            {description.duration} steps")
-        print(f"Pre-drift error rate:          {description.error_rate_at_start:.2%}")
-        print(f"Peak error rate:               {description.error_rate_at_peak:.2%}")
+        print(f"Estimated duration:            {description.drift_duration} steps")
+        print(f"Error rate around onset:       {description.error_rate_at_warning:.2%}")
+        print(f"Error rate at detection:       {description.error_rate_at_detection:.2%}")
         break
+
+# The peak error rate needs samples after the alarm: once the stream has advanced,
+# descriptor.post_process_drift_ends([description]) locates the peak (lookforward_method)
+# and updates drift_end_index and error_rate_at_peak.
 ```
 
 ---

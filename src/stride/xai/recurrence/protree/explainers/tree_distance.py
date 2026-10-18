@@ -171,7 +171,7 @@ class G_KM(IExplainer):
         self.n_prototypes = int(n_prototypes)
 
     def _find_classwise_prototype(self, matrix: np.ndarray, prototypes: list[int]) -> int:
-        mask = np.in1d(range(matrix.shape[0]), prototypes)
+        mask = np.isin(np.arange(matrix.shape[0]), prototypes)
         current_partial_distances = np.minimum.reduce(matrix[mask], axis=0) if prototypes else np.inf
         candidate_distances = np.minimum(matrix[~mask], current_partial_distances).sum(axis=1)
         return np.where(~mask)[0][np.argmin(candidate_distances)]
@@ -207,7 +207,7 @@ class SM_A(IExplainer):
             improvement = matrix.shape[0] - np.sum(matrix[idx])
             return idx, improvement
 
-        mask = np.in1d(range(matrix.shape[0]), prototypes)
+        mask = np.isin(np.arange(matrix.shape[0]), prototypes)
         current_partial_distances = matrix[mask].min(axis=0)
         original_distance = current_partial_distances.sum()
         candidates = matrix[~mask]

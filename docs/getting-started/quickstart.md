@@ -44,16 +44,17 @@ detector = StatisticalTestsDriftDetector(
     y_before=y_ref,
     X_after=X_det,
     y_after=y_det,
-    significance_level=0.05,
+    alpha=0.05,
 )
 
-# Execute two-sample Kolmogorov-Smirnov tests across all features
-ks_results = detector.detect(StatisticalTestType.KolmogorovSmirnov)
+# Execute two-sample Kolmogorov-Smirnov tests for every feature within every class
+drift_flag = detector.detect(StatisticalTestType.KolmogorovSmirnov)
 
-print(f"Data layer drift detected: {detector.drift_flag}")
-for feature, p_val in ks_results["p_values"].items():
-    is_drifting = ks_results["drift_flags"][feature]
-    print(f"  Feature {feature:10s} -> p-value: {p_val:.4e} | Drifting: {is_drifting}")
+print(f"Data layer drift detected: {drift_flag}")
+ks_results = detector.drift_details[StatisticalTestType.KolmogorovSmirnov.value]
+for label, features in ks_results.items():
+    for feature, result in features.items():
+        print(f"  Class {label} | {feature:4s} -> p-value: {result['p_value']:.4e} | Drifting: {result['drift']}")
 ```
 
 The detector reports whether the null hypothesis (identical distributions across windows) is rejected for each individual feature at the chosen significance level $\alpha = 0.05$.
@@ -111,19 +112,20 @@ analyzer = FeatureImportanceDriftAnalyzer(
     y_before=y_ref,
     X_after=X_det,
     y_after=y_det,
-    random_state=42,
 )
 
 # 1. Analyze Covariate Shift (P(X)) - data drift without labels
 covariate_shift = analyzer.compute_drift_importance(
     importance_method="permutation",
     include_target=False,
+    random_state=42,
 )
 
 # 2. Analyze Real Concept Drift (P(Y | X)) - joint distribution with labels
 concept_drift = analyzer.compute_drift_importance(
     importance_method="permutation",
     include_target=True,
+    random_state=42,
 )
 
 print("\nCovariate Shift Attributions (P(X)):")

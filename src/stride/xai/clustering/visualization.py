@@ -36,6 +36,19 @@ colors = [
 color_map = {i: colors[i] for i in range(len(colors))}
 
 
+def cluster_color(label: int) -> str:
+    """Colour of a cluster ID; the palette repeats for IDs beyond its length."""
+    return colors[int(label) % len(colors)]
+
+
+def _class_name(label) -> str:
+    """Display name of a class label: integral numbers without decimals, others as-is."""
+    if isinstance(label, (int, float, np.integer, np.floating)) and not isinstance(label, (bool, np.bool_)):
+        if float(label).is_integer():
+            return str(int(label))
+    return str(label)
+
+
 def reduce_dimensions(
     n_components: int = 2,
     reducer: ReducerType = ReducerType.PCA,
@@ -115,7 +128,7 @@ def _plot_clusters(X: pd.DataFrame, labels: Sequence[Union[float, int]], title: 
 
     Notes
     -----
-    Global color_map is used to ensure consistent coloring across plots.
+    :func:`cluster_color` is used to ensure consistent coloring across plots.
     Function used internally by other plotting functions.
     """
     if hasattr(X, "values"):
@@ -130,7 +143,7 @@ def _plot_clusters(X: pd.DataFrame, labels: Sequence[Union[float, int]], title: 
     unique_labels = sorted(np.unique(labels))
 
     for ul in unique_labels:
-        color = color_map.get(ul, "#333333")  # Default to dark gray if missing
+        color = cluster_color(ul)
         plt.scatter(X[labels == ul, 0], X[labels == ul, 1], color=color, label=f"Cluster {ul}", s=30)
 
     plt.title(title)
@@ -249,14 +262,16 @@ def plot_clusters_by_class(
         plt.sca(ax_before)
 
         mask_before = np.array(y_before) == cl
-        _plot_clusters(X_before[mask_before], cluster_labels_before[mask_before], title=f"Before Drift – Class {int(cl)}")
+        _plot_clusters(
+            X_before[mask_before], cluster_labels_before[mask_before], title=f"Before Drift – Class {_class_name(cl)}"
+        )
 
         # second data block
         ax_after = axes[row, 1]
         plt.sca(ax_after)
 
         mask_after = np.array(y_after) == cl
-        _plot_clusters(X_after[mask_after], cluster_labels_after[mask_after], title=f"After Drift – Class {int(cl)}")
+        _plot_clusters(X_after[mask_after], cluster_labels_after[mask_after], title=f"After Drift – Class {_class_name(cl)}")
 
     plt.tight_layout()
     if save is not None and isinstance(save, str):
@@ -309,7 +324,7 @@ def plot_centers_shift(
     plt.scatter([], [], marker="o", color="black", label="Center (after)")
 
     for label in all_labels:
-        plt.scatter([], [], marker="o", color=color_map[label], label=f"Cluster {label}")
+        plt.scatter([], [], marker="o", color=cluster_color(label), label=f"Cluster {label}")
 
     for label in all_labels:
         center_old = None
@@ -328,18 +343,18 @@ def plot_centers_shift(
                 [center_old[1], center_new[1]],
                 linewidth=2,
                 linestyle="--",
-                color=color_map[label],
+                color=cluster_color(label),
             )
-            plt.scatter(*center_old, marker="x", color=color_map[label], s=60)
-            plt.scatter(*center_new, marker="o", color=color_map[label], s=60)
+            plt.scatter(*center_old, marker="x", color=cluster_color(label), s=60)
+            plt.scatter(*center_new, marker="o", color=cluster_color(label), s=60)
 
         # cluster disappeared (only old)
         elif center_old is not None:
-            plt.scatter(*center_old, marker="x", color=color_map[label], s=60)
+            plt.scatter(*center_old, marker="x", color=cluster_color(label), s=60)
 
         # cluster appeared (only new)
         elif center_new is not None:
-            plt.scatter(*center_new, marker="o", color=color_map[label], s=60)
+            plt.scatter(*center_new, marker="o", color=cluster_color(label), s=60)
 
     plt.title("Cluster centroid shifts")
     plt.xlabel("Component 1")

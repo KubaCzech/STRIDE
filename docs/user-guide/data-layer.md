@@ -11,7 +11,7 @@ In streaming environments, input features frequently drift due to external envir
 STRIDE provides two complementary detector classes in `stride.xai.stats`:
 
 1. **`StatisticalTestsDriftDetector`**: Non-parametric two-sample hypothesis tests that evaluate whether feature values in a detection window are drawn from the same continuous distribution as a reference window.
-2. **`DescriptiveStatisticsDriftDetector`**: Computes relative shifts across fundamental distribution moments (mean, variance, skewness, and kurtosis) to quantify the magnitude of distributional displacement.
+2. **`DescriptiveStatisticsDriftDetector`**: Computes class-conditional relative shifts of summary statistics (mean, standard deviation, minimum, maximum, median) and of the class imbalance ratio to quantify the magnitude of distributional displacement.
 
 ---
 
@@ -43,18 +43,20 @@ detector = StatisticalTestsDriftDetector(
     y_before=y_ref,
     X_after=X_det,
     y_after=y_det,
-    significance_level=0.05,
+    alpha=0.05,
 )
 
-# 3. Execute Kolmogorov-Smirnov test
-ks_results = detector.detect(StatisticalTestType.KolmogorovSmirnov)
+# 3. Execute the Kolmogorov-Smirnov test for every feature within every class
+drift_flag = detector.detect(StatisticalTestType.KolmogorovSmirnov)
 
-print(f"Overall drift detected: {detector.drift_flag}")
-print("Per-feature test statistics:")
-for feat, stat in ks_results["test_statistics"].items():
-    p_val = ks_results["p_values"][feat]
-    flag = ks_results["drift_flags"][feat]
-    print(f"  {feat:10s} -> D = {stat:.4f}, p = {p_val:.4e}, drifting = {flag}")
+print(f"Overall drift detected: {drift_flag}")
+print("Per-class, per-feature test statistics:")
+ks_results = detector.drift_details[StatisticalTestType.KolmogorovSmirnov.value]
+for label, features in ks_results.items():
+    for feat, result in features.items():
+        print(
+            f"  class {label} | {feat:4s} -> D = {result['stat']:.4f}, p = {result['p_value']:.4e}, drifting = {result['drift']}"
+        )
 ```
 
 ### Supported Statistical Tests
@@ -89,7 +91,7 @@ $$\mathcal{W}_1(u, v) = \int_{-\infty}^{+\infty} \left| U(x) - V(x) \right| \, d
 
 ## Descriptive Statistics Shift
 
-The `DescriptiveStatisticsDriftDetector` computes absolute relative shifts for summary statistics across individual dimensions:
+The `DescriptiveStatisticsDriftDetector` computes, within every class, the relative shift of summary statistics of each feature:
 
 ```python
 from stride.xai.stats import DescriptiveStatisticsDriftDetector, StatisticsType
@@ -99,23 +101,24 @@ detector = DescriptiveStatisticsDriftDetector(
     y_before=y_ref,
     X_after=X_det,
     y_after=y_det,
-    decision_thr=0.25,  # 25% relative shift threshold
+    decision_thr=0.4,  # share of statistics that must signal drift to raise the overall alarm
 )
 
-# Detect shifts across all moments (mean, variance, skewness, kurtosis)
-summary = detector.detect(StatisticsType.All)
+# Evaluate all statistics; a statistic signals drift if it shifts by more than 25%
+drift_flag, details = detector.detect(StatisticsType.All, thr=0.25)
 
-print(f"Descriptive drift detected: {detector.drift_flag}")
-print(f"Drifting features: {detector.drifting_features}")
+print(f"Descriptive drift detected: {drift_flag}")
+drifting = sorted({feature for features in details.values() for feature, stats in features.items() if any(stats.values())})
+print(f"Drifting features: {drifting}")
 ```
 
 ### Evaluation Metric
 
-For each feature $j$ and evaluated statistic $S \in \{\text{mean}, \text{variance}, \text{skewness}, \text{kurtosis}\}$:
+For each class, each feature $j$ and evaluated statistic $S \in \{\text{mean}, \text{std}, \text{min}, \text{max}, \text{median}\}$:
 
 $$\Delta_{\text{rel}}(S_j) = \frac{\left| S_j(W_{\text{det}}) - S_j(W_{\text{ref}}) \right|}{\left| S_j(W_{\text{ref}}) \right| + \epsilon}$$
 
-If $\Delta_{\text{rel}}(S_j) \ge \tau$ (where $\tau$ is `decision_thr`), feature $j$ is flagged as drifting for that moment.
+If $\Delta_{\text{rel}}(S_j) > \tau$ (where $\tau$ is the `thr` argument of `detect`), feature $j$ is flagged as drifting for that statistic. The overall alarm is raised when the share of statistics that signal drift exceeds `decision_thr`.
 
 ---
 

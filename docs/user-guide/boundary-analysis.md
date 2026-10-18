@@ -103,17 +103,17 @@ report = analyzer.analyze(
     model_class=MLPModel,
     grid_size=200,
     ssnp_epochs=15,
+    feature_names=list(X.columns),
 )
 
-print(f"Pre-drift test accuracy:  {report['accuracy_before']:.2%}")
-print(f"Post-drift test accuracy: {report['accuracy_after']:.2%}")
-print(f"Disagreement region size: {report['disagreement_fraction']:.2%}")
+disagreement = report["disagreement"]
+print(f"Share of samples where the two boundaries disagree: {disagreement['drift_rate']:.2%}")
 
-# Access decision rules from the disagreement tree
-if "tree_rules" in report:
+# Decision rules of the disagreement tree: the regions where the boundary moved
+rules = disagreement["disagreement_table"]
+if rules is not None:
     print("\nDisagreement Region Explanations:")
-    for rule in report["tree_rules"][:3]:
-        print(f"  Rule: {rule}")
+    print(rules.head(3).to_string())
 ```
 
 ### Visualization
@@ -121,14 +121,10 @@ if "tree_rules" in report:
 To render the pre-drift and post-drift boundary maps alongside the disagreement region, use `stride.plotting`:
 
 ```python
-from stride.plotting import plot_decision_boundary
+from stride.xai.boundary import visualize_decision_boundary
 
-fig = plot_decision_boundary(
-    grid_predictions_before=report["grid_before"],
-    grid_predictions_after=report["grid_after"],
-    disagreement_mask=report["disagreement_mask"],
-    projected_samples=report["projected_samples"],
-)
+# Pre- and post-drift decision boundaries in the shared 2D projection
+fig = visualize_decision_boundary(report)
 # fig is a standard matplotlib.figure.Figure instance
 fig.savefig("boundary_shift.png", dpi=300, bbox_inches="tight")
 ```

@@ -38,7 +38,7 @@ Instead of triggering post-hoc explanations only after significant performance d
 Evaluates covariate shifts independent of the predictive model:
 * **Descriptive Statistics & Divergences**: Computes class-conditional moments, variances, and 1D Wasserstein distances to evaluate distribution movement.
 * **Non-Parametric Hypothesis Tests**: Two-sample Kolmogorov-Smirnov (KS) and Anderson-Darling tests detect significant univariate distribution differences between sliding windows.
-* **Clustering Dynamics**: Evaluates density shifts using X-means clustering, applying the Hungarian algorithm to track cluster splitting, migration, and centroid displacement across consecutive batches.
+* **Clustering Dynamics**: Discovers class-conditional sub-populations with X-means, tracks them across windows (centroid displacement, cluster birth and death), and decides on drift with a permutation test.
 
 ### 2. Model Layer (Performance Triggers)
 Tracks streaming model health and online error rates:
@@ -109,7 +109,7 @@ detector = StatisticalTestsDriftDetector(X_ref, y_ref, X_det, y_det)
 has_drift = detector.detect(StatisticalTestType.KolmogorovSmirnov)
 
 print(f"Drift detected: {has_drift}")
-print(f"Per-feature test outcomes: {detector.drift_flags}")
+print(f"Per-test outcomes: {detector.drift_flags}")
 ```
 
 Top-level convenience imports are also available directly from `stride`:
@@ -118,7 +118,7 @@ Top-level convenience imports are also available directly from `stride`:
 import stride
 
 model = stride.RandomForestModel()
-detector = stride.DescriptiveStatisticsDriftDetector(...)
+detector = stride.DescriptiveStatisticsDriftDetector(X_ref, y_ref, X_det, y_det)
 ```
 
 ---

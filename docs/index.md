@@ -35,7 +35,7 @@ The data layer tracks variations in the marginal distribution $P(X)$ without mod
 
 * **Non-Parametric Hypothesis Tests**: Two-sample Kolmogorov-Smirnov (KS) and Anderson-Darling tests detect significant univariate distribution differences across windows.
 * **Distribution Divergences**: First Wasserstein distance ($\mathcal{W}_1$, Earth Mover's Distance) quantifies absolute distribution displacement across continuous features.
-* **Clustering Dynamics**: Dynamic X-means clustering with Bayesian Information Criterion (BIC) tracks sub-population movements, while the Hungarian algorithm computes optimal centroid displacement vectors across consecutive batches.
+* **Clustering Dynamics**: Class-conditional X-means clustering with the Bayesian Information Criterion (BIC) discovers sub-populations; the detection window is tracked against the reference clusters to measure centroid displacement and cluster birth or death, and a permutation test decides whether the change exceeds chance.
 
 ### 2. Model Layer (Sequential Error Tracking)
 The model layer evaluates classifier behavior across the temporal stream:
@@ -73,7 +73,7 @@ flowchart TD
     subgraph Explanation ["Explainable AI (xAI) Modules"]
         X1["Decision Boundary Analysis\n(SSNP, SDBM, Disagreement Trees)"]
         X2["Feature Importance Attribution\n(PFI, SHAP, Conformal Abstention)"]
-        X3["Clustering Dynamics\n(X-Means, Hungarian Matching)"]
+        X3["Clustering Dynamics\n(X-Means, Permutation Test)"]
         X4["Recurring Concept Tracking\n(ProTree, HDBSCAN, Distance Matrix)"]
     end
 
