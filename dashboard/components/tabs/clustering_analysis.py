@@ -24,36 +24,55 @@ def _display_intro():
     This tab uses cluster-based methods to detect and analyze concept drift.
     It compares the data distribution and cluster structures between two windows:
     **Before Drift** and **After Drift**.
+
+    Within each class, X-Means finds the clusters of the *Before* window, and the
+    *After* window is assigned to the nearest of those clusters, so both windows are
+    compared on the same partition. Drift is assessed through four criteria: clusters
+    that appeared or disappeared, centroid shifts, changes of per-cluster statistics,
+    and changes of cluster spread. A permutation test (random re-splits of the pooled
+    data) decides whether the observed drift strength is larger than chance.
     """
     )
 
 
-def _display_drift_status(drift_flag: bool):
+def _display_drift_summary(detector: ClusterBasedDriftDetector):
     """
-    Displays whether drift was detected.
+    Displays the drift decision, drift strength and permutation p-value.
 
     Parameters
     ----------
-    drift_flag : bool
-        Indicates whether drift was detected.
+    detector : ClusterBasedDriftDetector
+        A detector on which ``detect()`` has been called.
     """
-    if drift_flag:
-        st.success("**Drift Detected:** Yes")
+    if detector.drift_flag:
+        st.success("**Drift detected** between the two windows.")
     else:
-        st.error("**Drift Detected:** No")
+        st.info("**No drift detected** between the two windows.")
 
-
-def _display_drift_strength(drift_strength: bool):
-    """
-    Displays strength of drift indicator.
-
-    Parameters
-    ----------
-    drift_strength : bool
-        Probability of drift occurring.
-    """
-    st.subheader("Drift Strength")
-    st.write(f"The calculated drift strength is: **{drift_strength:.4f}**")
+    col_flag, col_strength, col_p = st.columns(3)
+    col_flag.metric("Drift Detected", "Yes" if detector.drift_flag else "No")
+    col_strength.metric(
+        "Drift Strength",
+        f"{detector.strength_of_drift:.3f}",
+        help="Weighted share of triggered checks across the four criteria (0 = none, 1 = all).",
+    )
+    if detector.p_value is not None:
+        col_p.metric(
+            "Permutation p-value",
+            f"{detector.p_value:.3f}",
+            help=(
+                f"Share of {detector.n_permutations} random re-splits of the pooled data (within each class) whose "
+                f"drift strength is at least as high as the observed one. Drift is reported when "
+                f"p < {detector.permutation_alpha}."
+            ),
+        )
+        null_q95 = float(np.quantile(detector.null_strengths, 0.95))
+        st.caption(
+            f"Without drift, 95% of re-splits reach a strength of at most {null_q95:.3f}; "
+            f"the observed strength is {detector.strength_of_drift:.3f}."
+        )
+    else:
+        col_p.metric("Decision Threshold", f"{detector.decision_thr:.2f}")
 
 
 def _config_details_dataframe(details: dict, weights: Sequence[float]) -> pd.DataFrame:
@@ -508,6 +527,15 @@ def _display(
         st.warning("Cluster labels not available for plotting.")
 
 
+@st.cache_data(show_spinner=False)
+def _run_detector(X_before, y_before, X_after, y_after) -> ClusterBasedDriftDetector:
+    """Run the detector once per pair of windows; switching views reuses the result."""
+    # Fixed random_state: identical windows always give identical clusters and p-value.
+    detector = ClusterBasedDriftDetector(X_before, y_before, X_after, y_after, random_state=42)
+    detector.detect()
+    return detector
+
+
 def render_clustering_analysis_tab(X_before: pd.DataFrame, y_before: np.ndarray, X_after: pd.DataFrame, y_after: np.ndarray):
     """
     Renders the Clustering Analysis tab.
@@ -525,16 +553,12 @@ def render_clustering_analysis_tab(X_before: pd.DataFrame, y_before: np.ndarray,
     """
     _display_intro()
 
-    # Initialize Detector with random_state for determinism
-    detector = ClusterBasedDriftDetector(X_before, y_before, X_after, y_after, random_state=42)
-
-    with st.spinner("Running cluster-based drift detection..."):
+    with st.spinner("Running cluster-based drift detection (with permutation test)..."):
         try:
-            drift_flag, details = detector.detect()
+            detector = _run_detector(X_before, y_before, X_after, y_after)
 
-            _display_drift_status(drift_flag)
-            _display_drift_strength(detector.strength_of_drift)
-            _display_drift_details(details, detector.effective_weights)
+            _display_drift_summary(detector)
+            _display_drift_details(detector.drift_details, detector.effective_weights)
             _display(X_before, X_after, y_before, y_after, detector)
 
         except Exception as e:

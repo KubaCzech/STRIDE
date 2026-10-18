@@ -44,20 +44,38 @@ def _same_partition(a: np.ndarray, b: np.ndarray) -> bool:
 
 
 def _assert_labels_follow_class_clustering(test: unittest.TestCase, detector) -> None:
-    """Every class's global cluster labels must partition that class's own samples
-    exactly as X-Means did when run on that class alone."""
+    """Cluster labels must be derived from each class's own samples.
+
+    The reference block is always partitioned exactly as X-Means partitions that
+    class alone.  The new block is, in ``"independent"`` matching, likewise its own
+    X-Means partition; in ``"reference"`` matching every new sample that is not in an
+    appeared cluster carries the nearest reference cluster *of its own class*.
+    """
     from stride.xai.clustering.xmeans import reshape_clusters, run_xmeans
 
-    for X, y, labels in (
-        (detector.X_old, detector.y_old, detector.cluster_labels_old),
-        (detector.X_new, detector.y_new, detector.cluster_labels_new),
-    ):
+    blocks = [(detector.X_old, detector.y_old, detector.cluster_labels_old, True)]
+    blocks.append((detector.X_new, detector.y_new, detector.cluster_labels_new, detector.matching == "independent"))
+    for X, y, labels, own_clustering in blocks:
         for klass in np.unique(y):
             mask = y == klass
-            _, clusters = run_xmeans(X[mask], detector.k_init, detector.k_max, detector.random_state)
+            if own_clustering:
+                _, clusters = run_xmeans(X[mask], detector.k_init, detector.k_max, detector.random_state)
+                test.assertTrue(
+                    _same_partition(labels[mask], reshape_clusters(clusters)),
+                    f"cluster labels of class {klass!r} do not match its own clustering",
+                )
+                continue
+
+            old_ids = set(detector.cluster_labels_old[detector.y_old == klass])
+            tracked = [k for k in sorted(old_ids) if k in set(labels[mask])]
+            in_tracked = np.isin(labels[mask], tracked)
+            if not tracked:
+                continue
+            centers = np.array([detector.X_old[detector.cluster_labels_old == k].mean(axis=0) for k in tracked])
+            nearest = np.asarray(tracked)[np.linalg.norm(X[mask][:, None] - centers[None], axis=2).argmin(axis=1)]
             test.assertTrue(
-                _same_partition(labels[mask], reshape_clusters(clusters)),
-                f"cluster labels of class {klass!r} do not match its own clustering",
+                np.array_equal(labels[mask][in_tracked], nearest[in_tracked]),
+                f"new samples of class {klass!r} are not assigned to their nearest reference cluster",
             )
 
 
@@ -208,21 +226,23 @@ class TestClusterBasedDriftDetectorClasses(unittest.TestCase):
     CENTERS_A = [(0, 0), (0, 4)]
     CENTERS_B = [(8, 0), (8, 4), (8, 8)]
 
-    def _detector(self, centers_old: dict, centers_new: dict):
+    def _detector(self, centers_old: dict, centers_new: dict, **kwargs):
         from stride.xai.clustering import ClusterBasedDriftDetector
 
         X_old, y_old = _make_blobs(centers_old, n_per_blob=60, seed=0)
         X_new, y_new = _make_blobs(centers_new, n_per_blob=60, seed=1)
-        detector = ClusterBasedDriftDetector(X_old, y_old, X_new, y_new)
+        detector = ClusterBasedDriftDetector(X_old, y_old, X_new, y_new, **kwargs)
         detector.detect()
         return detector
 
     def test_labels_when_set_order_differs_from_sorted_order(self):
         # In CPython set({1, 8}) iterates as [8, 1], unlike sorted order [1, 8].
         centers = {1: self.CENTERS_A, 8: self.CENTERS_B}
-        detector = self._detector(centers, centers)
+        for matching in ("reference", "independent"):
+            with self.subTest(matching=matching):
+                detector = self._detector(centers, centers, matching=matching, n_permutations=0)
 
-        _assert_labels_follow_class_clustering(self, detector)
+                _assert_labels_follow_class_clustering(self, detector)
 
     def test_string_labels_independent_of_hash_seed(self):
         # The iteration order of a set of strings depends on PYTHONHASHSEED, so the

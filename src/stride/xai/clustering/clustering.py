@@ -36,21 +36,32 @@ if not hasattr(np, "warnings"):
 class ClusterBasedDriftDetector:
     r"""Cluster-based concept and data drift detector using X-Means clustering.
 
-    Performs dynamic X-Means clustering independently within each class label.
-    Remaps and matches clusters across stream windows using the Hungarian optimal
-    bipartite assignment algorithm. Drift is evaluated across four criteria:
+    Within each class, X-Means discovers the cluster structure of the reference
+    block. By default (``matching="reference"``) the detection block is assigned to
+    the nearest reference centroid, so both blocks are compared on the same
+    partition; clusters that appear (regions not covered by the reference model) or
+    disappear (reference clusters that lose their mass) are detected relative to
+    that model. Drift is evaluated across four criteria:
+
     1. Changes in the number of clusters within a class (clusters that appeared or
        disappeared).
     2. Changes in descriptive statistics computed for each cluster.
     3. Spatial shifts of cluster centroids ($\|c_{\text{before}} - c_{\text{after}}\|_2$).
     4. Changes in average sample-to-centroid dispersion.
-    Criteria 2-4 are evaluated only for clusters matched across both blocks.
+
+    Criteria 2-4 are evaluated only for clusters present in both blocks. Their
+    weighted share of triggered checks is the drift strength. The decision is made
+    by a permutation test: blocks are re-split at random within each class and the
+    strength is recomputed, giving a p-value that controls the false-alarm rate.
 
     Attributes:
-        drift_flag: Whether aggregate drift score exceeded `decision_thr`.
+        drift_flag: Whether drift was detected (permutation p-value below
+            `permutation_alpha`, or strength above `decision_thr` without permutations).
+        strength_of_drift: Weighted share of triggered criteria in $[0.0, 1.0]$.
+        p_value: Permutation p-value of `strength_of_drift` (``None`` without permutations).
+        null_strengths: Drift strengths obtained under the permutations.
         effective_weights: Criterion weights actually used for the score, i.e. `weights`
             renormalised over criteria that had at least one evaluation.
-        strength_of_drift: Weighted-average strength of detected drift in $[0.0, 1.0]$.
         drift_details: Detailed breakdown of per-class criteria triggers.
 
     Examples:
@@ -127,9 +138,9 @@ class ClusterBasedDriftDetector:
         decision_thr: float = 0.5,
         weights: Sequence[float] = [0.4, 0.25, 0.25, 0.1],
         random_state: int = 42,
-        matching: str = "independent",
+        matching: str = "reference",
         alpha: float | None = None,
-        n_permutations: int = 0,
+        n_permutations: int = 50,
         permutation_alpha: float = 0.05,
         xmeans_repeat: int = 1,
         novelty_quantile: float = 0.95,
@@ -150,7 +161,9 @@ class ClusterBasedDriftDetector:
                 standard deviation, in standard deviations of the (standardised) feature.
             thr_avg_distance_to_center_change: Threshold on the relative change of the mean
                 sample-to-centroid distance.
-            decision_thr: Weighted score threshold required to declare global drift.
+            decision_thr: Weighted score threshold required to declare global drift when
+                ``n_permutations`` is 0. With permutations (the default) the decision is
+                made by the permutation test and this threshold is not used.
             weights: 4-element sequence specifying relative weights for each criterion.
             random_state: Random state for deterministic clustering and permutations.
             matching: How the new block's clusters are related to the reference block.

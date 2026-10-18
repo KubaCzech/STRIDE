@@ -163,7 +163,7 @@ class TestDetectorCalibration(unittest.TestCase):
         return detector
 
     def test_no_permutations_leaves_p_value_unset(self):
-        detector = self._detector(*self._data(0.0))
+        detector = self._detector(*self._data(0.0), n_permutations=0)
 
         self.assertIsNone(detector.p_value)
         self.assertIsNone(detector.null_strengths)
