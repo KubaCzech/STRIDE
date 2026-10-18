@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `stride.xai.clustering`: `assign_to_reference`, `calculate_shift_significance`, `bic_score`; `run_xmeans(repeat=...)` keeps the run with the best BIC.
 - Dashboard clustering tab: drift decision, strength and permutation p-value as metrics, method description, results cached per pair of windows.
 - Dashboard clustering tab: detector settings (cluster range, permutations, significance level, matching mode, per-cluster significance tests), a cluster overview table (status, sizes, centroid shift, spread), a permutation-test plot, and triggered/evaluated checks with their contribution to the drift strength per criterion.
+- Dashboard Statistical Tests tab: Kolmogorov-Smirnov, Anderson-Darling, Wasserstein and Jensen-Shannon per feature and class with configurable significance level and thresholds, flagged pairs per test against the count expected by chance, a feature table with highlighted flags, and ECDF/histogram/KDE/boxplot/Q-Q plots of a selected feature.
 
 ### Fixed
 - `run_xmeans` was not reproducible for a given `random_state` and changed the global `random` state (#31).
@@ -28,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prototype Analysis failed on NumPy 2.4 (`np.in1d` removed).
 - `stride.xai.boundary` did not export `visualize_decision_boundary`.
 - Documentation: code examples that did not run with the current API.
+- `StatisticalTestsDriftDetector`: Wasserstein and Anderson-Darling raised errors and KS/JS/KL returned meaningless values for a class missing from one window (such classes are now skipped and excluded from the share of flagged pairs); Anderson-Darling raised an error for a feature with a single value in both windows.
+- `plot_qq` drew both windows against a normal distribution with the y-axis clipped to [0, 1]; it is now a two-sample Q-Q plot. `plot_kde` failed on a constant feature; distribution plots failed for text class labels.
+- Documentation: the dashboard guide described the six-tab layout used before the redesign.
 
 ## [0.4.0] - 2026-10-17
 

@@ -96,6 +96,15 @@ class StatisticalTestsDriftDetector:
         self.X_before_scaled = scaler.fit_transform(self.X_before, return_df=True)
         self.X_after_scaled = scaler.transform(self.X_after, return_df=True)
 
+    def _in_both_windows(self, label) -> bool:
+        """Whether a class has samples in both windows; tests skip classes missing from either."""
+        return bool(np.any(self.y_before == label) and np.any(self.y_after == label))
+
+    def _drift_share_exceeds_thr(self, details: dict) -> bool:
+        """Whether the share of evaluated feature-class pairs flagged as drift exceeds `drift_thr`."""
+        flags = [details[l][col]["drift"] for l in self.labels if self._in_both_windows(l) for col in details[l]]
+        return bool(flags) and bool(np.mean(flags) > self.drift_thr)
+
     def detect(self, test_type: list[StatisticalTestType] | StatisticalTestType) -> bool:
         """Execute selected statistical test(s) to evaluate distribution stability.
 
@@ -143,6 +152,8 @@ class StatisticalTestsDriftDetector:
         }
 
         for l in self.labels:
+            if not self._in_both_windows(l):
+                continue
             for column in self.X_before.columns:
                 stat, p_value = ks_2samp(
                     self.X_before[self.y_before == l][column],
@@ -153,16 +164,15 @@ class StatisticalTestsDriftDetector:
                 if p_value < self.alpha:
                     details[l][column]["drift"] = True
 
-        drift_flag = bool(
-            np.mean([details[l][col]["drift"] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
-        )
-        return drift_flag, details
+        return self._drift_share_exceeds_thr(details), details
 
     def _kullback_leibler_test(self) -> tuple[bool, dict]:
         eps = 1e-10
         details = {l: {col: {"drift": False, "kl_div": None} for col in self.X_before_scaled.columns} for l in self.labels}
 
         for l in self.labels:
+            if not self._in_both_windows(l):
+                continue
             for column in self.X_before_scaled.columns:
                 old_dist, bin_edges = np.histogram(
                     self.X_before_scaled[self.y_before == l][column], bins=self.bins, density=True
@@ -179,15 +189,14 @@ class StatisticalTestsDriftDetector:
                 if kl_div > self.kl_thr:
                     details[l][column]["drift"] = True
 
-        drift_flag = bool(
-            np.mean([details[l][col]["drift"] for col in self.X_before_scaled.columns for l in self.labels]) > self.drift_thr
-        )
-        return drift_flag, details
+        return self._drift_share_exceeds_thr(details), details
 
     def _wasserstein_test(self) -> tuple[bool, dict]:
         details = {l: {col: {"drift": False, "wd": None} for col in self.X_before_scaled.columns} for l in self.labels}
 
         for l in self.labels:
+            if not self._in_both_windows(l):
+                continue
             for column in self.X_before_scaled.columns:
                 wd = float(
                     wasserstein_distance(
@@ -199,16 +208,15 @@ class StatisticalTestsDriftDetector:
                 if wd > self.wasserstein_thr:
                     details[l][column]["drift"] = True
 
-        drift_flag = bool(
-            np.mean([details[l][col]["drift"] for col in self.X_before_scaled.columns for l in self.labels]) > self.drift_thr
-        )
-        return drift_flag, details
+        return self._drift_share_exceeds_thr(details), details
 
     def _jensen_shannon_test(self) -> tuple[bool, dict]:
         eps = 1e-10
         details = {l: {col: {"drift": False, "js_div": None} for col in self.X_before_scaled.columns} for l in self.labels}
 
         for l in self.labels:
+            if not self._in_both_windows(l):
+                continue
             for column in self.X_before_scaled.columns:
                 old_dist, bin_edges = np.histogram(
                     self.X_before_scaled[self.y_before == l][column], bins=self.bins, density=True
@@ -225,15 +233,14 @@ class StatisticalTestsDriftDetector:
                 if js_div > self.js_thr:
                     details[l][column]["drift"] = True
 
-        drift_flag = bool(
-            np.mean([details[l][col]["drift"] for col in self.X_before_scaled.columns for l in self.labels]) > self.drift_thr
-        )
-        return drift_flag, details
+        return self._drift_share_exceeds_thr(details), details
 
     def _spearman_test(self) -> tuple[bool, dict]:
         details = {l: {col: {"drift": False, "spearman_coeff": None} for col in self.X_before.columns} for l in self.labels}
 
         for l in self.labels:
+            if not self._in_both_windows(l):
+                continue
             for column in self.X_before.columns:
                 min_len = min(
                     len(self.X_before[self.y_before == l][column]),
@@ -247,10 +254,7 @@ class StatisticalTestsDriftDetector:
                 if abs(corr) < self.spearman_thr:
                     details[l][column]["drift"] = True
 
-        drift_flag = bool(
-            np.mean([details[l][col]["drift"] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
-        )
-        return drift_flag, details
+        return self._drift_share_exceeds_thr(details), details
 
     def _anderson_darling_test(self) -> tuple[bool, dict]:
         details = {
@@ -259,17 +263,20 @@ class StatisticalTestsDriftDetector:
         }
 
         for l in self.labels:
+            if not self._in_both_windows(l):
+                continue
             for column in self.X_before.columns:
-                stat, critical, p_value = anderson_ksamp(
-                    [self.X_before[self.y_before == l][column], self.X_after[self.y_after == l][column]]
-                )
+                old_sample = self.X_before[self.y_before == l][column]
+                new_sample = self.X_after[self.y_after == l][column]
+                if np.unique(np.concatenate([old_sample, new_sample])).size < 2:
+                    # Both windows hold one and the same value: identical distributions.
+                    details[l][column].update(p_value=1.0, stat=0.0)
+                    continue
+                stat, critical, p_value = anderson_ksamp([old_sample, new_sample])
                 if p_value < self.alpha:
                     details[l][column]["drift"] = True
                 details[l][column]["p_value"] = p_value
                 details[l][column]["stat"] = stat
                 details[l][column]["critical"] = critical
 
-        drift_flag = bool(
-            np.mean([details[l][col]["drift"] for col in self.X_before.columns for l in self.labels]) > self.drift_thr
-        )
-        return drift_flag, details
+        return self._drift_share_exceeds_thr(details), details

@@ -9,11 +9,20 @@ from matplotlib.colors import to_rgb
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 from matplotlib.figure import Figure
-from scipy.stats import gaussian_kde, probplot
+from scipy.stats import gaussian_kde
 
 # TODO 2: legendy w histogramie, kde, ecdf
 # TODO 3: wspólna oś y, jesli nie to zrobic sharey
 # TODO 4: nazwy osi
+
+
+def _class_name(label) -> str:
+    """Readable class label: integral numbers without decimals, anything else as text."""
+    if isinstance(label, (bool, np.bool_)):
+        return str(label)
+    if isinstance(label, (int, float, np.integer, np.floating)) and float(label).is_integer():
+        return str(int(label))
+    return str(label)
 
 
 class PlotOptions(Enum):
@@ -74,7 +83,7 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
             kwargs["default_colors"] = default_colors
 
             features = X_before.columns
-            classes = sorted([int(i) for i in set(y_before).union(set(y_after))])
+            classes = sorted(set(y_before).union(set(y_after)))
 
             fig, axes = plt.subplots(len(features), len(classes), figsize=(6 * len(classes), 5 * len(features)), sharey=sharey)
 
@@ -107,7 +116,7 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
                     )
 
                     if i == 0:
-                        ax.set_title(f"Class {int(cl)}")
+                        ax.set_title(f"Class {_class_name(cl)}")
                     if j == 0:
                         ax.set_ylabel(feature)
 
@@ -241,8 +250,12 @@ def plot_violin(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, show_: P
 
 # 4. QQ Plot
 @plot("QQ Plot – Before vs After")
-def plot_qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, **_) -> None:
-    """Draw a QQ-plot comparing distributions of two data blocks.
+def plot_qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], **_) -> None:
+    """Draw a two-sample quantile-quantile plot of two data blocks.
+
+    Each point pairs the same quantile (1%, 2%, ..., 99%) of the first block (x) and the
+    second block (y). Points on the diagonal mean equal distributions; a parallel offset
+    is a location shift and a different slope a change of spread.
 
     Parameters
     ----------
@@ -255,9 +268,16 @@ def plot_qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, **_) -> None
     -------
     matplotlib.figure.Figure
     """
-    ax.set_ylim(-0.05, 1.05)
-    probplot(old_vals, dist="norm", plot=ax)
-    probplot(new_vals, dist="norm", plot=ax)
+    levels = np.linspace(0.01, 0.99, 99)
+    q_old = np.quantile(old_vals, levels)
+    q_new = np.quantile(new_vals, levels)
+    low, high = min(q_old.min(), q_new.min()), max(q_old.max(), q_new.max())
+
+    ax.plot([low, high], [low, high], color="grey", linestyle="--", lw=1, label="No change")
+    ax.scatter(q_old, q_new, s=12, color=colors[1], label="Quantiles")
+    ax.set_xlabel("Before")
+    ax.set_ylabel("After")
+    ax.legend()
 
 
 # 5. KDE Plot
@@ -276,15 +296,16 @@ def plot_kde(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Seq
     -------
     matplotlib.figure.Figure
     """
-    kde_old = gaussian_kde(old_vals)
-    kde_new = gaussian_kde(new_vals)
-
     x_min = min(min(old_vals), min(new_vals))
     x_max = max(max(old_vals), max(new_vals))
     x_range = np.linspace(x_min, x_max, 1000)
 
-    ax.plot(x_range, kde_old(x_range), label="Before", color=colors[0])
-    ax.plot(x_range, kde_new(x_range), label="After", color=colors[1])
+    for vals, label, color in ((old_vals, "Before", colors[0]), (new_vals, "After", colors[1])):
+        if np.ptp(vals) == 0:
+            # A constant sample has no density; mark its value instead.
+            ax.axvline(float(np.asarray(vals)[0]), label=f"{label} (constant)", color=color)
+        else:
+            ax.plot(x_range, gaussian_kde(vals)(x_range), label=label, color=color)
     ax.legend()
 
 
