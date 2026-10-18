@@ -115,7 +115,9 @@ def _config_details_dataframe(details: dict, weights: Sequence[float]) -> pd.Dat
     false_counts = np.array(false_counts)
     total_counts = np.sum(true_counts, axis=0) + np.sum(false_counts, axis=0)
 
-    contributions = (true_counts / np.vstack([total_counts, total_counts])) * np.vstack([weights, weights])
+    # Same formula as ClusterBasedDriftDetector._generate_drift_flag: the per-class rows sum
+    # to the drift strength when `weights` are the detector's effective weights.
+    contributions = true_counts / np.maximum(total_counts, 1) * np.asarray(weights)
 
     for i, class_label in enumerate(details.keys()):
         row = dict()
@@ -275,6 +277,9 @@ def _display_stats_shift_table(detector):
     """
     Displays a table showing statistical shifts for each cluster.
 
+    Shifts are absolute changes of standardised features, i.e. expressed in
+    standard deviations (σ) of each feature.
+
     Parameters
     ----------
     detector : ClusterBasedDriftDetector
@@ -291,12 +296,13 @@ def _display_stats_shift_table(detector):
             row = {"Cluster": cluster_id}
             for feature_name, stats in features.items():
                 for stat_name, value in stats.items():
-                    row[f"{feature_name} | {stat_name}"] = f"{round(100 * value, 2)}%" if not np.isnan(value) else "N/A"
+                    row[f"{feature_name} | {stat_name}"] = f"{value:+.3f} σ" if not np.isnan(value) else "N/A"
             records.append(row)
 
         df = pd.DataFrame(records)
         return df
 
+    st.caption("Change of each statistic between blocks, in standard deviations (σ) of the standardised feature.")
     stats_shifts = stats_dict_to_df(detector.stats_shifts)
     st.dataframe(stats_shifts, use_container_width=True, hide_index=True)
 
@@ -528,7 +534,7 @@ def render_clustering_analysis_tab(X_before: pd.DataFrame, y_before: np.ndarray,
 
             _display_drift_status(drift_flag)
             _display_drift_strength(detector.strength_of_drift)
-            _display_drift_details(details, detector.weights)
+            _display_drift_details(details, detector.effective_weights)
             _display(X_before, X_after, y_before, y_after, detector)
 
         except Exception as e:

@@ -1,4 +1,4 @@
-"""Tests for class handling in the cluster-based drift detector."""
+"""Tests for class handling and drift scoring in the cluster-based drift detector."""
 
 import importlib.util
 import os
@@ -12,7 +12,13 @@ import numpy as np
 import pandas as pd
 
 from stride.xai.clustering.matching import merge_clusters
-from stride.xai.clustering.statistics import calculate_avg_distance_from_centroid, calculate_centroid_shifts
+from stride.xai.clustering.statistics import (
+    assess_statistics_shifts,
+    calculate_avg_distance_from_centroid,
+    calculate_centroid_shifts,
+    compare_desc_stats_for_clusters,
+    compute_desc_stats_for_clusters,
+)
 
 HAS_PYCLUSTERING = importlib.util.find_spec("pyclustering") is not None
 SRC_DIR = Path(__file__).resolve().parents[1] / "src"
@@ -89,6 +95,92 @@ class TestAvgDistanceFromCentroid(unittest.TestCase):
         shifts = calculate_avg_distance_from_centroid(X_old, X_new, centers_old, centers_new, labels_old, labels_new)
 
         self.assertAlmostEqual(shifts[0], 0.5)
+
+
+class TestDescriptiveStatisticsShifts(unittest.TestCase):
+    def test_change_is_absolute_difference_on_standardised_data(self):
+        # Features are standardised, so a mean moving from 0.01 to 0.11 is a 0.1-sigma
+        # change; a relative change would report it as +1000%.
+        X_old = np.array([[0.0], [0.02]])
+        X_new = np.array([[0.1], [0.12]])
+        labels = np.array([0, 0])
+        stats = compute_desc_stats_for_clusters(X_old, X_new, labels, labels, pd.Index(["f"]))
+
+        shifts = compare_desc_stats_for_clusters(stats)
+
+        self.assertAlmostEqual(shifts[0]["f"]["mean"], 0.1)
+        self.assertAlmostEqual(shifts[0]["f"]["median"], 0.1)
+        self.assertAlmostEqual(shifts[0]["f"]["std"], 0.0)
+
+    def test_missing_values_are_not_counted_as_drift(self):
+        assessed = assess_statistics_shifts({0: {"f": {"mean": 0.5, "median": 0.0, "std": np.nan}}}, thr_desc_stats=0.2)
+
+        self.assertEqual(assessed, {0: {"f": {"mean": True, "median": False}}})
+
+
+@unittest.skipUnless(HAS_PYCLUSTERING, "pyclustering not installed")
+class TestClusterBasedDriftDetectorScoring(unittest.TestCase):
+    def _detector(self, centers_old: dict, centers_new: dict):
+        from stride.xai.clustering import ClusterBasedDriftDetector
+
+        X_old, y_old = _make_blobs(centers_old, n_per_blob=60, seed=0)
+        X_new, y_new = _make_blobs(centers_new, n_per_blob=60, seed=1)
+        detector = ClusterBasedDriftDetector(X_old, y_old, X_new, y_new)
+        detector.detect()
+        return detector
+
+    def test_exposes_average_distances_used_by_dashboard(self):
+        centers = {0: TestClusterBasedDriftDetectorClasses.CENTERS_A, 1: TestClusterBasedDriftDetectorClasses.CENTERS_B}
+        detector = self._detector(centers, centers)
+
+        all_clusters = set(detector.cluster_shifts)
+        self.assertEqual(set(detector.avg_distance_old), all_clusters)
+        self.assertEqual(set(detector.avg_distance_new), all_clusters)
+        self.assertEqual(set(detector.avg_distance_shift), all_clusters)
+        for k, shift in detector.avg_distance_shift.items():
+            old, new = detector.avg_distance_old[k], detector.avg_distance_new[k]
+            self.assertAlmostEqual(shift, (new - old) / old)
+
+    def test_appeared_cluster_counts_only_towards_cluster_count(self):
+        T = TestClusterBasedDriftDetectorClasses
+        detector = self._detector(
+            {0: T.CENTERS_A, 1: T.CENTERS_B},
+            {0: T.CENTERS_A + [(0, 8)], 1: T.CENTERS_B},  # class 0 gains a far-away blob
+        )
+
+        appeared = {k for k, v in detector.cluster_shifts.items() if v == "appeared"}
+        matched = {k for k, v in detector.cluster_shifts.items() if isinstance(v, dict)}
+        self.assertTrue(matched)
+        self.assertTrue(appeared)
+        self.assertTrue(detector.drift_details[0]["nr_of_clusters"])
+        for klass, details in detector.drift_details.items():
+            for criterion in ("centroid_shift", "avg_distance_to_center", "desc_stats_changes"):
+                with self.subTest(klass=klass, criterion=criterion):
+                    self.assertLessEqual(set(details[criterion]), matched)
+
+    def test_complete_structural_change_is_full_strength_drift(self):
+        # Every cluster of every class moves far away, so no cluster can be matched and
+        # only the cluster-count criterion has anything to evaluate. Criteria with no
+        # evaluations must not dilute the score.
+        T = TestClusterBasedDriftDetectorClasses
+        far_a = [(x, y + 20) for x, y in T.CENTERS_A]
+        far_b = [(x, y + 20) for x, y in T.CENTERS_B]
+        detector = self._detector({0: T.CENTERS_A, 1: T.CENTERS_B}, {0: far_a, 1: far_b})
+
+        self.assertFalse(any(isinstance(v, dict) for v in detector.cluster_shifts.values()))
+        self.assertAlmostEqual(detector.strength_of_drift, 1.0, places=6)
+        self.assertTrue(detector.drift_flag)
+
+    def test_no_drift_on_identical_blocks(self):
+        T = TestClusterBasedDriftDetectorClasses
+        from stride.xai.clustering import ClusterBasedDriftDetector
+
+        X, y = _make_blobs({0: T.CENTERS_A, 1: T.CENTERS_B}, n_per_blob=60, seed=0)
+        detector = ClusterBasedDriftDetector(X, y, X.copy(), y.copy())
+        flag, _ = detector.detect()
+
+        self.assertFalse(flag)
+        self.assertAlmostEqual(detector.strength_of_drift, 0.0, places=6)
 
 
 @unittest.skipUnless(HAS_PYCLUSTERING, "pyclustering not installed")

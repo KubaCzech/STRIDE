@@ -19,7 +19,7 @@ from stride.common import DataScaler, ScalingType
 from .matching import map_new_clusters_to_old, merge_clusters
 from .statistics import (
     assess_statistics_shifts,
-    calculate_avg_distance_from_centroid,
+    calculate_avg_distances,
     calculate_centroid_shifts,
     compare_desc_stats_for_clusters,
     compute_desc_stats_for_clusters,
@@ -36,13 +36,17 @@ class ClusterBasedDriftDetector:
     Performs dynamic X-Means clustering independently within each class label.
     Remaps and matches clusters across stream windows using the Hungarian optimal
     bipartite assignment algorithm. Drift is evaluated across four criteria:
-    1. Changes in the number of clusters within a class.
+    1. Changes in the number of clusters within a class (clusters that appeared or
+       disappeared).
     2. Changes in descriptive statistics computed for each cluster.
     3. Spatial shifts of cluster centroids ($\|c_{\text{before}} - c_{\text{after}}\|_2$).
     4. Changes in average sample-to-centroid dispersion.
+    Criteria 2-4 are evaluated only for clusters matched across both blocks.
 
     Attributes:
         drift_flag: Whether aggregate drift score exceeded `decision_thr`.
+        effective_weights: Criterion weights actually used for the score, i.e. `weights`
+            renormalised over criteria that had at least one evaluation.
         strength_of_drift: Weighted-average strength of detected drift in $[0.0, 1.0]$.
         drift_details: Detailed breakdown of per-class criteria triggers.
 
@@ -69,6 +73,7 @@ class ClusterBasedDriftDetector:
 
     decision_thr: float
     weights: Sequence[float]
+    effective_weights: np.ndarray | None
 
     centers_old: dict[int, np.ndarray | None] | None
     centers_new: dict[int, np.ndarray | None] | None
@@ -79,6 +84,9 @@ class ClusterBasedDriftDetector:
     stats_combined: pd.DataFrame | None
     stats_shifts: pd.DataFrame | None
     cluster_shifts: dict[int, dict | str] | None
+    avg_distance_old: dict[int, float | None] | None
+    avg_distance_new: dict[int, float | None] | None
+    avg_distance_shift: dict[int, float | None] | None
 
     number_of_clusters_old: int | None
     number_of_clusters_new: int | None
@@ -119,8 +127,10 @@ class ClusterBasedDriftDetector:
             thr_clusters: Cluster count difference threshold to flag drift.
             thr_centroid_shift: Normalized Euclidean centroid displacement threshold.
             thr_centroid_disappear: Distance threshold separating migration from cluster disappearance.
-            thr_desc_stats: Relative descriptive statistic shift threshold.
-            thr_avg_distance_to_center_change: Dispersion shift threshold.
+            thr_desc_stats: Threshold on the absolute change of per-cluster mean, median and
+                standard deviation, in standard deviations of the (standardised) feature.
+            thr_avg_distance_to_center_change: Threshold on the relative change of the mean
+                sample-to-centroid distance.
             decision_thr: Weighted score threshold required to declare global drift.
             weights: 4-element sequence specifying relative weights for each criterion.
             random_state: Random state for deterministic clustering.
@@ -161,6 +171,7 @@ class ClusterBasedDriftDetector:
 
         assert len(weights) == 4, "Number of weights must be 4"
         self.weights = np.array(weights) / np.sum(weights)
+        self.effective_weights = None
 
         self.centers_old = None
         self.centers_new = None
@@ -170,6 +181,9 @@ class ClusterBasedDriftDetector:
         self.stats_combined = None
         self.stats_shifts = None
         self.cluster_shifts = None
+        self.avg_distance_old = None
+        self.avg_distance_new = None
+        self.avg_distance_shift = None
 
         self.number_of_clusters_old = None
         self.number_of_clusters_new = None
@@ -237,7 +251,7 @@ class ClusterBasedDriftDetector:
         details_stats = assess_statistics_shifts(self.stats_shifts, self.thr_desc_stats)
 
         # --- Step 4: average distance to centroid ---
-        avg_distance_shift = calculate_avg_distance_from_centroid(
+        self.avg_distance_old, self.avg_distance_new, self.avg_distance_shift = calculate_avg_distances(
             self.X_old,
             self.X_new,
             self.centers_old,
@@ -251,29 +265,23 @@ class ClusterBasedDriftDetector:
             mask_old = self.y_old == cl
             mask_new = self.y_new == cl
             idx = set(self.cluster_labels_old[mask_old]).union(set(self.cluster_labels_new[mask_new]))
+            # Appeared/disappeared clusters are already captured by the cluster-count
+            # criterion; the per-cluster criteria only compare clusters present in both
+            # blocks, so a single structural change is not counted several times.
+            matched = {k for k in idx if isinstance(self.cluster_shifts[k], dict)}
 
             details[cl]["nr_of_clusters"] = (
                 len(set(self.cluster_labels_new[mask_new]) ^ set(self.cluster_labels_old[mask_old])) >= self.thr_clusters
             )
 
             details[cl]["centroid_shift"] = {
-                k: (
-                    bool(self.cluster_shifts[k]["euclidean_distance"] > self.thr_centroid_shift)
-                    if isinstance(self.cluster_shifts[k], dict)
-                    else True
-                )
-                for k in idx
+                k: bool(self.cluster_shifts[k]["euclidean_distance"] > self.thr_centroid_shift) for k in matched
             }
 
-            details[cl]["desc_stats_changes"] = {k: details_stats[k] for k in idx if k in details_stats}
+            details[cl]["desc_stats_changes"] = {k: details_stats[k] for k in matched if k in details_stats}
 
             details[cl]["avg_distance_to_center"] = {
-                k: (
-                    bool(abs(avg_distance_shift[k]) > self.thr_avg_distance_to_center_change)
-                    if avg_distance_shift[k] is not None
-                    else True
-                )
-                for k in idx
+                k: bool(abs(self.avg_distance_shift[k]) > self.thr_avg_distance_to_center_change) for k in matched
             }
 
         self.drift_details = details
@@ -309,8 +317,13 @@ class ClusterBasedDriftDetector:
         return X_before, X_after
 
     def _generate_drift_flag(self) -> None:
-        """Compute the weighted-average drift score and set :attr:`drift_flag`."""
-        eps = 1e-10
+        """Compute the weighted-average drift score and set :attr:`drift_flag`.
+
+        Each criterion contributes the share of its evaluations that flagged drift.
+        Criteria with no evaluations at all (e.g. no cluster could be matched across
+        blocks, so there is no centroid shift to measure) are left out and the
+        remaining weights are renormalised; they are stored in :attr:`effective_weights`.
+        """
         classes = self.classes
 
         true_counts = np.array(
@@ -359,5 +372,8 @@ class ClusterBasedDriftDetector:
             ]
         )
 
-        self.strength_of_drift = float((true_counts / (true_counts + false_counts + eps)) @ self.weights)
+        evaluated = true_counts + false_counts
+        weights = np.where(evaluated > 0, self.weights, 0.0)
+        self.effective_weights = weights / weights.sum() if weights.sum() > 0 else weights
+        self.strength_of_drift = float((true_counts / np.maximum(evaluated, 1)) @ self.effective_weights)
         self.drift_flag = bool(self.strength_of_drift > self.decision_thr)

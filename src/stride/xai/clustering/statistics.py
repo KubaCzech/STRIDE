@@ -87,9 +87,12 @@ def compare_desc_stats_for_clusters(
     Returns
     -------
     dict
-        Nested ``{cluster: {feature: {statistic: relative_change}}}`` mapping.
+        Nested ``{cluster: {feature: {statistic: change}}}`` mapping, where *change*
+        is ``after - before``.  The detector compares standardised features, so the
+        change is expressed in standard deviations of the feature.  A relative change
+        would be unstable here: standardised means and medians are often close to 0.
+        ``NaN`` marks statistics unavailable in either block.
     """
-    eps = 1e-10
     details: dict = {}
 
     for cluster in stats_combined.index:
@@ -116,8 +119,7 @@ def compare_desc_stats_for_clusters(
                     details[cluster][feature][stat] = np.nan
                     continue
 
-                denom = abs(old_val) if abs(old_val) >= eps else 1.0
-                details[cluster][feature][stat] = (new_val - old_val) / denom
+                details[cluster][feature][stat] = new_val - old_val
 
     return details
 
@@ -133,18 +135,18 @@ def assess_statistics_shifts(
     stats_shifts : dict
         Output of :func:`compare_desc_stats_for_clusters`.
     thr_desc_stats : float
-        Relative-change threshold above which a statistic is flagged as drifted.
+        Absolute-change threshold above which a statistic is flagged as drifted.
 
     Returns
     -------
     dict
-        Same nested structure with ``float`` values replaced by ``bool``.
-        NaN values are treated conservatively as ``True`` (drifted).
+        Same nested structure with ``float`` values replaced by ``bool``.  NaN
+        values (statistic unavailable in either block) are omitted, so they count
+        neither as drift nor as stability.
     """
     return {
         cl: {
-            f: {s: bool(abs(v) > thr_desc_stats) if not np.isnan(v) else True for s, v in stats.items()}
-            for f, stats in features.items()
+            f: {s: bool(abs(v) > thr_desc_stats) for s, v in stats.items() if not np.isnan(v)} for f, stats in features.items()
         }
         for cl, features in stats_shifts.items()
     }
@@ -204,15 +206,15 @@ def calculate_centroid_shifts(
     return centers_old, centers_new, shifts
 
 
-def calculate_avg_distance_from_centroid(
+def calculate_avg_distances(
     X_old: np.ndarray,
     X_new: np.ndarray,
     centers_old: dict[int, np.ndarray | None],
     centers_new: dict[int, np.ndarray | None],
     cluster_labels_old: np.ndarray,
     cluster_labels_new: np.ndarray,
-) -> dict[int, float | None]:
-    """Compute the relative change in average sample-to-centroid distance per cluster.
+) -> tuple[dict[int, float | None], dict[int, float | None], dict[int, float | None]]:
+    """Compute the mean sample-to-centroid distance per cluster in both blocks.
 
     Parameters
     ----------
@@ -231,9 +233,14 @@ def calculate_avg_distance_from_centroid(
 
     Returns
     -------
-    dict[int, float | None]
-        Relative shift ``(mean_new - mean_old) / mean_old`` per cluster, or
-        ``None`` when either centroid is absent.
+    avg_old : dict[int, float | None]
+        Mean distance per cluster in the old block (``None`` for appeared clusters).
+    avg_new : dict[int, float | None]
+        Mean distance per cluster in the new block (``None`` for disappeared clusters).
+    shift : dict[int, float | None]
+        Relative change ``(avg_new - avg_old) / avg_old`` per cluster, or ``None``
+        when the cluster is absent from either block.  For clusters with zero
+        spread in the old block the absolute change is returned instead.
     """
 
     def _mean_dist(X: np.ndarray, centers: dict, labels: np.ndarray) -> dict[int, float | None]:
@@ -251,8 +258,8 @@ def calculate_avg_distance_from_centroid(
     avg_new = _mean_dist(X_new, centers_new, cluster_labels_new)
 
     # A single-sample (or fully degenerate) cluster has zero spread; fall back to the
-    # absolute change, as compare_desc_stats_for_clusters does for near-zero statistics.
-    return {
+    # absolute change rather than dividing by zero.
+    shift = {
         i: (
             (avg_new[i] - avg_old[i]) / (avg_old[i] if avg_old[i] >= eps else 1.0)
             if avg_old[i] is not None and avg_new[i] is not None
@@ -260,3 +267,26 @@ def calculate_avg_distance_from_centroid(
         )
         for i in avg_old
     }
+    return avg_old, avg_new, shift
+
+
+def calculate_avg_distance_from_centroid(
+    X_old: np.ndarray,
+    X_new: np.ndarray,
+    centers_old: dict[int, np.ndarray | None],
+    centers_new: dict[int, np.ndarray | None],
+    cluster_labels_old: np.ndarray,
+    cluster_labels_new: np.ndarray,
+) -> dict[int, float | None]:
+    """Relative change in mean sample-to-centroid distance per cluster.
+
+    Shortcut for the third element of :func:`calculate_avg_distances`; see there
+    for parameters.
+
+    Returns
+    -------
+    dict[int, float | None]
+        Relative shift ``(mean_new - mean_old) / mean_old`` per cluster, or
+        ``None`` when either centroid is absent.
+    """
+    return calculate_avg_distances(X_old, X_new, centers_old, centers_new, cluster_labels_old, cluster_labels_new)[2]
