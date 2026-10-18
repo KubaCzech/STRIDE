@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Cluster-Based Drift Detection** (`ClusterBasedDriftDetector`):
+    - New defaults `matching="reference"` and `n_permutations=50`: the detection window is assigned to the X-Means clusters of the reference window, so both windows are compared on the same partition, and drift is decided by a permutation test (`p_value < permutation_alpha`) instead of the fixed `decision_thr`. On synthetic benchmarks (SEA, Hyperplane, LWI, RBF; 20 seeds) the false-alarm rate drops from up to 0.20 to 0.00 and SEA detection rate rises from 0.85 to 1.00. Detection takes about 1-2 s; pass `matching="independent", n_permutations=0` for the previous behaviour.
+    - Per-cluster statistic changes are absolute differences in standard deviations of the standardised feature instead of relative changes, which were unstable for values near zero.
+    - Appeared and disappeared clusters count only towards the cluster-count criterion; missing statistics are no longer counted as drift; criteria without evaluations are excluded from the weighted score (`effective_weights`).
+- **Datasets**: multi-window datasets use string feature names (`x0, x1, ...`) instead of integer column names.
+
+### Added
+- `ClusterBasedDriftDetector`: `p_value`, `null_strengths`, `alpha` (optional size-aware significance tests), `xmeans_repeat`, `novelty_quantile` and `n_jobs` (parallel permutations).
+- `stride.xai.clustering`: `assign_to_reference`, `calculate_shift_significance`, `bic_score`; `run_xmeans(repeat=...)` keeps the run with the best BIC.
+- Dashboard clustering tab: drift decision, strength and permutation p-value as metrics, method description, cached results.
+
+### Fixed
+- `run_xmeans` was not reproducible for a given `random_state` and changed the global `random` state (#31).
+- Cluster labels were mixed up between classes when class labels were not sorted in set order (e.g. text labels), and the detector crashed on classes missing from a window or smaller than `k_init` (#32).
+- Dashboard clustering tab: the "average distance to center change" table and the per-class contribution table (3+ classes) raised errors; the centroid-shift plot failed with more than 20 clusters; class-wise plots failed for text labels.
+- Feature Importance tab failed with LIME on RBF, Mixed and SEA multi-window datasets (integer feature names).
+- Prototype Analysis failed on NumPy 2.4 (`np.in1d` removed).
+- `stride.xai.boundary` did not export `visualize_decision_boundary`.
+- Documentation: code examples that did not run with the current API.
+
 ## [0.4.0] - 2026-10-17
 
 ### Added
