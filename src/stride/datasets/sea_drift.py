@@ -27,6 +27,15 @@ class SeaDriftDataset(BaseDataset):
         Generate synthetic data stream using River's SEA generator.
         Drifts from variant 0 to variant 3 at the drift point.
         The SEA generator has 3 features, and we use all of them.
+
+        Both concepts are generated with the same ``random_seed``. For abrupt drift
+        the post-drift stream therefore starts from the same feature sequence: the
+        first ``n_samples_after`` samples after the drift have exactly the same
+        features as the first samples of the stream and only their labels differ.
+        This is intentional and isolates pure concept drift (identical inputs,
+        changed decision boundary). To compare two independent feature samples,
+        use windows of at most ``n_samples_before / 2`` samples on each side of
+        the drift point.
         """
         if drift_width < 5:
             # Sudden drift workaround for River overflow bug at small widths
