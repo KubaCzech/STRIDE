@@ -22,12 +22,14 @@ warnings.filterwarnings("ignore", message=".*reset_default_graph.*")
 
 from stride.datasets import DATASETS
 from dashboard.components.tabs import (  # noqa: E402
+    render_dataset_overview_tab,
     render_data_visualization_tab,
-    render_feature_importance_analysis_tab,
     render_drift_detection_tab,
-    render_decision_boundary_tab,
     render_prototype_analysis_tab,
+    render_statistical_tests_tab,
     render_clustering_analysis_tab,
+    render_feature_importance_analysis_tab,
+    render_decision_boundary_tab,
 )
 from dashboard.components.modals.info import show_info_modal  # noqa: E402
 
@@ -152,16 +154,18 @@ if not feature_names:
 
 # --- Tabs (Navigation) ---
 tabs = [
-    "Dataset",
+    "Dataset Overview",
     "Drift Detection",
-    "Decision Boundary",
-    "Feature Importance Analysis",
-    "Clustering Analysis",
     "Prototype Analysis",
+    "Data Comparison",
+    "Statistical Tests",
+    "Clustering",
+    "Feature Importance",
+    "Decision Boundary",
 ]
 
 # Initialize session state for active tab if it doesn't exist
-if "active_tab" not in st.session_state:
+if "active_tab" not in st.session_state or st.session_state.active_tab not in tabs:
     st.session_state.active_tab = tabs[0]
 
 
@@ -197,28 +201,41 @@ X_after = X.iloc[start_after:end_after] if hasattr(X, "iloc") else X[start_after
 y_after = y.iloc[start_after:end_after] if hasattr(y, "iloc") else y[start_after:end_after]
 
 
-if active_tab == tabs[0]:
-    render_data_visualization_tab(
-        X, y, X_before, y_before, X_after, y_after, feature_names, window_before_start, window_after_start, window_length
+if active_tab == "Dataset Overview":
+    render_dataset_overview_tab(
+        X=X,
+        y=y,
+        feature_names=feature_names,
+        dataset_instance=dataset_instance,
+        window_length=window_length,
     )
 
-elif active_tab == tabs[1]:
+elif active_tab == "Drift Detection":
     render_drift_detection_tab(
         X, y, window_length, model_class=selected_model_class, model_params=model_params, dataset=dataset_instance
     )
 
-elif active_tab == tabs[2]:
-    render_decision_boundary_tab(
+elif active_tab == "Prototype Analysis":
+    render_prototype_analysis_tab(X, y, window_length)
+
+elif active_tab == "Data Comparison":
+    render_data_visualization_tab(
+        X, y, X_before, y_before, X_after, y_after, feature_names, window_before_start, window_after_start, window_length
+    )
+
+elif active_tab == "Statistical Tests":
+    render_statistical_tests_tab(
         X_before,
         y_before,
         X_after,
         y_after,
-        model_class=selected_model_class,
-        model_params=model_params,
         feature_names=feature_names,
     )
 
-elif active_tab == tabs[3]:
+elif active_tab == "Clustering":
+    render_clustering_analysis_tab(X_before, y_before, X_after, y_after)
+
+elif active_tab == "Feature Importance":
     render_feature_importance_analysis_tab(
         X_before,
         y_before,
@@ -230,8 +247,13 @@ elif active_tab == tabs[3]:
         dataset=dataset_instance,
     )
 
-elif active_tab == tabs[4]:
-    render_clustering_analysis_tab(X_before, y_before, X_after, y_after)
-
-elif active_tab == tabs[5]:
-    render_prototype_analysis_tab(X, y, window_length)
+elif active_tab == "Decision Boundary":
+    render_decision_boundary_tab(
+        X_before,
+        y_before,
+        X_after,
+        y_after,
+        model_class=selected_model_class,
+        model_params=model_params,
+        feature_names=feature_names,
+    )

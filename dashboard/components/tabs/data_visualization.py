@@ -154,7 +154,10 @@ def render_data_visualization_tab(
     window_after_start : int
     window_length : int
     """
-    st.header("Dataset Visualization")
+    st.header("Data Comparison")
+    st.markdown(
+        "Direct comparison of feature space, distributions, and statistics between the selected Before and After drift windows."
+    )
 
     # --- Metrics Section ---
     n_before = len(y_before)
