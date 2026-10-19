@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - New defaults `matching="reference"` and `n_permutations=50`: the detection window is assigned to the X-Means clusters of the reference window, so both windows are compared on the same partition, and drift is decided by a permutation test (`p_value < permutation_alpha`) instead of the fixed `decision_thr`. On synthetic benchmarks (SEA, Hyperplane, LWI, RBF; 20 seeds) the false-alarm rate drops from up to 0.20 to 0.00 and SEA detection rate rises from 0.85 to 1.00. Detection takes about 1-2 s; pass `matching="independent", n_permutations=0` for the previous behaviour.
     - Per-cluster statistic changes are absolute differences in standard deviations of the standardised feature instead of relative changes, which were unstable for values near zero.
     - Appeared and disappeared clusters count only towards the cluster-count criterion; missing statistics are no longer counted as drift; criteria without evaluations are excluded from the weighted score (`effective_weights`).
+- **Cluster IDs**: clusters of the reference window are numbered `0 … n-1` and clusters found only in the detection window from `n` on, instead of interleaving new clusters with the reference clusters of the following classes.
 - **Datasets**: multi-window datasets use string feature names (`x0, x1, ...`) instead of integer column names.
 
 ### Added

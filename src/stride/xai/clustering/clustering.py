@@ -63,6 +63,10 @@ class ClusterBasedDriftDetector:
         effective_weights: Criterion weights actually used for the score, i.e. `weights`
             renormalised over criteria that had at least one evaluation.
         drift_details: Detailed breakdown of per-class criteria triggers.
+        cluster_labels_old: Cluster ID of every reference-block sample. Reference
+            clusters are numbered ``0 .. n-1``, grouped by class.
+        cluster_labels_new: Cluster ID of every new-block sample. Tracked clusters keep
+            their reference ID; clusters found only in the new block are numbered from ``n``.
 
     Examples:
         >>> detector = ClusterBasedDriftDetector(X_ref, y_ref, X_det, y_det)
@@ -320,9 +324,10 @@ class ClusterBasedDriftDetector:
         self.classes = classes
 
         if self.matching == "reference":
-            self.cluster_labels_old, self.cluster_labels_new = self._cluster_reference(classes)
+            labels_old, labels_new = self._cluster_reference(classes)
         else:
-            self.cluster_labels_old, self.cluster_labels_new = self._cluster_independent(classes)
+            labels_old, labels_new = self._cluster_independent(classes)
+        self.cluster_labels_old, self.cluster_labels_new = _renumber_clusters(labels_old, labels_new)
 
         self.number_of_clusters_old = len(set(self.cluster_labels_old))
         self.number_of_clusters_new = len(set(self.cluster_labels_new))
@@ -579,6 +584,21 @@ class ClusterBasedDriftDetector:
         weights = np.where(evaluated > 0, self.weights, 0.0)
         self.effective_weights = weights / weights.sum() if weights.sum() > 0 else weights
         self.strength_of_drift = float((true_counts / np.maximum(evaluated, 1)) @ self.effective_weights)
+
+
+def _renumber_clusters(labels_old: np.ndarray, labels_new: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Number the clusters of the reference block 0..n-1 and clusters found only in the new block n, n+1, ...
+
+    The relative order of the original IDs (grouped by class) is kept within both groups.
+    """
+    old_ids = np.unique(labels_old)
+    new_only = np.setdiff1d(np.unique(labels_new), old_ids)
+    mapping = {int(k): i for i, k in enumerate(np.concatenate([old_ids, new_only]))}
+    renumber = np.vectorize(lambda k: mapping[int(k)], otypes=[int])
+    return (
+        renumber(labels_old) if len(labels_old) else np.asarray(labels_old, dtype=int),
+        renumber(labels_new) if len(labels_new) else np.asarray(labels_new, dtype=int),
+    )
 
 
 def _permuted_strength(template: ClusterBasedDriftDetector, X_old: np.ndarray, X_new: np.ndarray) -> float:

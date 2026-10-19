@@ -189,6 +189,26 @@ class TestClusterBasedDriftDetectorScoring(unittest.TestCase):
         self.assertAlmostEqual(detector.strength_of_drift, 1.0, places=6)
         self.assertTrue(detector.drift_flag)
 
+    def test_reference_clusters_are_numbered_before_new_ones(self):
+        # Class 0 gains a blob, so a new cluster appears in the first class; its ID must not
+        # interrupt the numbering of the reference clusters of the following classes.
+        T = TestClusterBasedDriftDetectorClasses
+        from stride.xai.clustering import ClusterBasedDriftDetector
+
+        X_old, y_old = _make_blobs({0: T.CENTERS_A, 1: T.CENTERS_B}, n_per_blob=60, seed=0)
+        X_new, y_new = _make_blobs({0: T.CENTERS_A + [(0, 8)], 1: T.CENTERS_B}, n_per_blob=60, seed=1)
+        for matching in ("reference", "independent"):
+            with self.subTest(matching=matching):
+                detector = ClusterBasedDriftDetector(X_old, y_old, X_new, y_new, matching=matching, n_permutations=0)
+                detector.detect()
+
+                old_ids = sorted(set(detector.cluster_labels_old))
+                new_only = sorted(set(detector.cluster_labels_new) - set(old_ids))
+                self.assertEqual(old_ids, list(range(len(old_ids))))
+                self.assertTrue(new_only)
+                self.assertEqual(new_only, list(range(len(old_ids), len(old_ids) + len(new_only))))
+                self.assertEqual(sorted(detector.cluster_shifts), old_ids + new_only)
+
     def test_no_drift_on_identical_blocks(self):
         T = TestClusterBasedDriftDetectorClasses
         from stride.xai.clustering import ClusterBasedDriftDetector

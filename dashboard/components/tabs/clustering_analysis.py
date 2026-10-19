@@ -346,7 +346,10 @@ def _display_cluster_overview_table(detector: ClusterBasedDriftDetector):
     st.dataframe(
         styled,
         column_config={
-            "Cluster": st.column_config.NumberColumn("Cluster", help="Global cluster ID, shared by both windows"),
+            "Cluster": st.column_config.NumberColumn(
+                "Cluster",
+                help="Clusters of the Before window are numbered first (0 … n-1); clusters that appear only in the After window follow",
+            ),
             "Class": st.column_config.TextColumn("Class"),
             "Status": st.column_config.TextColumn(
                 "Status",
