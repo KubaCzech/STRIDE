@@ -174,6 +174,39 @@ class TestDashboardState(unittest.TestCase):
         self.assertIsInstance(at.session_state["model_instance"], MLPModel)
         self.assertEqual(at.session_state["model_params"].get("hidden_layer_sizes"), [50, 50])
 
+    def test_dataset_selection_survives_consecutive_changes(self):
+        """
+        Regression test: after choosing a dataset other than the first, the next choice was
+        dropped (the selector was recreated with a new index and fell back to the old dataset).
+        """
+        from stride.datasets import DATASETS
+
+        script = (
+            "import streamlit as st\n"
+            "from dashboard.components.sidebar import _render_dataset_selection\n\n"
+            "with st.sidebar:\n"
+            "    dataset_key, _, _ = _render_dataset_selection()\n"
+            "st.session_state['rendered_dataset'] = dataset_key\n"
+        )
+        second, third = list(DATASETS)[1:3]
+
+        def selector(at):
+            return next(s for s in at.selectbox if s.label == "Choose a Dataset")
+
+        at = AppTest.from_string(script, default_timeout=60)
+        at.run()
+        for key in (second, third):
+            selector(at).set_value(key)
+            at.run()
+            self.assertFalse(at.exception, f"Selecting {key} raised exception: {at.exception}")
+            self.assertEqual(at.session_state["rendered_dataset"], key)
+
+        # A dataset selected by the app (e.g. after an import) is shown on the next run.
+        at.session_state["selected_dataset_key"] = second
+        at.run()
+        self.assertEqual(selector(at).value, second)
+        self.assertEqual(at.session_state["rendered_dataset"], second)
+
 
 if __name__ == "__main__":
     unittest.main()
