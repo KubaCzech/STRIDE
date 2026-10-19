@@ -55,15 +55,15 @@ pip install -e ".[all,docs,dev]"
 All contributions must adhere to the following architectural invariants:
 
 1. **Strict Core / UI Decoupling**:
-   - The core framework under `src/stride/` must contain zero Streamlit code. Never import `streamlit` or rely on UI session state in algorithmic modules.
-   - Streamlit components, state management, and dashboard widgets belong exclusively under `dashboard/`.
+    - The core framework under `src/stride/` must contain zero Streamlit code. Never import `streamlit` or rely on UI session state in algorithmic modules.
+    - Streamlit components, state management, and dashboard widgets belong exclusively under `dashboard/`.
 2. **Headless Visualizations**:
-   - Functions in `stride.plotting` must generate and return `matplotlib.figure.Figure` or `matplotlib.axes.Axes` objects.
-   - Never call `plt.show()` within library modules, as this blocks execution in non-interactive environments and CI runners.
+    - Functions in `stride.plotting` must generate and return `matplotlib.figure.Figure` or `matplotlib.axes.Axes` objects.
+    - Never call `plt.show()` within library modules, as this blocks execution in non-interactive environments and CI runners.
 3. **Reproducibility & Random Seeds**:
-   - Stochastic operations (data generation, train/test splits, neural autoencoder initialization) must accept a `random_state` or `random_seed` integer parameter to ensure deterministic execution across benchmark runs.
+    - Stochastic operations (data generation, train/test splits, neural autoencoder initialization) must accept a `random_state` or `random_seed` integer parameter to ensure deterministic execution across benchmark runs.
 4. **Exception Handling**:
-   - Library code must raise specific exceptions derived from `StrideError` (e.g. `DimensionalityError`, `OptionalDependencyError`, `DriftDetectionError`) rather than generic uncaught runtime exceptions.
+    - Library code must raise specific exceptions derived from `StrideError` (e.g. `DimensionalityError`, `OptionalDependencyError`, `DriftDetectionError`) rather than generic uncaught runtime exceptions.
 
 ---
 
