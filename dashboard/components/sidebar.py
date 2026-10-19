@@ -81,17 +81,21 @@ def _render_dataset_selection():
 
     dataset_options = list(DATASETS.keys()) + [IMPORT_OPTION, STITCH_OPTION]
 
-    # Check if we should select a specific dataset (e.g. after import or stitch)
-    index = 0
-    if "selected_dataset_key" in st.session_state and st.session_state.selected_dataset_key in dataset_options:
-        index = dataset_options.index(st.session_state.selected_dataset_key)
+    # A dataset selected by the app (after import, stitch or delete) is applied to the widget
+    # before it is created. The widget keeps its own state otherwise: changing its `index`
+    # between reruns would recreate it and drop the user's next choice.
+    pending = st.session_state.pop("selected_dataset_key", None)
+    if pending in dataset_options:
+        st.session_state.dataset_selector = pending
+    elif st.session_state.get("dataset_selector") not in dataset_options:
+        st.session_state.dataset_selector = dataset_options[0]
 
     col_ds1, col_ds2 = st.columns([0.75, 0.25], vertical_alignment="bottom")
     with col_ds1:
         dataset_key = st.selectbox(
             "Choose a Dataset",
             options=dataset_options,
-            index=index,
+            key="dataset_selector",
             format_func=lambda x: x if x in (IMPORT_OPTION, STITCH_OPTION) else DATASETS[x].display_name,
             help="Select the synthetic dataset to analyze or import/stitch a new one.",
         )
@@ -104,7 +108,6 @@ def _render_dataset_selection():
         st.stop()
 
     # Process selection (if not stopped by modal)
-    st.session_state.selected_dataset_key = dataset_key
     selected_dataset = DATASETS[dataset_key]
 
     # Add delete option for imported datasets

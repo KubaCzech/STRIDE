@@ -125,7 +125,7 @@ for cluster_id, shift in sorted(detector.cluster_shifts.items()):
 | `p_value` | `float \| None` | Permutation p-value of the strength (`None` when `n_permutations=0`). |
 | `null_strengths` | `np.ndarray \| None` | Strengths obtained on the permuted splits. |
 | `drift_details` | `dict` | Per-class breakdown: `nr_of_clusters`, `centroid_shift`, `desc_stats_changes`, `avg_distance_to_center`. |
-| `cluster_labels_old`, `cluster_labels_new` | `np.ndarray` | Global cluster ID of every sample; tracked clusters share an ID across windows. |
+| `cluster_labels_old`, `cluster_labels_new` | `np.ndarray` | Global cluster ID of every sample. Clusters of the reference window are numbered `0 … n-1` (grouped by class) and keep their ID in the detection window; clusters found only in the detection window are numbered from `n`. |
 | `centers_old`, `centers_new` | `dict[int, np.ndarray \| None]` | Centroid per cluster ID (`None` if the cluster is absent from that window). |
 | `cluster_shifts` | `dict[int, dict \| str]` | Displacement (`euclidean_distance`, `distance_per_feature`) or `"appeared"` / `"disappeared"`. |
 | `stats_shifts` | `dict` | Change of per-cluster mean, median and standard deviation, in standard deviations of each feature. |

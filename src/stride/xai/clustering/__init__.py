@@ -11,6 +11,7 @@ try:
         plot_clustering_heatmap,
         plot_clusters_by_class,
         plot_drift_clustered,
+        plot_feature_shift_heatmap,
     )
 except ImportError:
     pass
