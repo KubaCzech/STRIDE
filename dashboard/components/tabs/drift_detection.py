@@ -43,7 +43,6 @@ def generate_error_stream(X_np, y_np, model):
     return error_stream, predictions
 
 
-
 def render_drift_detection_tab(X, y, window_length, model_class=None, model_params=None, dataset=None):  # noqa: C901
     """
     Main entry point for DDM (Drift Detection Method) Analysis tab.
