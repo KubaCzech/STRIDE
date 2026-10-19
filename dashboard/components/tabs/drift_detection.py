@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 from river import drift as river_drift
 from sklearn.neural_network import MLPClassifier
-from stride.drift import BinaryErrorDriftDescriptor
+from stride.drift import BinaryErrorDriftDescriptor, run_drift_detection
 
 
 def generate_error_stream(X_np, y_np, model):
@@ -42,63 +42,6 @@ def generate_error_stream(X_np, y_np, model):
 
     return error_stream, predictions
 
-
-def run_drift_detection(
-    error_stream,
-    detector_type,
-    warning_grace_period,
-    rate_calculation_sample_size,
-    lookback_method="gradient",
-    lookforward_method="peak",
-    confidence_level=None,
-    adwin_params=None,
-    degradation_only=True,
-    burn_in=0,
-):
-    # Create detector
-    if detector_type == "DDM":
-        detector = river_drift.binary.DDM()
-    elif detector_type == "EDDM":
-        detector = river_drift.binary.EDDM()
-    elif detector_type == "FHDDM":
-        detector = river_drift.binary.FHDDM(confidence_level=confidence_level)
-    elif detector_type == "HDDM_A":
-        detector = river_drift.binary.HDDM_A()
-    elif detector_type == "HDDM_W":
-        detector = river_drift.binary.HDDM_W()
-    elif detector_type == "ADWIN":
-        if adwin_params is None:
-            adwin_params = {}
-        detector = river_drift.ADWIN(**adwin_params)
-
-    drift_descriptor = BinaryErrorDriftDescriptor(
-        warning_grace_period=warning_grace_period,
-        rate_calculation_sample_size=rate_calculation_sample_size,
-        ddm=detector,
-        lookback_method=lookback_method,
-        lookforward_method=lookforward_method,
-        degradation_only=degradation_only,
-    )
-
-    drift_descriptions = []
-
-    for i, error in enumerate(error_stream):
-        if i < burn_in:
-            drift_descriptor.complete_error_history.append(error)
-            drift_descriptor.current_index += 1
-            continue
-
-        drift_descriptor.update(error)
-
-        if drift_descriptor.drift_detected:
-            drift = drift_descriptor.last_detected_drift
-            drift.detected_at = i
-            drift_descriptions.append(drift)
-
-    # Post-process to find actual drift ends
-    drift_descriptions = drift_descriptor.post_process_drift_ends(drift_descriptions)
-
-    return drift_descriptions
 
 
 def render_drift_detection_tab(X, y, window_length, model_class=None, model_params=None, dataset=None):  # noqa: C901
