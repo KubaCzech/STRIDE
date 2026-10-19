@@ -50,35 +50,23 @@ def plot_feature_target_relationship(
 ) -> Figure:
     """Create a figure showing feature distributions grouped by class and window.
 
-    Each subplot corresponds to one feature.  Within each subplot, distributions
+    Each subplot corresponds to one feature. Within each subplot, distributions
     are stacked horizontally — one pair (Before / After) per class.
 
-    Parameters
-    ----------
-    X : array-like, shape (n_samples, n_features)
-        Full feature matrix (used only for shape information).
-    n_features : int
-        Number of features.
-    feature_names : list[str]
-        Feature names.
-    X_before : np.ndarray
-        Feature matrix for the *before* window.
-    X_after : np.ndarray
-        Feature matrix for the *after* window.
-    y_before : np.ndarray
-        Class labels for the *before* window.
-    y_after : np.ndarray
-        Class labels for the *after* window.
-    class_colors : dict
-        Mapping ``{class_id: color_string}``.
-    title : str, default="Feature vs Target Relationship"
-        Figure title.
-    viz_type : str, default="violin"
-        Distribution plot type: ``'violin'``, ``'box'``, or ``'scatter'``.
+    Args:
+        X: Full feature matrix (used only for shape information).
+        n_features: Number of features.
+        feature_names: Feature names.
+        X_before: Feature matrix for the *before* window.
+        X_after: Feature matrix for the *after* window.
+        y_before: Class labels for the *before* window.
+        y_after: Class labels for the *after* window.
+        class_colors: Mapping `{class_id: color_string}`.
+        title: Figure title.
+        viz_type: Distribution plot type ("violin", "box", or "scatter").
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The generated Matplotlib Figure.
     """
     _ensure_matplotlib()
     unique_classes = sorted(np.unique(np.concatenate([y_before, y_after])))
@@ -128,20 +116,14 @@ def plot_feature_target_relationship(
 def plot_class_distribution(class_dist_before, class_dist_after, class_colors, title="Class Distribution") -> Figure:
     """Create a figure showing class distribution before and after a window.
 
-    Parameters
-    ----------
-    class_dist_before : dict
-        ``{class_id: proportion}`` for the *before* window.
-    class_dist_after : dict
-        ``{class_id: proportion}`` for the *after* window.
-    class_colors : dict
-        Mapping ``{class_id: color_string}``.
-    title : str, default="Class Distribution"
-        Figure title.
+    Args:
+        class_dist_before: `{class_id: proportion}` for the *before* window.
+        class_dist_after: `{class_id: proportion}` for the *after* window.
+        class_colors: Mapping `{class_id: color_string}`.
+        title: Figure title.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The generated Matplotlib Figure.
     """
     _ensure_matplotlib()
     fig, (ax_before, ax_after) = plt.subplots(1, 2, figsize=(12, 6))
@@ -174,28 +156,18 @@ def plot_feature_space(
 ) -> Figure:
     """Create a figure showing the feature space for two windows (1D, 2D, or PCA).
 
-    Parameters
-    ----------
-    n_features : int
-        Number of features.
-    feature_names : list[str]
-        Feature names.
-    X_before : np.ndarray
-        Feature matrix for the *before* window.
-    X_after : np.ndarray
-        Feature matrix for the *after* window.
-    y_before : np.ndarray
-        Class labels for the *before* window.
-    y_after : np.ndarray
-        Class labels for the *after* window.
-    class_colors : dict
-        Mapping ``{class_id: color_string}``.
-    title : str, default="Feature Space"
-        Figure title.
+    Args:
+        n_features: Number of features.
+        feature_names: Feature names.
+        X_before: Feature matrix for the *before* window.
+        X_after: Feature matrix for the *after* window.
+        y_before: Class labels for the *before* window.
+        y_after: Class labels for the *after* window.
+        class_colors: Mapping `{class_id: color_string}`.
+        title: Figure title.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The generated Matplotlib Figure.
     """
     _ensure_matplotlib()
     fig, (ax_before, ax_after) = plt.subplots(1, 2, figsize=(14, 7))
@@ -302,32 +274,19 @@ def visualize_data_stream(
     2. Class distributions (bar chart before vs after)
     3. Feature space (1D histogram, 2D scatter, or PCA projection)
 
-    Parameters
-    ----------
-    X : array-like, shape (n_samples, n_features)
-        Full feature matrix.
-    y : array-like, shape (n_samples,)
-        Class labels.
-    window_before_start : int
-        Start index (inclusive) of the *before* window.
-    window_after_start : int
-        Start index (inclusive) of the *after* window.
-    window_length : int
-        Number of samples in each window.
-    feature_names : list[str]
-        Feature names.
-    title_feat_target : str
-        Title for the feature-target figure.
-    title_class_dist : str
-        Title for the class-distribution figure.
-    title_feat_space : str
-        Title for the feature-space figure.
-    viz_type : str, default="violin"
-        Distribution plot type: ``'violin'``, ``'box'``, or ``'scatter'``.
+    Args:
+        X: Full feature matrix.
+        y: Class labels.
+        window_before_start: Start index (inclusive) of the *before* window.
+        window_after_start: Start index (inclusive) of the *after* window.
+        window_length: Number of samples in each window.
+        feature_names: Feature names.
+        title_feat_target: Title for the feature-target figure.
+        title_class_dist: Title for the class-distribution figure.
+        title_feat_space: Title for the feature-space figure.
+        viz_type: Distribution plot type ("violin", "box", or "scatter").
 
-    Returns
-    -------
-    list[matplotlib.figure.Figure]
+    Returns:
         List of three figures in the order described above.
     """
     _ensure_matplotlib()

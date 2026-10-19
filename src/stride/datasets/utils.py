@@ -10,15 +10,11 @@ def feature_frame(records) -> pd.DataFrame:
     names break tools that expect named features (e.g. LIME), so they are renamed
     to ``x0, x1, ...``; string names are kept.
 
-    Parameters
-    ----------
-    records : list[dict]
-        One feature dictionary per sample.
+    Args:
+        records: One feature dictionary per sample.
 
-    Returns
-    -------
-    pd.DataFrame
-        Features with string column names.
+    Returns:
+        Features DataFrame with string column names.
     """
     X = pd.DataFrame(records)
     X.columns = [f"x{c}" if isinstance(c, (int, np.integer)) else str(c) for c in X.columns]
@@ -27,22 +23,15 @@ def feature_frame(records) -> pd.DataFrame:
 
 def generate_river_data(river_stream, total_samples, n_features=2):
     # TODO: return feature names
-    """
-    Helper function to generate data from a river stream.
+    """Helper function to generate data from a river stream.
 
-    Parameters
-    ----------
-    river_stream : river stream object
-        The stream generator
-    total_samples : int
-        Total number of samples to generate
-    n_features : int, default=2
-        Number of features to extract
+    Args:
+        river_stream: The stream generator.
+        total_samples: Total number of samples to generate.
+        n_features: Number of features to extract.
 
-    Returns
-    -------
-    tuple
-        (X, y)
+    Returns:
+        Tuple of `(X, y)`.
     """
     X_all = []
     y_all = []
@@ -65,22 +54,15 @@ def generate_river_data(river_stream, total_samples, n_features=2):
 
 
 def generate_river_data_with_selection(river_stream, total_samples, feature_names):
-    """
-    Helper function to generate data from a river stream with selected features.
+    """Helper function to generate data from a river stream with selected features.
 
-    Parameters
-    ----------
-    river_stream : river stream object
-        The stream generator
-    total_samples : int
-        Total number of samples to generate
-    feature_names : list of str
-        List of feature names to extract
+    Args:
+        river_stream: The stream generator.
+        total_samples: Total number of samples to generate.
+        feature_names: List of feature names to extract.
 
-    Returns
-    -------
-    tuple
-        (X, y)
+    Returns:
+        Tuple of `(X, y)`.
     """
     X_all = []
     y_all = []
@@ -109,24 +91,19 @@ def generate_river_data_with_selection(river_stream, total_samples, feature_name
 
 
 def apply_sigmoid_drift(arr1, arr2, drift_point, drift_width):
-    """
-    Apply probabilistic sigmoid drift mixing between two arrays (streams).
+    """Apply probabilistic sigmoid drift mixing between two arrays (streams).
 
-    Parameters
-    ----------
-    arr1 : np.ndarray
-        Array representing the first concept (Pre-drift).
-    arr2 : np.ndarray
-        Array representing the second concept (Post-drift).
-    drift_point : int
-        The sample index where the drift is centered.
-    drift_width : int
-        The width of the drift window.
+    Args:
+        arr1: Array representing the first concept (Pre-drift).
+        arr2: Array representing the second concept (Post-drift).
+        drift_point: The sample index where the drift is centered.
+        drift_width: The width of the drift window.
 
-    Returns
-    -------
-    np.ndarray
+    Returns:
         Mixed array where elements are chosen from arr1 or arr2 based on sigmoid probability.
+
+    Raises:
+        ValueError: If input arrays have different shapes.
     """
     if arr1.shape != arr2.shape:
         raise ValueError(f"Arrays must have the same shape. Got {arr1.shape} and {arr2.shape}")

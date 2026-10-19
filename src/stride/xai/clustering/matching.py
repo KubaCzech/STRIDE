@@ -21,27 +21,20 @@ def map_new_clusters_to_old(
 ) -> tuple[dict[int, int], list[int], list[int]]:
     """Match new cluster centroids to old ones using the Hungarian algorithm.
 
-    Clusters whose centroid moved further than *thr_centroid_disappear* are
+    Clusters whose centroid moved further than `thr_centroid_disappear` are
     treated as disappeared/appeared rather than shifted.
 
-    Parameters
-    ----------
-    centers_old : np.ndarray
-        Array of centroid coordinates for the *old* data block (shape ``(k_old, d)``).
-    centers_new : np.ndarray
-        Array of centroid coordinates for the *new* data block (shape ``(k_new, d)``).
-    thr_centroid_disappear : float
-        Euclidean-distance threshold above which a centroid pair is considered
-        a disappearance + appearance rather than a migration.
+    Args:
+        centers_old: Array of centroid coordinates for the *old* data block (shape `(k_old, d)`).
+        centers_new: Array of centroid coordinates for the *new* data block (shape `(k_new, d)`).
+        thr_centroid_disappear: Euclidean-distance threshold above which a centroid pair is
+            considered a disappearance + appearance rather than a migration.
 
-    Returns
-    -------
-    mapping : dict[int, int]
-        Maps each **new** cluster index to its matched **old** cluster index.
-    disappeared : list[int]
-        Old cluster indices that have no close match in the new block.
-    appeared : list[int]
-        New cluster indices that have no close match in the old block.
+    Returns:
+        Tuple of `(mapping, disappeared, appeared)` where:
+            - `mapping`: Maps each **new** cluster index to its matched **old** cluster index.
+            - `disappeared`: Old cluster indices that have no close match in the new block.
+            - `appeared`: New cluster indices that have no close match in the old block.
     """
     n_old = len(centers_old)
     n_new = len(centers_new)
@@ -77,17 +70,12 @@ def map_new_clusters_to_old(
 def transform_labels_with_mapping(labels: np.ndarray, mapp: dict[int, int | str]) -> np.ndarray:
     """Apply a cluster-ID mapping to a flat label array.
 
-    Parameters
-    ----------
-    labels : np.ndarray
-        Flat array of local cluster IDs (as produced by :func:`reshape_clusters`).
-    mapp : dict[int, int | str]
-        Mapping from local cluster ID to global ID or sentinel string ``"new_<id>"``.
+    Args:
+        labels: Flat array of local cluster IDs (as produced by `reshape_clusters`).
+        mapp: Mapping from local cluster ID to global ID or sentinel string `"new_<id>"`.
 
-    Returns
-    -------
-    np.ndarray
-        Label array with the mapping applied (dtype ``object`` to accommodate
+    Returns:
+        Label array with the mapping applied (dtype `object` to accommodate
         mixed int / string sentinel values).
     """
     transformed = np.empty(len(labels), dtype=object)
@@ -102,20 +90,15 @@ def get_final_labels(
 ) -> list:
     """Assign globally unique integer labels across all classes.
 
-    Resolves the sentinel ``"new_<id>"`` strings produced for appeared clusters
+    Resolves the sentinel `"new_<id>"` strings produced for appeared clusters
     into proper non-colliding integers.
 
-    Parameters
-    ----------
-    transformed_labels : list[list[int | str]]
-        Per-class lists of mapped cluster labels (may contain ``"new_<id>"`` strings).
-    maps : list[tuple[dict, list, list]]
-        Per-class tuples of ``(mapping, disappeared, appeared)`` as returned by
-        :func:`map_new_clusters_to_old`.
+    Args:
+        transformed_labels: Per-class lists of mapped cluster labels (may contain `"new_<id>"` strings).
+        maps: Per-class tuples of `(mapping, disappeared, appeared)` as returned by
+            `map_new_clusters_to_old`.
 
-    Returns
-    -------
-    list[list[int]]
+    Returns:
         Same nested structure with all labels converted to non-colliding integers.
     """
     class_counter = 0
@@ -145,23 +128,19 @@ def merge_clusters(
 ) -> np.ndarray:
     """Flatten per-class X-Means results into a single global label array.
 
-    Parameters
-    ----------
-    clusters : list[list[list[int]]]
-        3-D list: outer = classes, middle = clusters, inner = sample indices.
-    y : np.ndarray
-        Class-label vector aligned with the original sample order.
-    classes : Sequence
-        Class labels in the same order as the outer level of *clusters* (and of
-        *maps*).  Classes absent from *y* must have an empty cluster list.
-    maps : list[tuple[dict, list, list]] | None
-        Per-class matching tuples.  When ``None`` (old block), the identity
-        mapping is used — no renaming needed.
+    Args:
+        clusters: 3-D list: outer = classes, middle = clusters, inner = sample indices.
+        y: Class-label vector aligned with the original sample order.
+        classes: Class labels in the same order as the outer level of `clusters` (and of
+            `maps`). Classes absent from `y` must have an empty cluster list.
+        maps: Per-class matching tuples. When `None` (old block), the identity
+            mapping is used — no renaming needed.
 
-    Returns
-    -------
-    np.ndarray
-        Integer label array of shape ``(n_samples,)`` with globally unique IDs.
+    Returns:
+        Integer label array of shape `(n_samples,)` with globally unique IDs.
+
+    Raises:
+        ValueError: If number of classes does not match the outer length of clusters.
     """
     if len(classes) != len(clusters):
         raise ValueError(f"Got {len(classes)} classes but cluster results for {len(clusters)} classes.")
@@ -217,37 +196,24 @@ def assign_to_reference(
       less than ``min_share_ratio`` of the expected count.  Its new samples are
       reassigned to the nearest remaining old cluster.
 
-    Parameters
-    ----------
-    X_old : np.ndarray
-        Reference samples of one class, shape ``(n_old, d)``.
-    centers_old : np.ndarray
-        X-Means centroids of *X_old*, shape ``(k, d)``.
-    clusters_old : list[list[int]]
-        X-Means clusters of *X_old* (sample indices per centroid).
-    X_new : np.ndarray
-        New samples of the same class, shape ``(n_new, d)``.
-    clusters_new : list[list[int]]
-        Independent X-Means clusters of *X_new*, used only to find appeared clusters.
-    novelty_quantile : float, default=0.95
-        Quantile of the old within-cluster distances defining each cluster's radius.
-    alpha : float, default=0.01
-        Significance level of the disappearance test.
-    min_share_ratio : float, default=0.2
-        A cluster can only disappear if it keeps less than this fraction of its
-        expected number of new samples.
+    Args:
+        X_old: Reference samples of one class, shape `(n_old, d)`.
+        centers_old: X-Means centroids of `X_old`, shape `(k, d)`.
+        clusters_old: X-Means clusters of `X_old` (sample indices per centroid).
+        X_new: New samples of the same class, shape `(n_new, d)`.
+        clusters_new: Independent X-Means clusters of `X_new`, used only to find appeared clusters.
+        novelty_quantile: Quantile of the old within-cluster distances defining each cluster's radius.
+        alpha: Significance level of the disappearance test.
+        min_share_ratio: A cluster can only disappear if it keeps less than this fraction of its
+            expected number of new samples.
 
-    Returns
-    -------
-    labels_old : np.ndarray
-        Local cluster label per old sample (``0 .. k-1``).
-    labels_new : np.ndarray
-        Local cluster label per new sample: an old cluster ID, or ``k + i`` for
-        the *i*-th appeared cluster.
-    appeared : list[int]
-        Local IDs of appeared clusters.
-    disappeared : list[int]
-        Local IDs of disappeared old clusters.
+    Returns:
+        Tuple of `(labels_old, labels_new, appeared, disappeared)`:
+            - `labels_old`: Local cluster label per old sample (`0 .. k-1`).
+            - `labels_new`: Local cluster label per new sample (`old cluster ID`, or `k + i`
+              for the *i*-th appeared cluster).
+            - `appeared`: Local IDs of appeared clusters.
+            - `disappeared`: Local IDs of disappeared old clusters.
     """
     from scipy.stats import binomtest
 

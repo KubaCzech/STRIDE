@@ -38,49 +38,29 @@ class SemiSyntheticDriftDataset(BaseDataset):
         static_file_path: str | None = None,
         target_column: str = "target",
     ) -> None:
-        """
-        Initialize SemiSyntheticDriftDataset.
+        """Initialize SemiSyntheticDriftDataset.
 
-        Parameters
-        ----------
-        name : str
-            Unique dataset identifier.
-        display_name : str | None
-            Human-readable display name.
-        X_a : pd.DataFrame | None
-            Feature matrix for concept A.
-        y_a : pd.Series | None
-            Target series for concept A.
-        X_b : pd.DataFrame | None
-            Feature matrix for concept B.
-        y_b : pd.Series | None
-            Target series for concept B.
-        match_strategy : str, default="exact"
-            Feature matching strategy ("exact", "manual", "statistical", "subspace").
-        manual_mapping : dict[str, str] | None
-            Manual column mapping dict for "manual" strategy.
-        align_distributions : bool, default=False
-            Whether to normalize feature distributions.
-        scaler_type : str | None, default="standard"
-            Scaler type ("standard" or "minmax").
-        scaler_mode : str, default="joint"
-            Normalization mode ("joint" or "per_concept").
-        schedule : str, default="gradual"
-            Drift schedule ("abrupt", "gradual", "incremental", "recurring").
-        n_samples : int | None, default=None
-            Total stream length in samples.
-        t_0 : int | None, default=None
-            Drift inflection point / midpoint.
-        drift_width : int, default=200
-            Transition window width.
-        period : int, default=500
-            Period T for recurring drift.
-        random_seed : int, default=42
-            Random seed for reproducibility.
-        static_file_path : str | None
-            Path to static pre-generated CSV if loading from persistent cache.
-        target_column : str, default="target"
-            Target column name if loading from static CSV.
+        Args:
+            name: Unique dataset identifier.
+            display_name: Human-readable display name.
+            X_a: Feature matrix for concept A.
+            y_a: Target series for concept A.
+            X_b: Feature matrix for concept B.
+            y_b: Target series for concept B.
+            match_strategy: Feature matching strategy ("exact", "manual",
+                "statistical", or "subspace").
+            manual_mapping: Manual column mapping dict for "manual" strategy.
+            align_distributions: Whether to normalize feature distributions.
+            scaler_type: Scaler type ("standard" or "minmax").
+            scaler_mode: Normalization mode ("joint" or "per_concept").
+            schedule: Drift schedule ("abrupt", "gradual", "incremental", or "recurring").
+            n_samples: Total stream length in samples.
+            t_0: Drift inflection point / midpoint.
+            drift_width: Transition window width.
+            period: Period T for recurring drift.
+            random_seed: Random seed for reproducibility.
+            static_file_path: Path to static pre-generated CSV if loading from persistent cache.
+            target_column: Target column name if loading from static CSV.
         """
         self._name = name
         self._display_name = display_name or f"Semi-Synthetic: {name}"
@@ -166,13 +146,13 @@ class SemiSyntheticDriftDataset(BaseDataset):
         }
 
     def generate(self, **kwargs) -> tuple[pd.DataFrame, pd.Series]:
-        """
-        Generate or load the semi-synthetic concept drift stream.
+        """Generate or load the semi-synthetic concept drift stream.
 
-        Returns
-        -------
-        tuple[pd.DataFrame, pd.Series]
-            (X, y) stream tuple.
+        Returns:
+            Tuple of `(X, y)` data stream.
+
+        Raises:
+            ValueError: If source concepts are not provided and static file is missing.
         """
         # If pre-saved static CSV file is available and concepts are not supplied directly
         if self.static_file_path is not None and (self.X_a is None or self.X_b is None):
@@ -248,21 +228,14 @@ class SemiSyntheticDriftDataset(BaseDataset):
 
     @classmethod
     def from_registry_info(cls, name: str, registry_info: dict, registry: Any) -> "SemiSyntheticDriftDataset":
-        """
-        Instantiate SemiSyntheticDriftDataset from DatasetRegistry configuration.
+        """Instantiate SemiSyntheticDriftDataset from DatasetRegistry configuration.
 
-        Parameters
-        ----------
-        name : str
-            Dataset name.
-        registry_info : dict
-            Registry metadata dictionary.
-        registry : DatasetRegistry
-            Registry instance.
+        Args:
+            name: Dataset name.
+            registry_info: Registry metadata dictionary.
+            registry: DatasetRegistry instance.
 
-        Returns
-        -------
-        SemiSyntheticDriftDataset
+        Returns:
             Configured dataset instance.
         """
         recipe = registry_info.get("recipe", {})

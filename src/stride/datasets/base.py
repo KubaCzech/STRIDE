@@ -21,15 +21,12 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def generate(self, **kwargs) -> tuple[pd.DataFrame, pd.Series]:
-        """
-        Generate the data stream before and after drift.
+        """Generate the data stream before and after drift.
 
-        Returns
-        -------
-        tuple[pd.DataFrame, pd.Series]
-            (X, y)
-            X: pd.DataFrame with named features of shape (n_samples, n_features)
-            y: pd.Series with target values of shape (n_samples,)
+        Returns:
+            Tuple of `(X, y)` where:
+                - `X`: pd.DataFrame with named features of shape `(n_samples, n_features)`.
+                - `y`: pd.Series with target values of shape `(n_samples,)`.
         """
         pass
 

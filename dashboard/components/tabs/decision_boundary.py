@@ -139,23 +139,16 @@ def _render_decision_boundary_tab_content(X_before, y_before, X_after, y_after, 
 def render_decision_boundary_tab(
     X_before, y_before, X_after, y_after, model_class=None, model_params=None, feature_names=None
 ):
-    """
-    Renders the Decision Boundary Analysis tab.
+    """Renders the Decision Boundary Analysis tab.
 
-    Parameters
-    ----------
-    X_before : array-like
-        Feature matrix for 'before' window
-    y_before : array-like
-        Target variable for 'before' window
-    X_after : array-like
-        Feature matrix for 'after' window
-    y_after : array-like
-        Target variable for 'after' window
-    model_class : class
-        Classifier class
-    model_params : dict
-        Parameters for the classifier
+    Args:
+        X_before: Feature matrix for 'before' window.
+        y_before: Target variable for 'before' window.
+        X_after: Feature matrix for 'after' window.
+        y_after: Target variable for 'after' window.
+        model_class: Classifier class.
+        model_params: Parameters for the classifier.
+        feature_names: List of feature names.
     """
     st.header("Decision Boundary Analysis")
     st.markdown("""

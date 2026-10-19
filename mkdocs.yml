@@ -41,6 +41,8 @@ plugins:
         python:
           options:
             docstring_style: google
+            docstring_options:
+              warn_missing_types: false
             show_source: true
             show_root_heading: true
             show_root_toc_entry: false

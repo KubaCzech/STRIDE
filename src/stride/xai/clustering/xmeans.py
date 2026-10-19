@@ -10,16 +10,12 @@ from stride.exceptions import OptionalDependencyError
 def reshape_clusters(clusters: Sequence[Sequence[int]]) -> np.ndarray:
     """Convert a list of clusters (each a list of sample indices) into a flat label array.
 
-    Parameters
-    ----------
-    clusters : Sequence[Sequence[int]]
-        List of lists where each sublist contains the indices of samples belonging to
-        that cluster, e.g. ``[[0, 2, 3], [1, 4]]``.
+    Args:
+        clusters: List of lists where each sublist contains the indices of samples belonging to
+            that cluster, e.g. `[[0, 2, 3], [1, 4]]`.
 
-    Returns
-    -------
-    np.ndarray
-        Flat array of integer cluster-label assignments, e.g. ``array([0, 1, 0, 0, 1])``.
+    Returns:
+        Flat array of integer cluster-label assignments, e.g. `array([0, 1, 0, 0, 1])`.
     """
     n_samples = sum(len(c) for c in clusters)
     reshaped = np.empty(n_samples, dtype=int)
@@ -38,44 +34,24 @@ def run_xmeans(
 ) -> tuple[np.ndarray, list[list[int]]]:
     """Run the X-Means clustering algorithm on *X*.
 
-    Parameters
-    ----------
-    X : np.ndarray
-        Feature matrix (rows are samples, columns are features).
-    k_init : int
-        Minimum number of clusters passed to the k-means++ initialiser.
-    k_max : int
-        Maximum number of clusters allowed by X-Means.
-    random_state : int | None, default=42
-        Seed passed to pyclustering's k-means++ initialiser and to X-Means itself,
-        so that every cluster split is reproducible.  When ``None`` the result is
-        non-deterministic.
-    repeat : int, default=1
-        Number of independent X-Means runs, seeded with ``random_state``,
-        ``random_state + 1``, ...; the result with the highest BIC (see
-        :func:`bic_score`) is returned.  Higher values make the discovered
-        structure less dependent on initialisation.
+    Args:
+        X: Feature matrix (rows are samples, columns are features).
+        k_init: Minimum number of clusters passed to the k-means++ initialiser.
+        k_max: Maximum number of clusters allowed by X-Means.
+        random_state: Seed passed to pyclustering's k-means++ initialiser and to X-Means itself,
+            so that every cluster split is reproducible. When None the result is non-deterministic.
+        repeat: Number of independent X-Means runs, seeded with `random_state`,
+            `random_state + 1`, ...; the result with the highest BIC (see `bic_score`) is returned.
 
-    Returns
-    -------
-    centers : np.ndarray
-        2-D array of cluster-centroid coordinates.
-    clusters : list[list[int]]
-        List of lists where each sublist contains the sample indices belonging to
-        the corresponding centroid.  Empty input yields no clusters, and input with
-        fewer than ``k_init`` samples yields a single cluster.
+    Returns:
+        Tuple of `(centers, clusters)` where:
+            - `centers`: 2-D array of cluster-centroid coordinates.
+            - `clusters`: List of lists where each sublist contains the sample indices belonging to
+              the corresponding centroid.
 
-    Notes
-    -----
-    pyclustering re-seeds Python's ``random`` module inside every k-means++ call
-    (``random.seed(random_state)``), including the ones X-Means performs when
-    splitting a cluster.  Seeding the global RNG beforehand is therefore not
-    enough: ``random_state`` must be forwarded to ``xmeans`` explicitly.  Because
-    this re-seeding touches the global ``random`` module, its state is saved and
-    restored around the call so that callers' random streams are left untouched.
-
-    pyclustering's own ``repeat`` argument is not used: it re-seeds every restart
-    with the same ``random_state``, so all restarts are identical.
+    Raises:
+        OptionalDependencyError: If pyclustering is not installed.
+        ValueError: If repeat is less than 1.
     """
     try:
         from pyclustering.cluster.xmeans import kmeans_plusplus_initializer, xmeans
@@ -126,25 +102,16 @@ def bic_score(X: np.ndarray, centers: np.ndarray, clusters: Sequence[Sequence[in
     Uses the identical spherical Gaussian model of Pelleg & Moore (2000), with the
     per-dimension variance estimated from the pooled within-cluster scatter:
 
-    .. math::
+    $$\hat\sigma^2 = \frac{1}{d (N - K)} \sum_j \sum_{x \in C_j} \lVert x - c_j \rVert^2, \qquad \mathrm{BIC} = \hat\ell - \frac{p}{2} \log N, \quad p = (K - 1) + K d + 1$$
 
-        \hat\sigma^2 = \frac{1}{d (N - K)} \sum_j \sum_{x \in C_j} \lVert x - c_j \rVert^2, \qquad
-        \mathrm{BIC} = \hat\ell - \frac{p}{2} \log N, \quad p = (K - 1) + K d + 1
+    Args:
+        X: Feature matrix of shape `(N, d)`.
+        centers: Cluster centroids of shape `(K, d)`.
+        clusters: Sample indices of each cluster, aligned with `centers`.
 
-    Parameters
-    ----------
-    X : np.ndarray
-        Feature matrix of shape ``(N, d)``.
-    centers : np.ndarray
-        Cluster centroids of shape ``(K, d)``.
-    clusters : Sequence[Sequence[int]]
-        Sample indices of each cluster, aligned with *centers*.
-
-    Returns
-    -------
-    float
-        BIC value; ``-inf`` when the variance cannot be estimated (``N <= K``)
-        and ``+inf`` when every cluster has zero spread.
+    Returns:
+        BIC value; `-inf` when the variance cannot be estimated (`N <= K`)
+        and `+inf` when every cluster has zero spread.
     """
     X = np.asarray(X)
     n, d = X.shape

@@ -349,21 +349,14 @@ def _display_distribution_plot(X_before, y_before, X_after, y_after, detector: S
 
 
 def render_statistical_tests_tab(X_before, y_before, X_after, y_after, feature_names):
-    """
-    Renders the Statistical Tests tab.
+    """Renders the Statistical Tests tab.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature matrix for 'before' window
-    y_before : np.ndarray | pd.Series
-        Target variable for 'before' window
-    X_after : pd.DataFrame
-        Feature matrix for 'after' window
-    y_after : np.ndarray | pd.Series
-        Target variable for 'after' window
-    feature_names : list[str]
-        Selected feature names
+    Args:
+        X_before: Feature matrix for 'before' window.
+        y_before: Target variable for 'before' window.
+        X_after: Feature matrix for 'after' window.
+        y_after: Target variable for 'after' window.
+        feature_names: Selected feature names.
     """
     _display_intro()
     settings = _render_config()
