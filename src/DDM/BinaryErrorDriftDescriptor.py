@@ -1,5 +1,5 @@
 import numpy as np
-from river import drift
+from river import drift as river_drift
 
 
 class DriftDescription:
@@ -47,7 +47,7 @@ class BinaryErrorDriftDescriptor:
         self,
         warning_grace_period=3,
         rate_calculation_sample_size=100,
-        ddm=drift.binary.DDM(),
+        ddm=river_drift.binary.DDM(),
         lookback_method="cusum",
         lookforward_method="peak",
     ):
@@ -364,3 +364,273 @@ class BinaryErrorDriftDescriptor:
             drift_description.drift_duration = drift_end_idx - drift_description.drift_start_index
 
         return drift_descriptions
+
+def run_drift_detection(
+    error_stream,
+    detector_type,
+    warning_grace_period,
+    rate_calculation_sample_size,
+    lookback_method="gradient",
+    lookforward_method="peak",
+    confidence_level=None,
+    adwin_params=None,
+    degradation_only=True,
+    burn_in=0,
+):
+    if lookback_method not in ['cusum', 'threshold', 'gradient', 'none']:
+        raise Exception("No such lookback method") 
+
+    if lookforward_method not in ['peak', 'recovery', 'none']:
+        raise Exception("No such lookforward method") 
+
+    if detector_type not in ["DDM", "EDDM", "FHDDM", "HDDM_A", "HDDM_W", "ADWIN"]:
+        raise Exception("No such detector") 
+
+    # Create detector
+    if detector_type == "DDM":
+        detector = river_drift.binary.DDM()
+    elif detector_type == "EDDM":
+        detector = river_drift.binary.EDDM()
+    elif detector_type == "FHDDM":
+        detector = river_drift.binary.FHDDM(confidence_level=confidence_level)
+    elif detector_type == "HDDM_A":
+        detector = river_drift.binary.HDDM_A()
+    elif detector_type == "HDDM_W":
+        detector = river_drift.binary.HDDM_W()
+    elif detector_type == "ADWIN":
+        if adwin_params is None:
+            adwin_params = {}
+        detector = river_drift.ADWIN(**adwin_params)
+
+    drift_descriptor = BinaryErrorDriftDescriptor(
+        warning_grace_period=warning_grace_period,
+        rate_calculation_sample_size=rate_calculation_sample_size,
+        ddm=detector,
+        lookback_method=lookback_method,
+        lookforward_method=lookforward_method,
+        degradation_only=degradation_only,
+    )
+
+    drift_descriptions = []
+
+    for i, error in enumerate(error_stream):
+        if i < burn_in:
+            drift_descriptor.complete_error_history.append(error)
+            drift_descriptor.current_index += 1
+            continue
+
+        drift_descriptor.update(error)
+
+        if drift_descriptor.drift_detected:
+            drift = drift_descriptor.last_detected_drift
+            drift.detected_at = i
+            drift_descriptions.append(drift)
+
+    # Post-process to find actual drift ends
+    drift_descriptions = drift_descriptor.post_process_drift_ends(drift_descriptions)
+
+    return drift_descriptions
+
+
+def generate_error_stream(X_np, y_np, model):
+    """
+    Runs test-then-train once and returns the error stream and predictions.
+    """
+    classes = np.unique(y_np)
+
+    error_stream = []
+    predictions = []
+
+    # Initialize model
+    model.partial_fit(X_np[0].reshape(1, -1), [y_np[0]], classes=classes)
+    error_stream.append(1)  # Add the first sample as if it was an error
+
+    for i in range(1, len(X_np)):
+        x_i = X_np[i].reshape(1, -1)
+        y_true = y_np[i]
+
+        # Predict
+        y_pred = model.predict(x_i)[0]
+        predictions.append(y_pred)
+
+        # Binary error
+        error_stream.append(int(y_pred != y_true))
+
+        # Learn
+        model.partial_fit(x_i, [y_true])
+
+
+    return error_stream, predictions
+
+import plotly.graph_objects as go
+
+def visualization_and_correction(drift_descriptions, error_rate, rate_calculation_sample_size, visualize = True, take_max_for_end = True, start_index = None, end_index = None):
+    corrected_descriptions = []
+
+    if visualize:
+        fig = go.Figure()
+
+        # Determine the range to visualize
+        if start_index is None:
+            start_index = rate_calculation_sample_size
+        if end_index is None:
+            end_index = rate_calculation_sample_size + len(error_rate)
+        
+        # Ensure indices are within valid bounds
+        start_index = max(rate_calculation_sample_size, start_index)
+        end_index = min(rate_calculation_sample_size + len(error_rate), end_index)
+        
+        # Calculate slice indices for error_rate array
+        error_start_idx = start_index - rate_calculation_sample_size
+        error_end_idx = end_index - rate_calculation_sample_size
+        
+        # Slice the error_rate data
+        error_rate_slice = error_rate[error_start_idx:error_end_idx]
+        x_values = list(range(start_index, start_index + len(error_rate_slice)))
+
+        # Add error rate line
+        fig.add_trace(go.Scatter(
+            x=x_values,
+            y=error_rate_slice,
+            mode='lines',
+            name='Error Rate',
+            line=dict(color='royalblue', width=2),
+            hovertemplate='Index: %{x}<br>Error Rate: %{y:.3f}<extra></extra>'
+        ))
+
+    # Add drift annotations using ACTUAL drift start and end
+    for idx, drift in enumerate(drift_descriptions):
+        # Use the actual drift start index
+        if hasattr(drift, 'drift_start_index') and drift.drift_start_index is not None:
+            start = drift.drift_start_index
+        else:
+            start = max(0, drift.detected_at - drift.drift_duration)
+
+        # Use the actual drift end index (peak or recovery point)
+        if hasattr(drift, 'drift_end_index') and drift.drift_end_index is not None:
+            end = drift.drift_end_index
+        else:
+            end = drift.detected_at
+
+        start += rate_calculation_sample_size
+        end += rate_calculation_sample_size
+
+        # Update end to the index with maximum error rate
+        start_idx = start - rate_calculation_sample_size
+        end_idx = end - rate_calculation_sample_size
+        start_idx = max(0, min(start_idx, len(error_rate) - 1))
+        end_idx = max(0, min(end_idx, len(error_rate) - 1))
+
+        if start_idx <= end_idx:
+            if take_max_for_end:
+                max_idx_in_range = start_idx + np.argmax(error_rate[start_idx:end_idx + 1])
+                end = max_idx_in_range + rate_calculation_sample_size
+            else:
+                end = end_idx + rate_calculation_sample_size
+            drift.drift_end_index = end
+
+        # correct the duration based
+        drift.drift_duration = end - start
+
+        detection = drift.detected_at
+
+        # Make sure they're within the error_rate bounds
+        start_plot = max(rate_calculation_sample_size,
+                            min(start, rate_calculation_sample_size + len(error_rate) - 1))
+        end_plot = max(rate_calculation_sample_size,
+                        min(end, rate_calculation_sample_size + len(error_rate) - 1))
+
+        # Calculate error_rate array indices
+        start_idx = start - rate_calculation_sample_size
+        end_idx = end - rate_calculation_sample_size
+        detection_idx = detection - rate_calculation_sample_size
+        start_idx = max(0, min(start_idx, len(error_rate) - 1))
+        end_idx = max(0, min(end_idx, len(error_rate) - 1))
+        detection_idx = max(0, min(detection_idx, len(error_rate) - 1))
+
+        description = {
+            'start': start_plot,
+            'end': end_plot,
+            'duration': end_plot - start_plot,
+            'start_error_rate': error_rate[start_idx],
+            'end_error_rate': error_rate[end_idx],
+            'error_rate_increase': error_rate[end_idx] - error_rate[start_idx]
+        }
+        corrected_descriptions.append(description)
+
+        if visualize:
+            # Skip drifts outside the visualization range
+            if end_plot < start_index or start_plot > end_index:
+                continue
+            
+            # Clip drift boundaries to visualization range
+            drift_start_plot = max(start_plot, start_index)
+            drift_end_plot = min(end_plot, end_index)
+            
+            # # Add drift region as shaded area (from start to end)
+            # fig.add_vrect(
+            #     x0=drift_start_plot,
+            #     x1=drift_end_plot,
+            #     fillcolor="rgba(255, 107, 53, 0.2)",
+            #     layer="below",
+            #     line_width=0,
+            # )
+
+            # Add drift line from start to end
+            fig.add_trace(go.Scatter(
+                x=[drift_start_plot, drift_end_plot],
+                y=[error_rate[start_idx], error_rate[end_idx]],
+                mode='lines+markers',
+                name=f'Drift' if len(drift_descriptions)==1 else f'Drift {idx+1}',
+                line=dict(color='#FF6B35', width=3, dash='dash'),
+                marker=dict(size=10, color='#FF6B35', symbol=['circle', 'x']),
+                hovertemplate=(
+                    f'<b>Drift {idx+1}</b><br>'
+                    f'Start Index: {start}<br>'
+                    f'Peak/End Index: {end}<br>'
+                    f'Duration: {end - start}<br>'
+                    f'Error Rate at Start: {error_rate[start_idx]:.3f}<br>'
+                    f'Error Rate at Peak: {error_rate[end_idx]:.3f}<br>'
+                    f'<extra></extra>'
+                )
+            ))
+
+    if visualize:
+        # Update layout
+        fig.update_layout(
+            title=f'Drift Detection',
+            xaxis_title='Data Point Index',
+            yaxis_title='Error Rate',
+            hovermode='closest',
+            height=600,
+            width= 1000,
+            showlegend=True,
+            legend=dict(
+                yanchor="top",
+                y=0.99,
+                xanchor="left",
+                x=0.01,
+            ),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            xaxis=dict(
+                showgrid=True,
+                gridcolor='lightgray',
+                title=dict(
+                    font=dict(size=14, color='black', family='Arial, sans-serif')
+                ),
+                tickfont=dict(size=12, color='black', family='Arial, sans-serif')
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='lightgray',
+                title=dict(
+                    font=dict(size=14, color='black', family='Arial, sans-serif')
+                ),
+                tickfont=dict(size=12, color='black', family='Arial, sans-serif')
+            ),
+            font=dict(size=12, color='black', family='Arial, sans-serif')
+        )
+        fig.show()
+        
+    return corrected_descriptions
