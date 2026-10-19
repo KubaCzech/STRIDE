@@ -18,8 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `ClusterBasedDriftDetector`: `p_value`, `null_strengths`, `alpha` (optional size-aware significance tests), `xmeans_repeat`, `novelty_quantile` and `n_jobs` (parallel permutations).
 - `stride.xai.clustering`: `assign_to_reference`, `calculate_shift_significance`, `bic_score`; `run_xmeans(repeat=...)` keeps the run with the best BIC.
-- Dashboard clustering tab: drift decision, strength and permutation p-value as metrics, method description, results cached per pair of windows.
-- Dashboard clustering tab: detector settings (cluster range, permutations, significance level, matching mode, per-cluster significance tests), a cluster overview table (status, sizes, centroid shift, spread), a permutation-test plot, and triggered/evaluated checks with their contribution to the drift strength per criterion.
+- Dashboard clustering tab, focused on explaining the change instead of deciding whether drift occurred: a table of changes per cluster (disappeared, appeared, moved, statistics changed, wider/narrower, grew/shrank; sizes and share of the class; key features in standard deviations), a permutation check of whether the changes exceed sampling noise, the class-wise cluster plots, centroid shifts and a feature × cluster heatmap shown together, and detailed tables in expanders. Detector settings (cluster range, permutations, significance level, matching mode, per-cluster significance tests); results cached per pair of windows.
+- `stride.xai.clustering.plot_feature_shift_heatmap`: signed change of a per-cluster statistic for every feature and cluster, with changes beyond the threshold outlined.
 - Dashboard Statistical Tests tab: Kolmogorov-Smirnov, Anderson-Darling, Wasserstein and Jensen-Shannon per feature and class with configurable significance level and thresholds, flagged pairs per test against the count expected by chance, a feature table with highlighted flags, and ECDF/histogram/KDE/boxplot/Q-Q plots of a selected feature.
 
 ### Fixed
@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `StatisticalTestsDriftDetector`: Wasserstein and Anderson-Darling raised errors and KS/JS/KL returned meaningless values for a class missing from one window (such classes are now skipped and excluded from the share of flagged pairs); Anderson-Darling raised an error for a feature with a single value in both windows.
 - `plot_qq` drew both windows against a normal distribution with the y-axis clipped to [0, 1]; it is now a two-sample Q-Q plot. `plot_kde` failed on a constant feature; distribution plots failed for text class labels.
 - Documentation: the dashboard guide described the six-tab layout used before the redesign.
+- `plot_clustering_heatmap` showed changes within the threshold in red and drifted ones in green; cluster plots labelled the axes "Component 1/2" also for 2D data instead of using the feature names.
+- Dashboard: after choosing a dataset other than the first, the next dataset choice was ignored and had to be made twice.
 
 ## [0.4.0] - 2026-10-17
 

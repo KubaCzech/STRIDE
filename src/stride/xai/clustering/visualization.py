@@ -35,6 +35,11 @@ colors = [
 
 color_map = {i: colors[i] for i in range(len(colors))}
 
+# Cell colours of :func:`plot_clustering_heatmap`.
+WITHIN_COLOR = "#dfe6e9"
+DRIFT_COLOR = "#e74c3c"
+MISSING_COLOR = "#7f8c8d"
+
 
 def cluster_color(label: int) -> str:
     """Colour of a cluster ID; the palette repeats for IDs beyond its length."""
@@ -47,6 +52,14 @@ def _class_name(label) -> str:
         if float(label).is_integer():
             return str(int(label))
     return str(label)
+
+
+def _axis_labels(X) -> tuple[str, str]:
+    """Names of the two plotted dimensions: feature names, or "Component i" after dimensionality reduction."""
+    columns = list(X.columns) if isinstance(X, pd.DataFrame) else ["component_1", "component_2"]
+    return tuple(
+        str(c).replace("component_", "Component ") if str(c).startswith("component_") else str(c) for c in columns[:2]
+    )
 
 
 def reduce_dimensions(
@@ -131,6 +144,7 @@ def _plot_clusters(X: pd.DataFrame, labels: Sequence[Union[float, int]], title: 
     :func:`cluster_color` is used to ensure consistent coloring across plots.
     Function used internally by other plotting functions.
     """
+    xlabel, ylabel = _axis_labels(X)
     if hasattr(X, "values"):
         X = X.values
     if hasattr(labels, "values"):
@@ -147,8 +161,8 @@ def _plot_clusters(X: pd.DataFrame, labels: Sequence[Union[float, int]], title: 
         plt.scatter(X[labels == ul, 0], X[labels == ul, 1], color=color, label=f"Cluster {ul}", s=30)
 
     plt.title(title)
-    plt.xlabel("Component 1")
-    plt.ylabel("Component 2")
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.legend()
 
 
@@ -356,9 +370,10 @@ def plot_centers_shift(
         elif center_new is not None:
             plt.scatter(*center_new, marker="o", color=cluster_color(label), s=60)
 
+    xlabel, ylabel = _axis_labels(X_before)
     plt.title("Cluster centroid shifts")
-    plt.xlabel("Component 1")
-    plt.ylabel("Component 2")
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.grid(True)
     plt.legend()
     if save is not None and isinstance(save, str):
@@ -367,6 +382,23 @@ def plot_centers_shift(
 
 
 def plot_clustering_heatmap(stats_shifts, threshold, show=False, save=None):
+    """
+    Plot which per-cluster statistics changed by more than ``threshold``.
+
+    Parameters
+    ----------
+    stats_shifts : dict
+        ``{cluster: {feature: {statistic: change}}}``, e.g. ``ClusterBasedDriftDetector.stats_shifts``.
+    threshold : float
+        Absolute change above which a statistic counts as drift.
+
+    Returns
+    -------
+    Figure
+        One column per (cluster, feature) and one row per statistic: drifted cells in red,
+        cells within the threshold in grey and unavailable statistics in dark grey.
+    """
+
     def make_dataframe_from_dict(dictt):
         df = (
             pd.DataFrame.from_dict(dictt, orient="index")
@@ -396,7 +428,7 @@ def plot_clustering_heatmap(stats_shifts, threshold, show=False, save=None):
     heatmap_to_plot = pd.DataFrame(heatmap_encoded, columns=heatmap_data.columns)
     heatmap_to_plot.index = heatmap_data.index
 
-    cmap = ListedColormap(["#ff6b6b", "#6bff81", "#7E7B7B"])
+    cmap = ListedColormap([WITHIN_COLOR, DRIFT_COLOR, MISSING_COLOR])
 
     bounds = [-0.5, 0.5, 1.5, 2.5]
     norm = BoundaryNorm(bounds, cmap.N)
@@ -409,11 +441,77 @@ def plot_clustering_heatmap(stats_shifts, threshold, show=False, save=None):
     plt.title("Threshold and Missing-Value Diagnostics Across Clusters and Features")
 
     legend_elements = [
-        Patch(facecolor="#ff6b6b", edgecolor="black", label="Within threshold"),
-        Patch(facecolor="#6bff81", edgecolor="black", label=f"|value| > {threshold}"),
-        Patch(facecolor="#7E7B7B", edgecolor="black", label="Missing value (NaN)"),
+        Patch(facecolor=WITHIN_COLOR, edgecolor="black", label="Within threshold"),
+        Patch(facecolor=DRIFT_COLOR, edgecolor="black", label=f"|value| > {threshold} (drift)"),
+        Patch(facecolor=MISSING_COLOR, edgecolor="black", label="Missing value (NaN)"),
     ]
     plt.legend(handles=legend_elements, loc="upper right", title="Legend", frameon=True)
     if save is not None and isinstance(save, str):
         plt.savefig(save)
+    return fig
+
+
+def plot_feature_shift_heatmap(
+    stats_shifts: dict,
+    threshold: float,
+    statistic: str = "mean",
+    cluster_names: dict | None = None,
+    save=None,
+) -> Figure:
+    """
+    Plot the signed change of one statistic for every feature (rows) and cluster (columns).
+
+    Parameters
+    ----------
+    stats_shifts : dict
+        ``{cluster: {feature: {statistic: change}}}``, e.g. ``ClusterBasedDriftDetector.stats_shifts``.
+        For the detector the changes are in standard deviations (σ) of the feature.
+    threshold : float
+        Absolute change above which a cell is outlined as drift.
+    statistic : str, default="mean"
+        Statistic to show (``"mean"``, ``"median"`` or ``"std"``).
+    cluster_names : dict, optional
+        Column labels per cluster ID; the ID itself by default.
+
+    Returns
+    -------
+    Figure
+        Diverging heatmap centred at 0 (red: the feature increased, blue: it decreased), with
+        the change written in every cell and cells beyond ``threshold`` outlined.
+    """
+    clusters = sorted(stats_shifts)
+    features = list(dict.fromkeys(f for k in clusters for f in stats_shifts[k]))
+    values = pd.DataFrame(
+        [[stats_shifts[k].get(f, {}).get(statistic, np.nan) for k in clusters] for f in features],
+        index=[str(f) for f in features],
+        columns=[(cluster_names or {}).get(k, str(k)) for k in clusters],
+        dtype=float,
+    )
+    limit = max(float(np.nanmax(np.abs(values.to_numpy()))) if values.notna().any().any() else 0.0, 2 * threshold)
+    annotations = values.map(lambda v: "" if np.isnan(v) else f"{v:+.2f}".replace("-", "−"))
+
+    fig, ax = plt.subplots(figsize=(1.2 * len(clusters) + 3, 0.45 * len(features) + 2))
+    sns.heatmap(
+        values,
+        cmap="RdBu_r",
+        vmin=-limit,
+        vmax=limit,
+        center=0,
+        annot=annotations,
+        fmt="",
+        linewidths=0.5,
+        linecolor="white",
+        cbar_kws={"label": f"Change of the {statistic} [σ]"},
+        ax=ax,
+    )
+    for i, j in zip(*np.nonzero((values.abs() > threshold).to_numpy())):
+        ax.add_patch(plt.Rectangle((j, i), 1, 1, fill=False, edgecolor="black", linewidth=2))
+    ax.set_xlabel("Cluster")
+    ax.set_ylabel("Feature")
+    ax.set_title(f"Change of the {statistic} per cluster (outlined: |change| > {threshold} σ)")
+    ax.tick_params(axis="x", rotation=0)
+    ax.tick_params(axis="y", rotation=0)
+    fig.tight_layout()
+    if save is not None and isinstance(save, str):
+        fig.savefig(save)
     return fig
