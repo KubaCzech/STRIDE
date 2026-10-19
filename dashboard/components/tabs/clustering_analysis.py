@@ -31,9 +31,7 @@ TOP_FEATURES = 3
 
 
 def _display_intro():
-    """
-    Renders the introductory text for the Clustering Analysis tab.
-    """
+    """Renders the introductory text for the Clustering Analysis tab."""
 
     st.header("Clustering Analysis")
     st.markdown(
@@ -52,9 +50,7 @@ def _display_intro():
 
 
 def _render_detector_config() -> dict:
-    """
-    Renders the detector settings and returns them as keyword arguments of the detector.
-    """
+    """Renders the detector settings and returns them as keyword arguments of the detector."""
     with st.expander("Clustering Configuration", expanded=False):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -126,13 +122,10 @@ def _render_detector_config() -> dict:
 
 
 def _display_noise_check(detector: ClusterBasedDriftDetector):
-    """
-    States whether the changes found exceed what random re-splits of the windows produce.
+    """States whether the changes found exceed what random re-splits of the windows produce.
 
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        A detector on which ``detect()`` has been called.
+    Args:
+        detector: A detector on which ``detect()`` has been called.
     """
     if detector.p_value is None:
         st.caption("The permutation check is disabled, so the changes are not compared with sampling noise.")
@@ -182,19 +175,13 @@ def _criteria_counts(class_details: dict) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _config_details_dataframe(details: dict, weights: Sequence[float]) -> pd.DataFrame:
-    """
-    Summarises the checks of every criterion per class and their contribution to the strength.
+    """Summarises the checks of every criterion per class and their contribution to the strength.
 
-    Parameters
-    ----------
-    details : dict
-        Detailed drift information per class (``detector.drift_details``).
-    weights : Sequence[float]
-        Effective criterion weights (``detector.effective_weights``).
+    Args:
+        details: Detailed drift information per class (``detector.drift_details``).
+        weights: Effective criterion weights (``detector.effective_weights``).
 
-    Returns
-    -------
-    pd.DataFrame
+    Returns:
         One row per criterion: weight, triggered/evaluated checks per class and the
         contribution to the drift strength. The contributions sum to the drift strength.
     """
@@ -210,15 +197,11 @@ def _config_details_dataframe(details: dict, weights: Sequence[float]) -> pd.Dat
 
 
 def _display_drift_details(details: dict, weights: Sequence[float]):
-    """
-    Displays the triggered checks per class and criterion.
+    """Displays the triggered checks per class and criterion.
 
-    Parameters
-    ----------
-    details : dict
-        Detailed drift information per class.
-    weights : Sequence[float]
-        Effective weights of the criteria.
+    Args:
+        details: Detailed drift information per class.
+        weights: Effective weights of the criteria.
     """
     st.markdown(
         "Each criterion counts the checks that exceeded their threshold; the weighted share of triggered checks "
@@ -263,8 +246,7 @@ def _format_shift(feature, value: float, statistic: str | None = None) -> str:
 
 
 def _changed_features(detector: ClusterBasedDriftDetector, k: int, flags: dict) -> str:
-    """
-    Features of a tracked cluster whose statistics changed beyond the threshold, largest change first.
+    """Features of a tracked cluster whose statistics changed beyond the threshold, largest change first.
 
     The change of the mean is reported when it exceeds the threshold; otherwise the largest
     flagged change of another statistic (the median is the noisiest of them).
@@ -290,17 +272,12 @@ def _cluster_location(detector: ClusterBasedDriftDetector, k: int, cl) -> str:
 
 
 def _findings_dataframe(detector: ClusterBasedDriftDetector) -> pd.DataFrame:
-    """
-    One row per cluster describing what changed between the windows.
+    """One row per cluster describing what changed between the windows.
 
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        A detector on which ``detect()`` has been called.
+    Args:
+        detector: A detector on which ``detect()`` has been called.
 
-    Returns
-    -------
-    pd.DataFrame
+    Returns:
         Class, cluster, the changes found (``Changes``), the cluster size and its share of the
         class in both windows, the centroid shift, the spread change, and the key features: for
         tracked clusters the features that changed most, for appeared and disappeared clusters the
@@ -368,13 +345,10 @@ def _changes_style(changes: str) -> str:
 
 
 def _display_findings(detector: ClusterBasedDriftDetector):
-    """
-    Displays the summary counts and the table of changes per cluster.
+    """Displays the summary counts and the table of changes per cluster.
 
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        A detector on which ``detect()`` has been called.
+    Args:
+        detector: A detector on which ``detect()`` has been called.
     """
     st.subheader("What Changed")
     df = _findings_dataframe(detector)
@@ -442,13 +416,10 @@ def _display_findings(detector: ClusterBasedDriftDetector):
 
 
 def _cluster_overview_dataframe(detector: ClusterBasedDriftDetector) -> pd.DataFrame:
-    """
-    One row per cluster: class, size in both windows, status, centroid shift and spread.
+    """One row per cluster: class, size in both windows, status, centroid shift and spread.
 
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        A detector on which ``detect()`` has been called.
+    Args:
+        detector: A detector on which ``detect()`` has been called.
     """
     y_old, y_new = np.asarray(detector.y_old), np.asarray(detector.y_new)
     centroid_flags = {k: v for d in detector.drift_details.values() for k, v in d["centroid_shift"].items()}
@@ -478,13 +449,10 @@ def _cluster_overview_dataframe(detector: ClusterBasedDriftDetector) -> pd.DataF
 
 
 def _display_cluster_overview_table(detector: ClusterBasedDriftDetector):
-    """
-    Displays the status, size, centroid shift and spread of every cluster.
+    """Displays the status, size, centroid shift and spread of every cluster.
 
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        A detector on which ``detect()`` has been called.
+    Args:
+        detector: A detector on which ``detect()`` has been called.
     """
     df = _cluster_overview_dataframe(detector)
     styled = df.style.map(
@@ -543,16 +511,13 @@ def _stats_shift_dataframe(detector: ClusterBasedDriftDetector) -> pd.DataFrame:
 
 
 def _display_stats_shift_table(detector: ClusterBasedDriftDetector):
-    """
-    Displays the change of the per-cluster mean, median and standard deviation.
+    """Displays the change of the per-cluster mean, median and standard deviation.
 
     Shifts are absolute changes of standardised features, i.e. expressed in
     standard deviations (σ) of each feature.
 
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        The drift detector containing statistical shift information.
+    Args:
+        detector: The drift detector containing statistical shift information.
     """
     df = _stats_shift_dataframe(detector)
     if df.empty:
@@ -578,13 +543,10 @@ def _display_stats_shift_table(detector: ClusterBasedDriftDetector):
 
 
 def _display_centroids_table(detector: ClusterBasedDriftDetector):
-    """
-    Displays the centroids of every cluster in both windows (standardised features).
+    """Displays the centroids of every cluster in both windows (standardised features).
 
-    Parameters
-    ----------
-    detector : ClusterBasedDriftDetector
-        The drift detector containing cluster centroids.
+    Args:
+        detector: The drift detector containing cluster centroids.
     """
     columns = [str(c) for c in detector.columns]
     rows = []
@@ -638,21 +600,14 @@ def _display_visualizations(
     y_after: np.ndarray,
     detector: ClusterBasedDriftDetector,
 ):
-    """
-    Displays the clusters of every class in both windows, the centroid shifts and the feature shift heatmap.
+    """Displays the clusters of every class in both windows, the centroid shifts and the feature shift heatmap.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature matrix for 'before' window
-    X_after : pd.DataFrame
-        Feature matrix for 'after' window
-    y_before : np.ndarray
-        Target variable for 'before' window
-    y_after : np.ndarray
-        Target variable for 'after' window
-    detector : ClusterBasedDriftDetector
-        A detector on which ``detect()`` has been called.
+    Args:
+        X_before: Feature matrix for 'before' window
+        X_after: Feature matrix for 'after' window
+        y_before: Target variable for 'before' window
+        y_after: Target variable for 'after' window
+        detector: A detector on which ``detect()`` has been called.
     """
     labels_old, labels_new = detector.cluster_labels_old, detector.cluster_labels_new
 
@@ -695,21 +650,14 @@ def _display_details(
     y_after: np.ndarray,
     detector: ClusterBasedDriftDetector,
 ):
-    """
-    Displays the detailed tables and plots behind the findings in expanders.
+    """Displays the detailed tables and plots behind the findings in expanders.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature matrix for 'before' window
-    X_after : pd.DataFrame
-        Feature matrix for 'after' window
-    y_before : np.ndarray
-        Target variable for 'before' window
-    y_after : np.ndarray
-        Target variable for 'after' window
-    detector : ClusterBasedDriftDetector
-        A detector on which ``detect()`` has been called.
+    Args:
+        X_before: Feature matrix for 'before' window
+        X_after: Feature matrix for 'after' window
+        y_before: Target variable for 'before' window
+        y_after: Target variable for 'after' window
+        detector: A detector on which ``detect()`` has been called.
     """
     st.subheader("Details")
     with st.expander("Cluster sizes, centroid shifts and spread"):
@@ -742,19 +690,13 @@ def _run_detector(X_before, y_before, X_after, y_after, settings: dict) -> Clust
 
 
 def render_clustering_analysis_tab(X_before: pd.DataFrame, y_before: np.ndarray, X_after: pd.DataFrame, y_after: np.ndarray):
-    """
-    Renders the Clustering Analysis tab.
+    """Renders the Clustering Analysis tab.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature matrix for 'before' window
-    y_before : np.ndarray
-        Target variable for 'before' window
-    X_after : pd.DataFrame
-        Feature matrix for 'after' window
-    y_after : np.ndarray
-        Target variable for 'after' window
+    Args:
+        X_before: Feature matrix for 'before' window
+        y_before: Target variable for 'before' window
+        X_after: Feature matrix for 'after' window
+        y_after: Target variable for 'after' window
     """
     _display_intro()
     settings = _render_detector_config()

@@ -47,28 +47,24 @@ class FeatureMatcher:
         drift_significance_level: float = 0.05,
         random_state: int | None = 42,
     ) -> None:
-        """
-        Initialize FeatureMatcher.
+        """Initialize FeatureMatcher.
 
-        Parameters
-        ----------
-        match_strategy : str, default="exact"
-            Strategy to align features: "exact", "manual", "statistical", or "subspace".
-        manual_mapping : dict[str, str] | None, default=None
-            Mapping dictionary {col_A: col_B} for "manual" strategy.
-        align_distributions : bool, default=False
-            Whether to apply feature scaling/normalization after alignment.
-        scaler_type : str | None, default="standard"
-            Type of scaler: "standard" (StandardScaler) or "minmax" (MinMaxScaler).
-        scaler_mode : str, default="joint"
-            "joint" to fit scaler across pooled [X_A; X_B] (preserves relative shifts),
-            or "per_concept" to fit independently on X_A and X_B (isolates P(y|x) shift).
-        subspace_components : int | None, default=None
-            Number of latent dimensions for "subspace" strategy. If None, min(d_A, d_B).
-        drift_significance_level : float, default=0.05
-            p-value threshold below which a feature is categorized as drifting under KS test.
-        random_state : int | None, default=42
-            Random seed for stochastic operations (e.g. PCA).
+        Args:
+            match_strategy: Strategy to align features ("exact", "manual",
+                "statistical", or "subspace").
+            manual_mapping: Mapping dictionary `{col_A: col_B}` for "manual" strategy.
+            align_distributions: Whether to apply feature scaling/normalization after alignment.
+            scaler_type: Type of scaler: "standard" (`StandardScaler`) or "minmax" (`MinMaxScaler`).
+            scaler_mode: "joint" to fit scaler across pooled `[X_A; X_B]`, or "per_concept" to
+                fit independently on `X_A` and `X_B`.
+            subspace_components: Number of latent dimensions for "subspace" strategy.
+                If None, `min(d_A, d_B)`.
+            drift_significance_level: p-value threshold below which a feature is categorized
+                as drifting under KS test.
+            random_state: Random seed for stochastic operations.
+
+        Raises:
+            ValueError: If an unsupported strategy, scaler type, or scaler mode is provided.
         """
         if match_strategy not in self.SUPPORTED_STRATEGIES:
             raise ValueError(
@@ -91,20 +87,18 @@ class FeatureMatcher:
         self.random_state = random_state
 
     def align(self, X_a: pd.DataFrame, X_b: pd.DataFrame) -> FeatureAlignmentResult:
-        """
-        Align feature representations between dataset A and dataset B.
+        """Align feature representations between dataset A and dataset B.
 
-        Parameters
-        ----------
-        X_a : pd.DataFrame
-            Feature matrix of Concept A (pre-drift).
-        X_b : pd.DataFrame
-            Feature matrix of Concept B (post-drift).
+        Args:
+            X_a: Feature matrix of Concept A (pre-drift).
+            X_b: Feature matrix of Concept B (post-drift).
 
-        Returns
-        -------
-        FeatureAlignmentResult
+        Returns:
             Dataclass containing aligned DataFrames, column mapping, and drift diagnostics.
+
+        Raises:
+            TypeError: If either `X_a` or `X_b` is not a DataFrame.
+            ValueError: If input feature DataFrames are empty.
         """
         if not isinstance(X_a, pd.DataFrame) or not isinstance(X_b, pd.DataFrame):
             raise TypeError("Both X_a and X_b must be pandas DataFrames.")
@@ -268,20 +262,15 @@ class FeatureMatcher:
         return df_a, df_b
 
     def identify_drifting_features(self, X_a: pd.DataFrame, X_b: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
-        """
-        Evaluate statistical drift between aligned feature distributions.
+        """Evaluate statistical drift between aligned feature distributions.
 
-        Parameters
-        ----------
-        X_a : pd.DataFrame
-            Pre-drift aligned feature matrix.
-        X_b : pd.DataFrame
-            Post-drift aligned feature matrix.
+        Args:
+            X_a: Pre-drift aligned feature matrix.
+            X_b: Post-drift aligned feature matrix.
 
-        Returns
-        -------
-        tuple[pd.DataFrame, list[str]]
-            Diagnostics DataFrame and list of feature names flagged as drifting.
+        Returns:
+            Tuple of `(diagnostics_df, drifting_features_list)` where diagnostics
+            contains KS-test statistics and p-values per feature.
         """
         diagnostics: list[dict[str, Any]] = []
         drifting_features: list[str] = []

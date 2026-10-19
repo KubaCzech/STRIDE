@@ -44,24 +44,18 @@ def generate_error_stream(X_np, y_np, model):
 
 
 def render_drift_detection_tab(X, y, window_length, model_class=None, model_params=None, dataset=None):  # noqa: C901
-    """
-    Main entry point for DDM (Drift Detection Method) Analysis tab.
+    """Main entry point for DDM (Drift Detection Method) Analysis tab.
 
     Uses online learning with the selected model to track prediction errors
     and detect concept drift using binary drift detectors.
 
-    Parameters
-    ----------
-    X : pd.DataFrame or np.ndarray
-        Feature data for the entire dataset
-    y : pd.Series or np.ndarray
-        Target labels for the entire dataset
-    window_length : int
-        Number of samples per window (not used directly but kept for consistency)
-    model_class : class, optional
-        The model class to use for drift detection (must support partial_fit)
-    model_params : dict, optional
-        Parameters to initialize the model with
+    Args:
+        X: Feature data for the entire dataset.
+        y: Target labels for the entire dataset.
+        window_length: Number of samples per window.
+        model_class: The model class to use for drift detection (must support partial_fit).
+        model_params: Parameters to initialize the model with.
+        dataset: Optional dataset object.
     """
 
     st.header("Performance-Based Drift Detection (DDM & ADWIN)")

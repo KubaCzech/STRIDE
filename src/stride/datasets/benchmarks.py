@@ -28,25 +28,19 @@ WHITE_WINE_STDS = np.array([0.84, 0.10, 0.12, 5.07, 0.022, 17.01, 42.50, 0.0030,
 def get_sample_wine_quality_data(
     n_samples: int = 150, random_state: int = 42
 ) -> tuple[tuple[pd.DataFrame, pd.Series], tuple[pd.DataFrame, pd.Series]]:
-    """
-    Generate sample empirical subsets of Red and White wine quality data.
+    """Generate sample empirical subsets of Red and White wine quality data.
 
     Preserves authentic empirical means and standard deviations, reproducing
     the canonical Shaker & Hüllermeier (2015) non-stationary benchmark with
     significant physicochemical drift in total sulfur dioxide, volatile acidity,
     and chlorides.
 
-    Parameters
-    ----------
-    n_samples : int, default=150
-        Number of samples per wine concept.
-    random_state : int, default=42
-        Seed for reproducibility.
+    Args:
+        n_samples: Number of samples per wine concept.
+        random_state: Seed for reproducibility.
 
-    Returns
-    -------
-    tuple[tuple[pd.DataFrame, pd.Series], tuple[pd.DataFrame, pd.Series]]
-        ((X_red, y_red), (X_white, y_white))
+    Returns:
+        Tuple of `((X_red, y_red), (X_white, y_white))`.
     """
     rng = np.random.RandomState(random_state)
 

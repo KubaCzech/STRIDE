@@ -4,21 +4,16 @@ import matplotlib.colors as mcolors
 
 
 def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
-    """
-    Visualize the decision boundary analysis results using HSV style.
+    """Visualize the decision boundary analysis results using HSV style.
+
     Hue = Class, Value = Confidence.
 
-    Parameters
-    ----------
-    results : dict
-        Output from compute_decision_boundary_analysis
-    title : str
-        Main title for the figure
+    Args:
+        results: Output dictionary from `compute_decision_boundary_analysis`.
+        title: Main title for the figure.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
-        The generated figure
+    Returns:
+        The generated Matplotlib Figure.
     """
     res_pre = results["pre"]
     res_post = results["post"]
@@ -118,25 +113,18 @@ def visualize_decision_boundary(results, title="Decision Boundary Analysis"):
 
 
 def plot_categorical_drift_map(ssnp_model, viz_tree, drift_leaf_ids, grid_bounds, grid_size=300, is_2d=False):
-    """
-    Plots the Categorical Drift Map showing regions of disagreement in the SSNP latent space.
+    """Plots the Categorical Drift Map showing regions of disagreement in the SSNP latent space.
 
-    Parameters
-    ----------
-    ssnp_model : SSNP
-        The trained SSNP model (for inverse transform).
-    viz_tree : DecisionTreeClassifier
-        The tree trained to predict disagreement (y_delta) from scaled features.
-    drift_leaf_ids : list
-        List of leaf IDs from viz_tree that correspond to drift (disagreement).
-    grid_bounds : tuple
-        (xmin, xmax, ymin, ymax) defining the extent of the plot.
-    grid_size : int
-        Resolution of the grid.
+    Args:
+        ssnp_model: The trained SSNP model (for inverse transform).
+        viz_tree: The tree trained to predict disagreement (`y_delta`) from scaled features.
+        drift_leaf_ids: List of leaf IDs from `viz_tree` that correspond to drift (disagreement).
+        grid_bounds: Tuple of `(xmin, xmax, ymin, ymax)` defining the extent of the plot.
+        grid_size: Resolution of the grid.
+        is_2d: Whether the original input features are already 2D.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The generated Matplotlib Figure.
     """
     xmin, xmax, ymin, ymax = grid_bounds
 

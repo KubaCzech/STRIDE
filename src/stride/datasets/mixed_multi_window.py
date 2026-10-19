@@ -30,23 +30,19 @@ class MixedMultiWindowDataset(BaseDataset):
         random_seed=42,
         **kwargs,
     ):
-        """
-        Generate synthetic data stream using protree's Mixed generator.
+        """Generate synthetic data stream using protree's Mixed generator.
 
-        Parameters
-        ----------
-        num_windows : int
-            Number of windows to generate
-        window_length : int
-            Number of samples per window
-        drift_positions : list or str
-            List of sample positions where drifts occur, or comma-separated string
-        drift_duration : int
-            Duration of drift transition in samples
-        classification_function : int
-            Classification function (0 or 1)
-        random_seed : int
-            Random seed for reproducibility
+        Args:
+            num_windows: Number of windows to generate.
+            window_length: Number of samples per window.
+            drift_positions: List of sample positions where drifts occur, or comma-separated string.
+            drift_duration: Duration of drift transition in samples.
+            classification_function: Classification function (0 or 1).
+            random_seed: Random seed for reproducibility.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Tuple of `(X, y)` data stream.
         """
 
         # Parse drift positions if string

@@ -78,18 +78,12 @@ def reduce_dimensions(
 
     Non-DataFrame arguments are passed through unchanged.
 
-    Parameters
-    ----------
-    n_components : int, default=2
-        Target number of dimensions (columns) after reduction.
-        If the DataFrame has columns less than or equal to `n_components`, no reduction is performed.
+    Args:
+        n_components: Target number of dimensions (columns) after reduction.
+            If the DataFrame has columns less than or equal to `n_components`, no reduction is performed.
+        reducer: Type of dimensionality reduction algorithm used by `DataDimensionsReducer` (e.g., PCA, UMAP, t-SNE).
 
-    reducer : ReducerType, default=ReducerType.PCA
-        Type of dimensionality reduction algorithm used by `DataDimensionsReducer` (e.g., PCA, UMAP, t-SNE).
-
-    Returns
-    -------
-    Callable
+    Returns:
         A decorator that automatically transforms DataFrame arguments before calling the function.
     """
 
@@ -127,22 +121,12 @@ def reduce_dimensions(
 
 
 def _plot_clusters(X: pd.DataFrame, labels: Sequence[Union[float, int]], title: str) -> None:
-    """
-    Plot clusters with different colors for 2D data.
+    """Plot clusters with different colors for 2D data.
 
-    Parameters
-    ----------
-    X : pd.DataFrame
-        Data points to plot.
-    labels : Sequence[int or float]
-        Cluster labels for each data point.
-    title : str
-        Title of the plot. Usually indicating before or after drift.
-
-    Notes
-    -----
-    :func:`cluster_color` is used to ensure consistent coloring across plots.
-    Function used internally by other plotting functions.
+    Args:
+        X: Data points to plot.
+        labels: Cluster labels for each data point.
+        title: Title of the plot. Usually indicating before or after drift.
     """
     xlabel, ylabel = _axis_labels(X)
     if hasattr(X, "values"):
@@ -177,26 +161,20 @@ def plot_drift_clustered(
     show: bool = False,
     save=None,
 ) -> Figure:
-    """
-    Plot clusters from first and second data block to visualize drift for 2D data.
+    """Plot clusters from first and second data block to visualize drift for 2D data.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature values from first data block.
-    X_after : pd.DataFrame
-        Feature values from second data block.
-    _y_before : Sequence[Union[int, float]]
-        Class labels for first data block.
-    _y_after : Sequence[Union[int, float]]
-        Class labels for first second block.
-    labels_before : Sequence[int or float]
-        Cluster labels for first data block.
-    labels_after : Sequence[int or float]
-        Cluster labels for second data block.
-    show : bool, default=False
-        If True, display the plot immediately. Otherwise, the plot can be
-        further modified or returned for later display.
+    Args:
+        X_before: Feature values from first data block.
+        X_after: Feature values from second data block.
+        _y_before: Class labels for first data block.
+        _y_after: Class labels for second data block.
+        labels_before: Cluster labels for first data block.
+        labels_after: Cluster labels for second data block.
+        show: If True, display the plot immediately.
+        save: Optional file path to save the generated plot.
+
+    Returns:
+        The generated Matplotlib Figure.
     """
     fig = plt.figure(figsize=(12, 5))
 
@@ -236,30 +214,20 @@ def plot_clusters_by_class(
     show: bool = False,
     save=None,
 ) -> Figure:
-    """
-    Plot clusters separated by class labels to visualize drift per class (not overall) for 2D data.
+    """Plot clusters separated by class labels to visualize drift per class for 2D data.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature values from first data block.
-    X_after : pd.DataFrame
-        Feature values from second data block.
-    y_before : Sequence[int or float]
-        Class labels for first data block.
-    y_after : Sequence[int or float]
-        Class labels for second data block.
-    cluster_labels_before : Sequence[int or float]
-        Cluster labels for first data block.
-    cluster_labels_after : Sequence[int or float]
-        Cluster labels for second data block.
-    show : bool, default=False
-        If True, display the plot immediately. Otherwise, the plot can be
-        further modified or returned for later display.
+    Args:
+        X_before: Feature values from first data block.
+        X_after: Feature values from second data block.
+        y_before: Class labels for first data block.
+        y_after: Class labels for second data block.
+        cluster_labels_before: Cluster labels for first data block.
+        cluster_labels_after: Cluster labels for second data block.
+        show: If True, display the plot immediately.
+        save: Optional file path to save the generated plot.
 
-    Notes
-    -----
-    Creates a subplot for each class, showing clusters before and after drift.
+    Returns:
+        The generated Matplotlib Figure.
     """
     classes = sorted(set(y_before).union(set(y_after)))
     n_classes = len(classes)
@@ -304,26 +272,20 @@ def plot_centers_shift(
     show: bool = False,
     save=None,
 ) -> Figure:
-    """
-    Plot shifts of cluster centroids between two data blocks for 2D data.
+    """Plot shifts of cluster centroids between two data blocks for 2D data.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature values from first data block.
-    X_after : pd.DataFrame
-        Feature values from second data block.
-    y_before : Sequence[int or float]
-        Class labels for first data block.
-    y_after : Sequence[int or float]
-        Class labels for second data block.
-    cluster_labels_before : Sequence[int or float]
-        Cluster labels for first data block.
-    cluster_labels_after : Sequence[int or float]
-        Cluster labels for second data block.
-    show : bool, default=False
-        If True, display the plot immediately. Otherwise, the plot can be
-        further modified or returned for later display.
+    Args:
+        X_before: Feature values from first data block.
+        X_after: Feature values from second data block.
+        _y_before: Class labels for first data block.
+        _y_after: Class labels for second data block.
+        cluster_labels_old: Cluster labels for first data block.
+        cluster_labels_new: Cluster labels for second data block.
+        show: If True, display the plot immediately.
+        save: Optional file path to save the generated plot.
+
+    Returns:
+        The generated Matplotlib Figure.
     """
     unique_labels_old = set(cluster_labels_old)
     unique_labels_new = set(cluster_labels_new)
@@ -382,19 +344,15 @@ def plot_centers_shift(
 
 
 def plot_clustering_heatmap(stats_shifts, threshold, show=False, save=None):
-    """
-    Plot which per-cluster statistics changed by more than ``threshold``.
+    """Plot which per-cluster statistics changed by more than ``threshold``.
 
-    Parameters
-    ----------
-    stats_shifts : dict
-        ``{cluster: {feature: {statistic: change}}}``, e.g. ``ClusterBasedDriftDetector.stats_shifts``.
-    threshold : float
-        Absolute change above which a statistic counts as drift.
+    Args:
+        stats_shifts: ``{cluster: {feature: {statistic: change}}}``, e.g. ``ClusterBasedDriftDetector.stats_shifts``.
+        threshold: Absolute change above which a statistic counts as drift.
+        show: Unused; kept for a signature consistent with the other plots.
+        save: Optional file path to save the generated plot.
 
-    Returns
-    -------
-    Figure
+    Returns:
         One column per (cluster, feature) and one row per statistic: drifted cells in red,
         cells within the threshold in grey and unavailable statistics in dark grey.
     """
@@ -458,24 +416,17 @@ def plot_feature_shift_heatmap(
     cluster_names: dict | None = None,
     save=None,
 ) -> Figure:
-    """
-    Plot the signed change of one statistic for every feature (rows) and cluster (columns).
+    """Plot the signed change of one statistic for every feature (rows) and cluster (columns).
 
-    Parameters
-    ----------
-    stats_shifts : dict
-        ``{cluster: {feature: {statistic: change}}}``, e.g. ``ClusterBasedDriftDetector.stats_shifts``.
-        For the detector the changes are in standard deviations (σ) of the feature.
-    threshold : float
-        Absolute change above which a cell is outlined as drift.
-    statistic : str, default="mean"
-        Statistic to show (``"mean"``, ``"median"`` or ``"std"``).
-    cluster_names : dict, optional
-        Column labels per cluster ID; the ID itself by default.
+    Args:
+        stats_shifts: ``{cluster: {feature: {statistic: change}}}``, e.g. ``ClusterBasedDriftDetector.stats_shifts``.
+            For the detector the changes are in standard deviations (σ) of the feature.
+        threshold: Absolute change above which a cell is outlined as drift.
+        statistic: Statistic to show (``"mean"``, ``"median"`` or ``"std"``).
+        cluster_names: Column labels per cluster ID; the ID itself by default.
+        save: Optional file path to save the generated plot.
 
-    Returns
-    -------
-    Figure
+    Returns:
         Diverging heatmap centred at 0 (red: the feature increased, blue: it decreased), with
         the change written in every cell and cells beyond ``threshold`` outlined.
     """

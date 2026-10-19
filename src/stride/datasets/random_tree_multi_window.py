@@ -37,25 +37,20 @@ class RandomTreeMultiWindowDataset(BaseDataset):
         random_seed=42,
         **kwargs,
     ):
-        """
-        Generate synthetic data stream using protree's RandomTree generator.
+        """Generate synthetic data stream using protree's RandomTree generator.
 
-        Parameters
-        ----------
-        num_windows : int
-            Number of windows to generate
-        window_length : int
-            Number of samples per window
-        drift_positions : list or str
-            List of sample positions where drifts occur, or comma-separated string
-        drift_duration : int
-            Duration of drift transition in samples
-        n_informative : int
-            Number of informative features
-        n_redundant : int
-            Number of redundant features
-        random_seed : int
-            Random seed for reproducibility
+        Args:
+            num_windows: Number of windows to generate.
+            window_length: Number of samples per window.
+            drift_positions: List of sample positions where drifts occur, or comma-separated string.
+            drift_duration: Duration of drift transition in samples.
+            n_informative: Number of informative features.
+            n_redundant: Number of redundant features.
+            random_seed: Random seed for reproducibility.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Tuple of `(X, y)` data stream.
         """
 
         # Parse drift positions if string

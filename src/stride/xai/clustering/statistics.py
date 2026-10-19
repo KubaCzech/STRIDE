@@ -19,24 +19,16 @@ def compute_desc_stats_for_clusters(
 ) -> pd.DataFrame:
     """Compute descriptive statistics per cluster for both data blocks.
 
-    Parameters
-    ----------
-    X_old : np.ndarray
-        Feature matrix of the old data block (scaled, shape ``(n_old, d)``).
-    X_new : np.ndarray
-        Feature matrix of the new data block (scaled, shape ``(n_new, d)``).
-    cluster_labels_old : np.ndarray
-        Global cluster label per sample in the old block.
-    cluster_labels_new : np.ndarray
-        Global cluster label per sample in the new block.
-    columns : pd.Index
-        Feature names used as column labels in the returned DataFrame.
+    Args:
+        X_old: Feature matrix of the old data block (scaled, shape `(n_old, d)`).
+        X_new: Feature matrix of the new data block (scaled, shape `(n_new, d)`).
+        cluster_labels_old: Global cluster label per sample in the old block.
+        cluster_labels_new: Global cluster label per sample in the new block.
+        columns: Feature names used as column labels in the returned DataFrame.
 
-    Returns
-    -------
-    pd.DataFrame
-        3-level MultiIndex column DataFrame ``(block, feature, statistic)``
-        where *block* is ``"before"`` or ``"after"``.
+    Returns:
+        3-level MultiIndex column DataFrame `(block, feature, statistic)`
+        where *block* is `"before"` or `"after"`.
     """
 
     def _compute(X: np.ndarray, labels: np.ndarray) -> pd.DataFrame:
@@ -81,19 +73,14 @@ def compare_desc_stats_for_clusters(
 ) -> dict[int, dict[str, dict[str, float]]]:
     """Compute relative per-statistic shifts between data blocks for each cluster.
 
-    Parameters
-    ----------
-    stats_combined : pd.DataFrame
-        Output of :func:`compute_desc_stats_for_clusters`.
+    Args:
+        stats_combined: Output of `compute_desc_stats_for_clusters`.
 
-    Returns
-    -------
-    dict
-        Nested ``{cluster: {feature: {statistic: change}}}`` mapping, where *change*
-        is ``after - before``.  The detector compares standardised features, so the
-        change is expressed in standard deviations of the feature.  A relative change
-        would be unstable here: standardised means and medians are often close to 0.
-        ``NaN`` marks statistics unavailable in either block.
+    Returns:
+        Nested `{cluster: {feature: {statistic: change}}}` mapping, where *change*
+        is `after - before`. The detector compares standardised features, so the
+        change is expressed in standard deviations of the feature.
+        `NaN` marks statistics unavailable in either block.
     """
     details: dict = {}
 
@@ -132,19 +119,12 @@ def assess_statistics_shifts(
 ) -> dict[int, dict[str, dict[str, bool]]]:
     """Convert numeric stat-shift values to boolean drift flags.
 
-    Parameters
-    ----------
-    stats_shifts : dict
-        Output of :func:`compare_desc_stats_for_clusters`.
-    thr_desc_stats : float
-        Absolute-change threshold above which a statistic is flagged as drifted.
+    Args:
+        stats_shifts: Output of `compare_desc_stats_for_clusters`.
+        thr_desc_stats: Absolute-change threshold above which a statistic is flagged as drifted.
 
-    Returns
-    -------
-    dict
-        Same nested structure with ``float`` values replaced by ``bool``.  NaN
-        values (statistic unavailable in either block) are omitted, so they count
-        neither as drift nor as stability.
+    Returns:
+        Same nested structure with `float` values replaced by `bool`.
     """
     return {
         cl: {
@@ -162,26 +142,17 @@ def calculate_centroid_shifts(
 ) -> tuple[dict[int, np.ndarray | None], dict[int, np.ndarray | None], dict[int, dict | str]]:
     """Compute per-cluster centroid positions and Euclidean shift vectors.
 
-    Parameters
-    ----------
-    X_old : np.ndarray
-        Feature matrix of the old data block.
-    X_new : np.ndarray
-        Feature matrix of the new data block.
-    cluster_labels_old : np.ndarray
-        Global cluster label per sample in the old block.
-    cluster_labels_new : np.ndarray
-        Global cluster label per sample in the new block.
+    Args:
+        X_old: Feature matrix of the old data block.
+        X_new: Feature matrix of the new data block.
+        cluster_labels_old: Global cluster label per sample in the old block.
+        cluster_labels_new: Global cluster label per sample in the new block.
 
-    Returns
-    -------
-    centers_old : dict[int, np.ndarray | None]
-        Centroid per cluster ID for the old block; ``None`` for appeared clusters.
-    centers_new : dict[int, np.ndarray | None]
-        Centroid per cluster ID for the new block; ``None`` for disappeared clusters.
-    shifts : dict[int, dict | str]
-        Per-cluster shift info: ``{"distance_per_feature": ..., "euclidean_distance": ...}``
-        or the strings ``"appeared"`` / ``"disappeared"``.
+    Returns:
+        Tuple of `(centers_old, centers_new, shifts)` where:
+            - `centers_old`: Centroid per cluster ID for old block (`None` for appeared clusters).
+            - `centers_new`: Centroid per cluster ID for new block (`None` for disappeared clusters).
+            - `shifts`: Per-cluster shift info dictionary or string flag (`"appeared"` / `"disappeared"`).
     """
 
     def _centers(X: np.ndarray, labels: np.ndarray) -> dict[int, np.ndarray]:
@@ -218,31 +189,19 @@ def calculate_avg_distances(
 ) -> tuple[dict[int, float | None], dict[int, float | None], dict[int, float | None]]:
     """Compute the mean sample-to-centroid distance per cluster in both blocks.
 
-    Parameters
-    ----------
-    X_old : np.ndarray
-        Feature matrix of the old data block.
-    X_new : np.ndarray
-        Feature matrix of the new data block.
-    centers_old : dict[int, np.ndarray | None]
-        Old cluster centroids (``None`` for appeared clusters).
-    centers_new : dict[int, np.ndarray | None]
-        New cluster centroids (``None`` for disappeared clusters).
-    cluster_labels_old : np.ndarray
-        Global cluster label per sample in the old block.
-    cluster_labels_new : np.ndarray
-        Global cluster label per sample in the new block.
+    Args:
+        X_old: Feature matrix of the old data block.
+        X_new: Feature matrix of the new data block.
+        centers_old: Old cluster centroids (`None` for appeared clusters).
+        centers_new: New cluster centroids (`None` for disappeared clusters).
+        cluster_labels_old: Global cluster label per sample in the old block.
+        cluster_labels_new: Global cluster label per sample in the new block.
 
-    Returns
-    -------
-    avg_old : dict[int, float | None]
-        Mean distance per cluster in the old block (``None`` for appeared clusters).
-    avg_new : dict[int, float | None]
-        Mean distance per cluster in the new block (``None`` for disappeared clusters).
-    shift : dict[int, float | None]
-        Relative change ``(avg_new - avg_old) / avg_old`` per cluster, or ``None``
-        when the cluster is absent from either block.  For clusters with zero
-        spread in the old block the absolute change is returned instead.
+    Returns:
+        Tuple of `(avg_old, avg_new, shift)`:
+            - `avg_old`: Mean distance per cluster in old block (`None` for appeared clusters).
+            - `avg_new`: Mean distance per cluster in new block (`None` for disappeared clusters).
+            - `shift`: Relative change `(avg_new - avg_old) / avg_old` per cluster, or `None`.
     """
 
     def _mean_dist(X: np.ndarray, centers: dict, labels: np.ndarray) -> dict[int, float | None]:
@@ -282,14 +241,11 @@ def calculate_avg_distance_from_centroid(
 ) -> dict[int, float | None]:
     """Relative change in mean sample-to-centroid distance per cluster.
 
-    Shortcut for the third element of :func:`calculate_avg_distances`; see there
-    for parameters.
+    Shortcut for the third element of `calculate_avg_distances`.
 
-    Returns
-    -------
-    dict[int, float | None]
-        Relative shift ``(mean_new - mean_old) / mean_old`` per cluster, or
-        ``None`` when either centroid is absent.
+    Returns:
+        Relative shift `(mean_new - mean_old) / mean_old` per cluster, or
+        `None` when either centroid is absent.
     """
     return calculate_avg_distances(X_old, X_new, centers_old, centers_new, cluster_labels_old, cluster_labels_new)[2]
 
@@ -307,39 +263,30 @@ def calculate_shift_significance(
     The thresholds on centroid shift, descriptive statistics and dispersion are
     in absolute units, but the noise of these estimates shrinks with the cluster
     size: a 0.2-sigma change of the mean is noise for 10 samples and a clear
-    signal for 500.  This function provides the matching standard-error-scaled
+    signal for 500. This function provides the matching standard-error-scaled
     statistics so that a change can be required to be both large *and*
     statistically significant.
 
-    For a cluster with samples :math:`A` (old) and :math:`B` (new):
+    For a cluster with samples $A$ (old) and $B$ (new):
 
-    * **centroid** — :math:`\chi^2 = \sum_f \Delta_f^2 / (s_{A,f}^2/n_A + s_{B,f}^2/n_B)`
-      with :math:`d` degrees of freedom; its upper-tail p-value is returned;
+    * **centroid** — $\chi^2 = \sum_f \Delta_f^2 / (s_{A,f}^2/n_A + s_{B,f}^2/n_B)$
+      with $d$ degrees of freedom; its upper-tail p-value is returned;
     * **mean / median / std** — Welch-type z-scores using the standard errors
-      :math:`s/\sqrt{n}`, :math:`1.2533\,s/\sqrt{n}` and :math:`s/\sqrt{2(n-1)}`;
+      $s/\sqrt{n}$, $1.2533\,s/\sqrt{n}$ and $s/\sqrt{2(n-1)}$;
     * **dispersion** — Welch z-score of the mean sample-to-centroid distance.
 
-    Statistics are ``NaN`` when a cluster has fewer than two samples in a block.
+    Statistics are `NaN` when a cluster has fewer than two samples in a block.
 
-    Parameters
-    ----------
-    X_old : np.ndarray
-        Feature matrix of the old data block.
-    X_new : np.ndarray
-        Feature matrix of the new data block.
-    cluster_labels_old : np.ndarray
-        Global cluster label per sample in the old block.
-    cluster_labels_new : np.ndarray
-        Global cluster label per sample in the new block.
-    clusters : Iterable[int]
-        Cluster IDs present in both blocks.
-    columns : Sequence[str]
-        Feature names, used as keys of ``stats_z``.
+    Args:
+        X_old: Feature matrix of the old data block.
+        X_new: Feature matrix of the new data block.
+        cluster_labels_old: Global cluster label per sample in the old block.
+        cluster_labels_new: Global cluster label per sample in the new block.
+        clusters: Cluster IDs present in both blocks.
+        columns: Feature names, used as keys of `stats_z`.
 
-    Returns
-    -------
-    dict[int, dict]
-        ``{cluster: {"centroid_p": float, "stats_z": {feature: {stat: float}}, "dispersion_z": float}}``.
+    Returns:
+        Nested dictionary of `{cluster: {"centroid_p": float, "stats_z": {feature: {stat: float}}, "dispersion_z": float}}`.
     """
     from scipy.stats import chi2
 

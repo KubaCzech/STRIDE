@@ -5,34 +5,26 @@ from .base import FeatureImportanceMethod
 
 
 def calculate_feature_importance(model, X, y, method="permutation", feature_names=None, n_repeats=30, random_state=42):
-    """
-    Calculate feature importance using specified method.
+    """Calculate feature importance using specified method.
 
-    Parameters
-    ----------
-    model : estimator
-        Trained model
-    X : array-like
-        Feature matrix
-    y : array-like
-        Target variable
-    method : str, default="permutation"
-        Method to use: "permutation", "shap", or "lime"
-    feature_names : list, optional
-        Names of features
-    n_repeats : int, default=30
-        Number of repeats for permutation importance
-    random_state : int, default=42
-        Random state for reproducibility
+    Args:
+        model: Trained model estimator.
+        X: Feature matrix.
+        y: Target variable.
+        method: Method to use ("permutation", "shap", or "lime").
+        feature_names: Names of features.
+        n_repeats: Number of repeats for permutation importance.
+        random_state: Random state for reproducibility.
 
-    Returns
-    -------
-    dict
-        Dictionary with keys:
-        - 'importances_mean': mean importance scores
-        - 'importances_std': standard deviation of importance scores
-        - 'importances': full array of importance values (for boxplots)
-        - 'method': method used
+    Returns:
+        Dictionary containing:
+            - 'importances_mean': Mean importance scores array.
+            - 'importances_std': Standard deviation of importance scores array.
+            - 'importances': Full array of importance values (for boxplots).
+            - 'method': Method string used.
+
+    Raises:
+        ValueError: If `method` is unsupported.
     """
     if feature_names is None:
         if hasattr(X, "columns"):

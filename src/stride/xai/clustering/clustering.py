@@ -291,12 +291,10 @@ class ClusterBasedDriftDetector:
     def detect(self) -> tuple[bool, dict[int, dict]]:
         """Run drift detection across all classes.
 
-        Returns
-        -------
-        drift_flag : bool
-            Whether drift was detected.
-        details : dict[int, dict]
-            Per-class drift breakdown keyed by class label.
+        Returns:
+            Tuple of `(drift_flag, details)` where:
+                - `drift_flag`: Whether drift was detected.
+                - `details`: Per-class drift breakdown keyed by class label.
         """
         self._run()
 

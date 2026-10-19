@@ -78,25 +78,16 @@ def _render_simple_input(setting, key, on_change):
 def render_settings_from_schema(
     schema: list[dict], on_change=None, initial_values=None, force_update=False, key_prefix=""
 ) -> dict:
-    """
-    Render Streamlit widgets based on a settings schema.
+    """Render Streamlit widgets based on a settings schema.
 
-    Parameters
-    ----------
-    schema : list[dict]
-        A list of dictionaries describing the settings.
-    on_change : callable, optional
-        Callback function to call when any parameter changes.
-    initial_values : dict, optional
-        Dictionary of initial values to use instead of defaults.
-    force_update : bool, optional
-        If True, force update widget values even if they already exist in session state.
-    key_prefix : str, optional
-        Prefix to add to widget keys to avoid collisions.
+    Args:
+        schema: A list of dictionaries describing the settings.
+        on_change: Callback function to call when any parameter changes.
+        initial_values: Dictionary of initial values to use instead of defaults.
+        force_update: If True, force update widget values even if they already exist in session state.
+        key_prefix: Prefix to add to widget keys to avoid collisions.
 
-    Returns
-    -------
-    dict
+    Returns:
         A dictionary of selected parameter values.
     """
     params = {}
