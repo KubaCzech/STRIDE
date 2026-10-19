@@ -3,19 +3,16 @@ import matplotlib.pyplot as plt
 
 
 def visualize_drift_importance(analysis_result, feature_names, plot_type="bar", include_target=True):
-    """
-    Visualize the results of drift analysis.
+    """Visualize the results of drift analysis.
 
-    Parameters
-    ----------
-    analysis_result : dict
-        Result dictionary from compute_drift_importance
-    feature_names : list
-        Names of features
-    plot_type : str, default='bar'
-        Type of plot to show: 'bar' or 'box'.
-    include_target : bool, default=True
-        Whether the target was included in analysis (for title).
+    Args:
+        analysis_result: Result dictionary from `compute_drift_importance`.
+        feature_names: Names of features.
+        plot_type: Type of plot to show ("bar" or "box").
+        include_target: Whether the target was included in analysis (for title).
+
+    Returns:
+        The generated Matplotlib Figure.
     """
     fi_result = analysis_result["importance_result"]
     importance_mean = analysis_result["importance_mean"]
@@ -81,17 +78,15 @@ def visualize_drift_importance(analysis_result, feature_names, plot_type="bar", 
 
 
 def visualize_predictive_importance_shift(analysis_result, feature_names, plot_type="bar"):
-    """
-    Visualize the results of predictive importance shift analysis.
+    """Visualize the results of predictive importance shift analysis.
 
-    Parameters
-    ----------
-    analysis_result : dict
-        Result dictionary from compute_predictive_importance_shift
-    feature_names : list
-        Names of features
-    plot_type : str, default='bar'
-        Type of plot to show: 'bar' or 'box'.
+    Args:
+        analysis_result: Result dictionary from compute_predictive_importance_shift.
+        feature_names: Names of features.
+        plot_type: Type of plot to show: 'bar' or 'box'. Defaults to 'bar'.
+
+    Returns:
+        The matplotlib Figure object containing the shift visualization.
     """
     fi_before = analysis_result["fi_before"]
     fi_after = analysis_result["fi_after"]

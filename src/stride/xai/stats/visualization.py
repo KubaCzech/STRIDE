@@ -32,8 +32,7 @@ class PlotOptions(Enum):
 
 
 def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = None) -> Callable:
-    """Decorator that wraps a plotting function into a grid of subplots
-    over features and class labels.
+    """Decorator that wraps a plotting function into a grid of subplots over features and class labels.
 
     The decorated function is called once per subplot and must accept
     the following keyword arguments:
@@ -44,20 +43,14 @@ def plot(title: str, sharey: bool = True, palette: Optional[Sequence[str]] = Non
     - cl : list
     - colors : sequence of str
 
-    Parameters
-    ----------
-    title : str
-        Title of the entire figure.
-    sharey : bool, default=True
-        Whether all subplots share the Y axis.
-    palette : sequence of str, optional
-        Color palette used for plots. If None, Matplotlib default colors are used.
+    Args:
+        title: Title of the entire figure.
+        sharey: Whether all subplots share the Y axis. Defaults to True.
+        palette: Color palette used for plots. If None, Matplotlib default colors are used.
 
-    Returns
-    -------
-    Callable
+    Returns:
         A decorator that converts a single-axes plotting function
-        into a grid-based plot returning a :class:`matplotlib.figure.Figure`.
+        into a grid-based plot returning a matplotlib Figure.
     """
 
     def decorator(plot_func):
@@ -138,22 +131,16 @@ def plot_boxplot(
 ) -> None:
     """Draw a boxplot comparing distributions of two data blocks.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-        Feature data from first data block.
-    y_before : pd.Series or np.ndarray
-        Class labels from first data block.
-    X_after : pd.DataFrame
-        Feature data from second data block.
-    y_after : pd.Series or np.ndarray
-        Class labels from second data block.
-    show_ : PlotOptions, default=PlotOptions.Median
-        Option to show Mean, Median or Both in the boxplot.
+    Args:
+        X_before: Feature data from first data block.
+        y_before: Class labels from first data block.
+        X_after: Feature data from second data block.
+        y_after: Class labels from second data block.
+        show_: Option to show Mean, Median or Both in the boxplot. Defaults to PlotOptions.Median.
+        save: Optional file path to save the generated figure.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The matplotlib Figure object with subplots across features and classes.
     """
     median_color, mean_color = None, None
     legend_elements = []
@@ -192,16 +179,16 @@ def plot_histogram(
 ) -> None:
     """Draw overlapping histograms for distributions of two data blocks.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-    y_before : np.ndarray or pd.Series
-    X_after : pd.DataFrame
-    y_after : np.ndarray or pd.Series
+    Args:
+        X_before: Feature data from first data block.
+        y_before: Class labels from first data block.
+        X_after: Feature data from second data block.
+        y_after: Class labels from second data block.
+        bins: Number of histogram bins. Defaults to 30.
+        save: Optional file path to save the generated figure.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The matplotlib Figure object with subplots across features and classes.
     """
     all_vals = np.concatenate([old_vals, new_vals])
     bin_edges = np.histogram_bin_edges(all_vals, bins=bins)
@@ -225,17 +212,15 @@ def plot_histogram(
 def plot_violin(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, show_: PlotOptions, **_) -> None:
     """Draw a violin plot comparing distributions of two data blocks.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-    y_before : np.ndarray or pd.Series
-    X_after : pd.DataFrame
-    y_after : np.ndarray or pd.Series
-    show_ : PlotOptions, default=PlotOptions.Median
+    Args:
+        X_before: Feature data from first data block.
+        y_before: Class labels from first data block.
+        X_after: Feature data from second data block.
+        y_after: Class labels from second data block.
+        show_: Option to show Mean, Median or Both. Defaults to PlotOptions.Median.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The matplotlib Figure object with subplots across features and classes.
     """
     data = [old_vals, new_vals]
     if show_ == PlotOptions.Median:
@@ -257,16 +242,14 @@ def plot_qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequ
     second block (y). Points on the diagonal mean equal distributions; a parallel offset
     is a location shift and a different slope a change of spread.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-    y_before : np.ndarray or pd.Series
-    X_after : pd.DataFrame
-    y_after : np.ndarray or pd.Series
+    Args:
+        X_before: Feature data from first data block.
+        y_before: Class labels from first data block.
+        X_after: Feature data from second data block.
+        y_after: Class labels from second data block.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The matplotlib Figure object with subplots across features and classes.
     """
     levels = np.linspace(0.01, 0.99, 99)
     q_old = np.quantile(old_vals, levels)
@@ -285,16 +268,14 @@ def plot_qq(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequ
 def plot_kde(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], **_) -> None:
     """Draw a Kernel Density Estimation plot comparing distributions of two data blocks.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-    y_before : np.ndarray or pd.Series
-    X_after : pd.DataFrame
-    y_after : np.ndarray or pd.Series
+    Args:
+        X_before: Feature data from first data block.
+        y_before: Class labels from first data block.
+        X_after: Feature data from second data block.
+        y_after: Class labels from second data block.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The matplotlib Figure object with subplots across features and classes.
     """
     x_min = min(min(old_vals), min(new_vals))
     x_max = max(max(old_vals), max(new_vals))
@@ -314,16 +295,14 @@ def plot_kde(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Seq
 def plot_ecdf(ax: plt.Axes, old_vals: pd.Series, new_vals: pd.Series, colors: Sequence[str], **_) -> None:
     """Draw an Empirical CDF plot comparing distributions of two data blocks.
 
-    Parameters
-    ----------
-    X_before : pd.DataFrame
-    y_before : np.ndarray or pd.Series
-    X_after : pd.DataFrame
-    y_after : np.ndarray or pd.Series
+    Args:
+        X_before: Feature data from first data block.
+        y_before: Class labels from first data block.
+        X_after: Feature data from second data block.
+        y_after: Class labels from second data block.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
+    Returns:
+        The matplotlib Figure object with subplots across features and classes.
     """
 
     def ecdf(x):

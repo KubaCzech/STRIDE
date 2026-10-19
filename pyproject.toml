@@ -137,7 +137,7 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "D417"]
+select = ["E", "F", "W", "D405", "D406", "D407", "D411", "D414", "D416", "D417"]
 ignore = [
     "E501",  # line length handled flexibly / up to 127 chars
     "E402",  # module level import not at top of file
@@ -152,3 +152,4 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D417"]
 "dashboard/*" = ["D417"]
+"src/stride/xai/stats/visualization.py" = ["D417"]  # Wrapped by @plot decorator: docstrings document wrapper (X_before, etc.) not inner helper parameters (ax, old_vals, etc.)

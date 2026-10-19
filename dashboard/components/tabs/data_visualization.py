@@ -131,28 +131,19 @@ def _calculate_statistics_styled(X_before, y_before, X_after, y_after, feature_n
 def render_data_visualization_tab(
     X, y, X_before, y_before, X_after, y_after, feature_names, window_before_start, window_after_start, window_length
 ):
-    """
-    Renders the Data Stream Visualization tab.
+    """Renders the Data Stream Visualization tab.
 
-    Parameters
-    ----------
-    X : array-like
-        Feature matrix (full)
-    y : array-like
-        Target variable (full)
-    X_before : array-like
-        Feature matrix for 'before' window
-    y_before : array-like
-        Target variable for 'before' window
-    X_after : array-like
-        Feature matrix for 'after' window
-    y_after : array-like
-        Target variable for 'after' window
-    feature_names : list
-        List of feature names
-    window_before_start : int
-    window_after_start : int
-    window_length : int
+    Args:
+        X: Feature matrix (full).
+        y: Target variable (full).
+        X_before: Feature matrix for 'before' window.
+        y_before: Target variable for 'before' window.
+        X_after: Feature matrix for 'after' window.
+        y_after: Target variable for 'after' window.
+        feature_names: List of feature names.
+        window_before_start: Start index of the before window.
+        window_after_start: Start index of the after window.
+        window_length: Length of the analysis windows.
     """
     st.header("Data Comparison")
     st.markdown(

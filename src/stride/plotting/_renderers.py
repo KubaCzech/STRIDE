@@ -80,16 +80,11 @@ def _plot_distribution_comparison(
 ) -> None:
     """Plot distributions for comparison on a single axis.
 
-    Parameters
-    ----------
-    ax : plt.Axes
-        Matplotlib axis.
-    viz_type : str
-        ``'violin'``, ``'box'``, or ``'scatter'``.
-    data_dict : list[dict]
-        Each entry has keys ``'label'``, ``'values'``, ``'color'``, ``'alpha'``, ``'position'``.
-    feature_name : str
-        Feature name used as the x-axis label.
+    Args:
+        ax: Matplotlib axis.
+        viz_type: Visualization type ("violin", "box", or "scatter").
+        data_dict: List of entries containing label, values, color, alpha, and position.
+        feature_name: Feature name used as the x-axis label.
     """
     positions = [d["position"] for d in data_dict]
     values = [d["values"] for d in data_dict]

@@ -46,23 +46,19 @@ class DriftBlender:
         period: int = 500,
         random_state: int | None = 42,
     ) -> None:
-        """
-        Initialize DriftBlender.
+        """Initialize DriftBlender.
 
-        Parameters
-        ----------
-        schedule : str, default="gradual"
-            Transition schedule: "abrupt", "gradual", "incremental", or "recurring".
-        n_samples : int | None, default=None
-            Total stream length. If None, defaults to len(X_a) + len(X_b).
-        t_0 : int | None, default=None
-            Inflection point (midpoint) of drift. If None, defaults to n_samples // 2.
-        w : int, default=200
-            Transition window width in samples.
-        period : int, default=500
-            Period length T for recurring schedule.
-        random_state : int | None, default=42
-            Random seed for deterministic stream generation.
+        Args:
+            schedule: Transition schedule ("abrupt", "gradual", "incremental",
+                or "recurring").
+            n_samples: Total stream length. If None, defaults to `len(X_a) + len(X_b)`.
+            t_0: Inflection point (midpoint) of drift. If None, defaults to `n_samples // 2`.
+            w: Transition window width in samples.
+            period: Period length T for recurring schedule.
+            random_state: Random seed for deterministic stream generation.
+
+        Raises:
+            ValueError: If `schedule` is not one of {"abrupt", "gradual", "incremental", "recurring"}.
         """
         valid_schedules = [s.value for s in DriftSchedule]
         if schedule not in valid_schedules:
@@ -82,25 +78,20 @@ class DriftBlender:
         X_b: pd.DataFrame,
         y_b: pd.Series,
     ) -> DriftBlendResult:
-        """
-        Blend Concept A and Concept B according to the configured schedule.
+        """Blend Concept A and Concept B according to the configured schedule.
 
-        Parameters
-        ----------
-        X_a : pd.DataFrame
-            Aligned feature matrix for Concept A.
-        y_a : pd.Series
-            Target series for Concept A.
-        X_b : pd.DataFrame
-            Aligned feature matrix for Concept B.
-        y_b : pd.Series
-            Target series for Concept B.
+        Args:
+            X_a: Aligned feature matrix for Concept A.
+            y_a: Target series for Concept A.
+            X_b: Aligned feature matrix for Concept B.
+            y_b: Target series for Concept B.
 
-        Returns
-        -------
-        DriftBlendResult
+        Returns:
             Synthesized stream DataFrame, target Series, concept indicators,
             and ground-truth change-point metadata.
+
+        Raises:
+            ValueError: If input datasets are empty or column schemas do not match.
         """
         if len(X_a) == 0 or len(X_b) == 0:
             raise ValueError("Input concept datasets must not be empty.")

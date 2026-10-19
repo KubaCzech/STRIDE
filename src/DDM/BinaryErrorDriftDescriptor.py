@@ -322,19 +322,15 @@ class BinaryErrorDriftDescriptor:
         self.current_index += 1
 
     def post_process_drift_ends(self, drift_descriptions):
-        """
-        Post-process detected drifts to find actual end points (peak or recovery).
+        """Post-process detected drifts to find actual end points (peak or recovery).
+
         This must be called after all data has been processed.
 
-        Parameters
-        ----------
-        drift_descriptions : list of DriftDescription
-            List of detected drifts to post-process
+        Args:
+            drift_descriptions: List of detected drifts to post-process.
 
-        Returns
-        -------
-        list of DriftDescription
-            Updated drift descriptions with corrected end points
+        Returns:
+            Updated drift descriptions with corrected end points.
         """
         if self.lookforward_method == "none":
             return drift_descriptions
