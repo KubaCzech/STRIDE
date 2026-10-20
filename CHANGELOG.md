@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prototype Analysis failed on NumPy 2.4 (`np.in1d` removed).
 - `stride.xai.boundary` did not export `visualize_decision_boundary`.
 - Documentation: code examples that did not run with the current API.
+- `notebooks/xai_api_usage.ipynb`: was partly unexecuted and contained a debugging cell, raw NumPy reprs and nested dictionaries in the outputs, and an outdated description of cluster matching; it now runs end to end with tables instead of raw dictionaries and uses only the four dashboard tests; added the class-wise cluster plot of both blocks.
 - `StatisticalTestsDriftDetector`: Wasserstein and Anderson-Darling raised errors and KS/JS/KL returned meaningless values for a class missing from one window (such classes are now skipped and excluded from the share of flagged pairs); Anderson-Darling raised an error for a feature with a single value in both windows.
 - `plot_qq` drew both windows against a normal distribution with the y-axis clipped to [0, 1]; it is now a two-sample Q-Q plot. `plot_kde` failed on a constant feature; distribution plots failed for text class labels.
 - Documentation: the dashboard guide described the six-tab layout used before the redesign.
