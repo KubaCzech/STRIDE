@@ -17,8 +17,8 @@ class HyperplaneDriftDataset(BaseDataset):
         params = super().get_params()
         params.update(
             {
-                "n_windows_before": 1,
-                "n_windows_after": 1,
+                "n_windows_before": 10,
+                "n_windows_after": 10,
                 "n_features": 2,
                 "n_drift_features": 2,
                 "noise_percentage": 0.05,

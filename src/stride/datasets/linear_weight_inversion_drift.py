@@ -15,7 +15,9 @@ class LinearWeightInversionDriftDataset(BaseDataset):
 
     def get_params(self) -> dict:
         params = super().get_params()
-        params.update({"n_features": 11, "n_drift_features": 5, "drift_width": 1})
+        params.update(
+            {"n_windows_before": 10, "n_windows_after": 10, "n_features": 11, "n_drift_features": 5, "drift_width": 1}
+        )
         return params
 
     def generate(
