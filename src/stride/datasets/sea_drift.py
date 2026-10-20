@@ -15,8 +15,8 @@ class SeaDriftDataset(BaseDataset):
 
     def get_params(self) -> dict:
         return {
-            "n_windows_before": 1,
-            "n_windows_after": 1,
+            "n_windows_before": 10,
+            "n_windows_after": 10,
             "random_seed": 42,
             "n_features": 3,
             "drift_width": 1,

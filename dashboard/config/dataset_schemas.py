@@ -82,7 +82,7 @@ DATASET_SETTINGS_SCHEMAS: dict[str, list[dict]] = {
             "name": "n_windows_before",
             "type": "int",
             "label": "Number of Windows Before Drift",
-            "default": 1,
+            "default": 10,
             "min_value": 0,
             "step": 1,
             "help": "Number of windows generated before the concept drift occurs.",
@@ -91,7 +91,7 @@ DATASET_SETTINGS_SCHEMAS: dict[str, list[dict]] = {
             "name": "n_windows_after",
             "type": "int",
             "label": "Number of Windows After Drift",
-            "default": 1,
+            "default": 10,
             "min_value": 0,
             "step": 1,
             "help": "Number of windows generated after the concept drift occurs.",
@@ -289,7 +289,7 @@ DATASET_SETTINGS_SCHEMAS: dict[str, list[dict]] = {
             "name": "n_windows_before",
             "type": "int",
             "label": "Number of Windows Before Drift",
-            "default": 1,
+            "default": 10,
             "min_value": 0,
             "step": 1,
             "help": "Number of windows generated before the concept drift occurs.",
@@ -298,7 +298,7 @@ DATASET_SETTINGS_SCHEMAS: dict[str, list[dict]] = {
             "name": "n_windows_after",
             "type": "int",
             "label": "Number of Windows After Drift",
-            "default": 1,
+            "default": 10,
             "min_value": 0,
             "step": 1,
             "help": "Number of windows generated after the concept drift occurs.",
@@ -324,22 +324,22 @@ DATASET_SETTINGS_SCHEMAS: dict[str, list[dict]] = {
     ],
     "linear_weight_inversion_drift": [
         {
-            "name": "n_samples_before",
+            "name": "n_windows_before",
             "type": "int",
-            "label": "Number of Samples Before Drift",
-            "default": 1000,
-            "min_value": 100,
-            "step": 100,
-            "help": "Number of samples generated before the concept drift occurs.",
+            "label": "Number of Windows Before Drift",
+            "default": 10,
+            "min_value": 0,
+            "step": 1,
+            "help": "Number of windows generated before the concept drift occurs.",
         },
         {
-            "name": "n_samples_after",
+            "name": "n_windows_after",
             "type": "int",
-            "label": "Number of Samples After Drift",
-            "default": 1000,
-            "min_value": 100,
-            "step": 100,
-            "help": "Number of samples generated after the concept drift occurs.",
+            "label": "Number of Windows After Drift",
+            "default": 10,
+            "min_value": 0,
+            "step": 1,
+            "help": "Number of windows generated after the concept drift occurs.",
         },
         {
             "name": "n_features",
@@ -461,7 +461,7 @@ def get_dataset_schema(dataset_name: str, window_len: int | None = None) -> list
     """Return UI settings schema for a specific dataset, adapting window lengths if requested."""
     schema = [item.copy() for item in DATASET_SETTINGS_SCHEMAS.get(dataset_name, [])]
 
-    if window_len and dataset_name in ["custom_normal", "custom_3d_drift", "sea_drift"]:
+    if window_len and dataset_name in ["custom_normal", "custom_3d_drift"]:
         adapted_schema = []
         for item in schema:
             new_item = item.copy()
