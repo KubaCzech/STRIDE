@@ -119,10 +119,6 @@ def _calculate_statistics_styled(X_before, y_before, X_after, y_after, feature_n
 
         stats_pivot = stats_pivot[cols_to_show]
 
-        # Calculate percent change if both exist
-        if "Before" in stats_pivot.columns and "After" in stats_pivot.columns:
-            stats_pivot["Change (%)"] = ((stats_pivot["After"] - stats_pivot["Before"]) / stats_pivot["Before"]) * 100
-
         return stats_pivot.style.format("{:.4f}")
     else:
         return stats_combined

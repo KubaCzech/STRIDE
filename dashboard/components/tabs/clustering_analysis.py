@@ -2,7 +2,6 @@ import traceback
 import numpy as np
 import pandas as pd
 import streamlit as st
-from typing import Sequence
 import matplotlib.pyplot as plt
 
 from stride.xai.clustering.clustering import ClusterBasedDriftDetector
@@ -12,9 +11,6 @@ from stride.xai.clustering.visualization import (
     plot_centers_shift,
     plot_feature_shift_heatmap,
 )
-
-# Criteria in the order used by ClusterBasedDriftDetector for `weights` and `effective_weights`.
-CRITERIA = ["Clusters appeared/disappeared", "Descriptive statistics", "Centroid shift", "Spread"]
 
 DRIFT_STYLE = "background-color: rgba(231, 76, 60, 0.25)"
 CHANGE_STYLES = {
@@ -28,6 +24,9 @@ CHANGE_STYLES = {
 SHARE_CHANGE_MIN = 0.05
 # Number of features listed per cluster in the findings table.
 TOP_FEATURES = 3
+# The permutation check (whether the changes exceed sampling noise) is hidden for now;
+# set to True to show its settings, the verdict below the table and its histogram again.
+SHOW_PERMUTATION_CHECK = False
 
 
 def _display_intro():
@@ -68,25 +67,36 @@ def _render_detector_config() -> dict:
                 value=max(10, int(k_init)),
                 help="Upper limit of the number of clusters X-Means may find in every class.",
             )
+        n_permutations, permutation_alpha = 0, 0.05
         with col2:
-            n_permutations = st.number_input(
-                "Permutations",
-                min_value=0,
-                max_value=500,
-                value=50,
-                step=10,
+            if SHOW_PERMUTATION_CHECK:
+                n_permutations = st.number_input(
+                    "Permutations",
+                    min_value=0,
+                    max_value=500,
+                    value=50,
+                    step=10,
+                    help=(
+                        "Random re-splits of the pooled windows, used to check whether the changes found are larger "
+                        "than sampling noise. More permutations give a finer p-value (the smallest attainable is "
+                        "1 / (permutations + 1)) but take proportionally longer. 0 disables the check."
+                    ),
+                )
+                permutation_alpha = st.select_slider(
+                    "Significance level",
+                    options=[0.01, 0.05, 0.1],
+                    value=0.05,
+                    help="The changes count as larger than sampling noise when the permutation p-value is below this level.",
+                    disabled=n_permutations == 0,
+                )
+            use_alpha = st.checkbox(
+                "Require significant per-cluster changes",
+                value=False,
                 help=(
-                    "Random re-splits of the pooled windows, used to check whether the changes found are larger "
-                    "than sampling noise. More permutations give a finer p-value (the smallest attainable is "
-                    "1 / (permutations + 1)) but take proportionally longer. 0 disables the check."
+                    "Additionally require a two-sample test (α = 0.01) that accounts for the cluster size before a "
+                    "centroid, statistic or spread change counts. Removes spurious flags in small clusters at the "
+                    "cost of some sensitivity."
                 ),
-            )
-            permutation_alpha = st.select_slider(
-                "Significance level",
-                options=[0.01, 0.05, 0.1],
-                value=0.05,
-                help="The changes count as larger than sampling noise when the permutation p-value is below this level.",
-                disabled=n_permutations == 0,
             )
         with col3:
             matching = st.radio(
@@ -100,15 +110,6 @@ def _render_detector_config() -> dict:
                     "Reference: the After window is assigned to the clusters of the Before window. "
                     "Independent: both windows are clustered separately and centroids are paired "
                     "with the Hungarian algorithm."
-                ),
-            )
-            use_alpha = st.checkbox(
-                "Require significant per-cluster changes",
-                value=False,
-                help=(
-                    "Additionally require a two-sample test (α = 0.01) that accounts for the cluster size before a "
-                    "centroid, statistic or spread change counts. Removes spurious flags in small clusters at the "
-                    "cost of some sensitivity."
                 ),
             )
     return {
@@ -155,90 +156,6 @@ def _class_name(label) -> str:
     return str(label)
 
 
-def _criteria_counts(class_details: dict) -> tuple[np.ndarray, np.ndarray]:
-    """Triggered and evaluated checks of one class, in the order of ``CRITERIA``."""
-    stats = [
-        flag
-        for cluster in class_details["desc_stats_changes"].values()
-        for feature in cluster.values()
-        for flag in feature.values()
-    ]
-    groups = [
-        [class_details["nr_of_clusters"]],
-        stats,
-        list(class_details["centroid_shift"].values()),
-        list(class_details["avg_distance_to_center"].values()),
-    ]
-    triggered = np.array([sum(bool(f) for f in g) for g in groups])
-    evaluated = np.array([len(g) for g in groups])
-    return triggered, evaluated
-
-
-def _config_details_dataframe(details: dict, weights: Sequence[float]) -> pd.DataFrame:
-    """Summarises the checks of every criterion per class and their contribution to the strength.
-
-    Args:
-        details: Detailed drift information per class (``detector.drift_details``).
-        weights: Effective criterion weights (``detector.effective_weights``).
-
-    Returns:
-        One row per criterion: weight, triggered/evaluated checks per class and the
-        contribution to the drift strength. The contributions sum to the drift strength.
-    """
-    counts = {cl: _criteria_counts(d) for cl, d in details.items()}
-    triggered = np.sum([t for t, _ in counts.values()], axis=0)
-    evaluated = np.sum([e for _, e in counts.values()], axis=0)
-
-    df = pd.DataFrame({"Criterion": CRITERIA, "Weight": np.asarray(weights, dtype=float)})
-    for cl, (t, e) in counts.items():
-        df[f"Class {_class_name(cl)}"] = [f"{ti}/{ei}" if ei else "–" for ti, ei in zip(t, e)]
-    df["Contribution"] = triggered / np.maximum(evaluated, 1) * np.asarray(weights, dtype=float)
-    return df
-
-
-def _display_drift_details(details: dict, weights: Sequence[float]):
-    """Displays the triggered checks per class and criterion.
-
-    Args:
-        details: Detailed drift information per class.
-        weights: Effective weights of the criteria.
-    """
-    st.markdown(
-        "Each criterion counts the checks that exceeded their threshold; the weighted share of triggered checks "
-        "is the drift strength that the permutation check compares with random re-splits of the windows."
-    )
-    details_df = _config_details_dataframe(details, weights)
-
-    st.dataframe(
-        details_df,
-        column_config={
-            "Criterion": st.column_config.TextColumn("Criterion", help="Drift criterion"),
-            "Weight": st.column_config.NumberColumn(
-                "Weight",
-                help="Weight of the criterion, renormalised over criteria with at least one evaluated check.",
-                format="%.3f",
-            ),
-            **{
-                col: st.column_config.TextColumn(col, help="Triggered / evaluated checks")
-                for col in details_df.columns
-                if col.startswith("Class ")
-            },
-            "Contribution": st.column_config.NumberColumn(
-                "Contribution",
-                help="Weight × share of triggered checks; the contributions sum to the drift strength.",
-                format="%.4f",
-            ),
-        },
-        width="stretch",
-        hide_index=True,
-    )
-    st.caption(
-        "Appeared and disappeared clusters count only towards the first criterion; centroid, statistics and "
-        "spread are compared for clusters present in both windows. “–” means the criterion had nothing to evaluate."
-    )
-
-
-# TABULAR DISPLAY FUNCTIONS
 def _format_shift(feature, value: float, statistic: str | None = None) -> str:
     """``"X1 +0.92σ"``, optionally with the statistic: ``"X1 std −0.31σ"``."""
     name = f"{feature} {statistic}" if statistic and statistic != "mean" else f"{feature}"
@@ -412,7 +329,8 @@ def _display_findings(detector: ClusterBasedDriftDetector):
         width="stretch",
         hide_index=True,
     )
-    _display_noise_check(detector)
+    if SHOW_PERMUTATION_CHECK:
+        _display_noise_check(detector)
 
 
 def _cluster_overview_dataframe(detector: ClusterBasedDriftDetector) -> pd.DataFrame:
@@ -672,9 +590,8 @@ def _display_details(
                 X_before, X_after, y_before, y_after, detector.cluster_labels_old, detector.cluster_labels_new
             )
         )
-    with st.expander("Criteria and permutation check"):
-        _display_drift_details(detector.drift_details, detector.effective_weights)
-        if detector.null_strengths is not None:
+    if SHOW_PERMUTATION_CHECK and detector.null_strengths is not None:
+        with st.expander("Permutation check"):
             _show(_plot_permutation_test(detector))
 
 

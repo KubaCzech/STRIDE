@@ -77,22 +77,21 @@ flowchart TD
 
 ### Tab 4: Data Comparison
 * **Window Comparison**: Feature-versus-target plots (violin, box or scatter) of the Before and After windows, sample counts and class balance of both windows.
-* **Descriptive Statistics**: Class-wise mean, median and standard deviation of every feature in both windows and their relative change.
+* **Descriptive Statistics**: Class-wise mean, median and standard deviation of every feature in both windows.
 
 ### Tab 5: Statistical Tests
 * **Two-Sample Tests and Distances**: Kolmogorov-Smirnov and Anderson-Darling tests and Wasserstein and Jensen-Shannon distances for every feature within every class, with configurable significance level $\alpha$ and thresholds.
-* **Decision**: Share of flagged feature-class pairs per test, the number of pairs a test flags by chance without drift ($\alpha$ times the number of pairs), and the overall decision.
+* **Results by Test**: Criterion and share of flagged feature-class pairs per test. Detecting drift is left to the Drift Detection tab.
 * **Feature Table**: p-values, KS statistic and distances per feature and class, with flagged pairs highlighted.
-* **Distribution Plots**: ECDF, histogram, KDE, boxplot and two-sample Q-Q plot of a selected feature in both windows.
 
 ### Tab 6: Clustering
 Explains *what* changed between the windows; detecting *whether* and *when* drift occurs is left to the Drift Detection tab.
 
-* **What Changed**: One row per cluster, grouped by class: whether it disappeared, appeared, moved, changed its statistics, spread or share of the class; its size and share of the class in both windows; and the key features (the largest changes in standard deviations for tracked clusters, the position relative to the class for appeared and disappeared ones). Below the table, a permutation check states whether changes this extensive also occur in random re-splits of the windows, i.e. whether they may be sampling noise.
+* **What Changed**: One row per cluster, grouped by class: whether it disappeared, appeared, moved, changed its statistics, spread or share of the class; its size and share of the class in both windows; and the key features (the largest changes in standard deviations for tracked clusters, the position relative to the class for appeared and disappeared ones).
 * **Clusters Before and After**: Clusters of every class in both windows (2D, or the first two principal components).
 * **Centroid Shifts and Feature Changes**: Centroid displacement paths next to a feature × cluster heatmap of the change of the mean, median or standard deviation.
-* **Details**: Cluster sizes and spread, the statistics of every feature per cluster, centroids, all clusters of both windows together, and the criteria with the permutation-test distribution.
-* **Configuration**: Range of the number of clusters, number of permutations, significance level, reference or independent (legacy) cluster matching, and optional size-aware significance tests per cluster.
+* **Details**: Cluster sizes and spread, the statistics of every feature per cluster, centroids, and all clusters of both windows together.
+* **Configuration**: Range of the number of clusters, reference or independent (legacy) cluster matching, and optional size-aware significance tests per cluster.
 
 ### Tab 7: Feature Importance
 * **Comparative Attribution Charts**: Bar plots contrasting feature attributions under Covariate Shift ($P(X)$) versus Real Concept Drift ($P(Y \mid X)$).

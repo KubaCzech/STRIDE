@@ -13,14 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Per-cluster statistic changes are absolute differences in standard deviations of the standardised feature instead of relative changes, which were unstable for values near zero.
     - Appeared and disappeared clusters count only towards the cluster-count criterion; missing statistics are no longer counted as drift; criteria without evaluations are excluded from the weighted score (`effective_weights`).
 - **Cluster IDs**: clusters of the reference window are numbered `0 … n-1` and clusters found only in the detection window from `n` on, instead of interleaving new clusters with the reference clusters of the following classes.
+- Dashboard Data Comparison tab: removed the relative change column of the descriptive statistics, which exploded for values near zero.
 - **Datasets**: multi-window datasets use string feature names (`x0, x1, ...`) instead of integer column names.
 
 ### Added
 - `ClusterBasedDriftDetector`: `p_value`, `null_strengths`, `alpha` (optional size-aware significance tests), `xmeans_repeat`, `novelty_quantile` and `n_jobs` (parallel permutations).
 - `stride.xai.clustering`: `assign_to_reference`, `calculate_shift_significance`, `bic_score`; `run_xmeans(repeat=...)` keeps the run with the best BIC.
-- Dashboard clustering tab, focused on explaining the change instead of deciding whether drift occurred: a table of changes per cluster (disappeared, appeared, moved, statistics changed, wider/narrower, grew/shrank; sizes and share of the class; key features in standard deviations), a permutation check of whether the changes exceed sampling noise, the class-wise cluster plots, centroid shifts and a feature × cluster heatmap shown together, and detailed tables in expanders. Detector settings (cluster range, permutations, significance level, matching mode, per-cluster significance tests); results cached per pair of windows.
+- Dashboard clustering tab, focused on explaining the change instead of deciding whether drift occurred: a table of changes per cluster (disappeared, appeared, moved, statistics changed, wider/narrower, grew/shrank; sizes and share of the class; key features in standard deviations), the class-wise cluster plots, centroid shifts and a feature × cluster heatmap shown together, and detailed tables in expanders. Detector settings (cluster range, matching mode, per-cluster significance tests); the permutation check is hidden behind `SHOW_PERMUTATION_CHECK`; results cached per pair of windows.
 - `stride.xai.clustering.plot_feature_shift_heatmap`: signed change of a per-cluster statistic for every feature and cluster, with changes beyond the threshold outlined.
-- Dashboard Statistical Tests tab: Kolmogorov-Smirnov, Anderson-Darling, Wasserstein and Jensen-Shannon per feature and class with configurable significance level and thresholds, flagged pairs per test against the count expected by chance, a feature table with highlighted flags, and ECDF/histogram/KDE/boxplot/Q-Q plots of a selected feature.
+- Dashboard Statistical Tests tab: Kolmogorov-Smirnov, Anderson-Darling, Wasserstein and Jensen-Shannon per feature and class with configurable significance level and thresholds, the share of flagged pairs per test, and a feature table with highlighted flags. The tab explains which features changed; it does not report a drift decision.
 
 ### Fixed
 - `run_xmeans` was not reproducible for a given `random_state` and changed the global `random` state (#31).

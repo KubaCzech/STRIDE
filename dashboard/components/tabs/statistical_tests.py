@@ -1,20 +1,11 @@
 import traceback
 import warnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
 
 from stride.xai.stats import StatisticalTestsDriftDetector, StatisticalTestType
-from stride.xai.stats.visualization import (
-    PlotOptions,
-    plot_boxplot,
-    plot_ecdf,
-    plot_histogram,
-    plot_kde,
-    plot_qq,
-)
 
 DRIFT_STYLE = "background-color: rgba(231, 76, 60, 0.25)"
 
@@ -59,25 +50,6 @@ TESTS = {
     },
 }
 
-PLOTS = {
-    "ECDF": (plot_ecdf, {}),
-    "Histogram": (plot_histogram, {}),
-    "KDE": (plot_kde, {}),
-    "Boxplot": (plot_boxplot, {"show_": PlotOptions.Both}),
-    "Q-Q plot": (plot_qq, {}),
-}
-
-PLOT_CAPTIONS = {
-    "ECDF": "Empirical cumulative distribution functions. The KS statistic is the largest vertical gap between the two curves.",
-    "Histogram": "Overlapping histograms of both windows on common bins.",
-    "KDE": "Kernel density estimates of both windows.",
-    "Boxplot": "Quartiles, whiskers, median (solid) and mean (dashed) of both windows.",
-    "Q-Q plot": (
-        "Quantiles of the After window against the same quantiles of the Before window. Points on the diagonal mean "
-        "equal distributions; a parallel offset is a shift, a different slope a change of spread."
-    ),
-}
-
 
 def _class_name(label) -> str:
     """Readable class label: integral numbers without decimals, anything else as text."""
@@ -92,13 +64,14 @@ def _display_intro():
     st.header("Statistical Tests")
     st.markdown(
         """
+    This tab shows **which features** changed between the **Before** and **After** windows;
+    whether and when drift occurs is the job of the drift detectors (see the
+    *Drift Detection* tab).
+
     Two-sample tests and distribution distances compare the distribution of every feature
-    between the **Before** and **After** windows, separately within each class
-    ($P(X_j \\mid Y = y)$). Hypothesis tests (Kolmogorov–Smirnov, Anderson–Darling) flag a
-    feature when $p < \\alpha$; distances (Wasserstein, Jensen–Shannon) flag
-    it when they exceed a threshold. A test signals drift when the share of flagged
-    feature–class pairs exceeds the pair threshold, and drift is reported when the share of
-    tests signalling drift exceeds the decision threshold.
+    between the two windows, separately within each class ($P(X_j \\mid Y = y)$).
+    Hypothesis tests (Kolmogorov–Smirnov, Anderson–Darling) flag a feature when
+    $p < \\alpha$; distances (Wasserstein, Jensen–Shannon) flag it when they exceed a threshold.
     """
     )
 
@@ -121,37 +94,19 @@ def _render_config() -> dict:
                 value=0.05,
                 help="A hypothesis test flags a feature when its p-value is below α.",
             )
+        with col2:
             wasserstein_thr = st.number_input(
                 "Wasserstein threshold", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f"
             )
-        with col2:
+        with col3:
             js_thr = st.number_input(
                 "Jensen–Shannon threshold", min_value=0.0, max_value=1.0, value=0.05, step=0.01, format="%.2f"
-            )
-        with col3:
-            drift_thr = st.slider(
-                "Pair threshold",
-                min_value=0.0,
-                max_value=1.0,
-                value=0.2,
-                step=0.05,
-                help="A test signals drift when more than this share of feature–class pairs is flagged.",
-            )
-            decision_thr = st.slider(
-                "Decision threshold",
-                min_value=0.0,
-                max_value=1.0,
-                value=0.4,
-                step=0.05,
-                help="Drift is reported when more than this share of the selected tests signals drift.",
             )
     return {
         "tests": tests,
         "alpha": float(alpha),
         "wasserstein_thr": float(wasserstein_thr),
         "js_thr": float(js_thr),
-        "drift_thr": float(drift_thr),
-        "decision_thr": float(decision_thr),
     }
 
 
@@ -174,7 +129,7 @@ def _evaluated_pairs(detector: StatisticalTestsDriftDetector, test: str) -> list
 
 
 def _tests_summary_dataframe(detector: StatisticalTestsDriftDetector) -> pd.DataFrame:
-    """One row per test: criterion, flagged pairs, expected false alarms and the test-level decision."""
+    """One row per test: criterion and flagged feature–class pairs."""
     rows = []
     for test in detector.drift_details:
         info = TESTS[test]
@@ -182,18 +137,14 @@ def _tests_summary_dataframe(detector: StatisticalTestsDriftDetector) -> pd.Data
         flagged = sum(d["drift"] for d in pairs)
         if info["hypothesis"]:
             criterion = f"p < {detector.alpha:g}"
-            expected = detector.alpha * len(pairs)
         else:
             criterion = f"> {getattr(detector, info['threshold_attr']):g}"
-            expected = None
         rows.append(
             {
                 "Test": info["name"],
                 "Criterion": criterion,
                 "Flagged Pairs": f"{flagged}/{len(pairs)}",
                 "Share": flagged / len(pairs) if pairs else 0.0,
-                "Expected by Chance": expected,
-                "Signals Drift": bool(detector.drift_flags[test]),
             }
         )
     return pd.DataFrame(rows)
@@ -226,31 +177,6 @@ def _format_p(v: float) -> str:
     return "< 0.001" if v < 0.001 else f"{v:.3f}"
 
 
-def _display_summary(detector: StatisticalTestsDriftDetector):
-    n_tests = len(detector.drift_flags)
-    n_drift = sum(detector.drift_flags.values())
-    if detector.drift_flag:
-        st.success(f"**Drift detected**: {n_drift} of {n_tests} tests signal drift.")
-    else:
-        st.info(f"**No drift detected**: {n_drift} of {n_tests} tests signal drift.")
-
-    _, flags = _feature_results(detector)
-    flagged_pairs = int(flags.any(axis=1).sum())
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Drift Detected", "Yes" if detector.drift_flag else "No")
-    col2.metric(
-        "Tests Signalling Drift",
-        f"{n_drift}/{n_tests}",
-        help=f"Drift is reported when more than {detector.decision_thr:.0%} of the tests signal drift.",
-    )
-    col3.metric(
-        "Feature–Class Pairs Flagged",
-        f"{flagged_pairs}/{len(flags)}",
-        help="Pairs flagged by at least one test.",
-    )
-
-
 def _display_tests_table(detector: StatisticalTestsDriftDetector):
     st.subheader("Results by Test")
     st.dataframe(
@@ -261,24 +187,18 @@ def _display_tests_table(detector: StatisticalTestsDriftDetector):
             "Flagged Pairs": st.column_config.TextColumn("Flagged Pairs", help="Flagged / evaluated feature–class pairs"),
             "Share": st.column_config.ProgressColumn(
                 "Share",
-                help=f"The test signals drift when the share exceeds {detector.drift_thr:.0%}.",
+                help="Share of the evaluated feature–class pairs flagged by the test.",
                 min_value=0.0,
                 max_value=1.0,
                 format="percent",
             ),
-            "Expected by Chance": st.column_config.NumberColumn(
-                "Expected by Chance",
-                help="Pairs a hypothesis test flags on average without any drift (α × evaluated pairs).",
-                format="%.1f",
-            ),
-            "Signals Drift": st.column_config.CheckboxColumn("Signals Drift"),
         },
         width="stretch",
         hide_index=True,
     )
     st.caption(
-        "Every feature–class pair is tested separately, so with many pairs some p-values fall below α by chance; "
-        "compare the flagged count with the count expected by chance."
+        "Every feature–class pair is tested separately, so even without any change a hypothesis test flags about "
+        "a share α of the pairs by chance."
     )
 
 
@@ -312,42 +232,6 @@ def _display_feature_table(detector: StatisticalTestsDriftDetector):
             st.markdown(f"**{TESTS[test]['name']}**: {TESTS[test]['description']}")
 
 
-def _default_feature(detector: StatisticalTestsDriftDetector, features: list) -> int:
-    """Index of the feature with the largest KS statistic (or the first feature without KS)."""
-    if "kolmogorov_smirnov" not in detector.drift_details:
-        return 0
-    values, _ = _feature_results(detector)
-    ks = values["KS statistic"].groupby(level="Feature").max()
-    return features.index(ks.idxmax()) if ks.notna().any() else 0
-
-
-def _display_distribution_plot(X_before, y_before, X_after, y_after, detector: StatisticalTestsDriftDetector):
-    st.subheader("Feature Distributions")
-    features = [str(c) for c in X_before.columns]
-    col_feature, col_plot = st.columns([1, 2])
-    with col_feature:
-        feature = st.selectbox(
-            "Feature",
-            options=features,
-            index=_default_feature(detector, features),
-            key="stats_feature_selector",
-            help="Defaults to the feature with the largest KS statistic.",
-        )
-    with col_plot:
-        plot_name = st.radio("Plot", options=list(PLOTS), horizontal=True, key="stats_plot_selector")
-
-    column = X_before.columns[features.index(feature)]
-    plot_func, kwargs = PLOTS[plot_name]
-    try:
-        fig = plot_func(X_before[[column]], y_before, X_after[[column]], y_after, **kwargs)
-        st.pyplot(fig)
-        plt.close(fig)
-        st.caption(PLOT_CAPTIONS[plot_name])
-    except Exception as e:
-        plt.close("all")
-        st.warning(f"The {plot_name} cannot be drawn for feature '{feature}': {e}")
-
-
 def render_statistical_tests_tab(X_before, y_before, X_after, y_after, feature_names):
     """Renders the Statistical Tests tab.
 
@@ -367,10 +251,8 @@ def render_statistical_tests_tab(X_before, y_before, X_after, y_after, feature_n
     with st.spinner("Running statistical tests..."):
         try:
             detector = _run_tests(X_before, y_before, X_after, y_after, settings)
-            _display_summary(detector)
             _display_tests_table(detector)
             _display_feature_table(detector)
-            _display_distribution_plot(X_before, y_before, X_after, y_after, detector)
         except Exception as e:
             st.error(f"An error occurred while running the statistical tests: {e}")
             st.text(traceback.format_exc())
