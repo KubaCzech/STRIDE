@@ -53,7 +53,8 @@ class DecisionBoundaryDriftAnalyzer:
 
     Projects high-dimensional feature spaces $\mathbb{R}^D$ into an interpretable 2D
     manifold $\mathbb{R}^2$ using Self-Supervised Neighbor Projection (SSNP) or passthrough
-    scaling. Evaluates classifiers trained before ($f_{\text{pre}}$) and after ($f_{\text{post}}$)
+    scaling. A single SSNP projection is trained on both windows together and shared by both
+    decision maps. Evaluates classifiers trained before ($f_{\text{pre}}$) and after ($f_{\text{post}}$)
     drift, reconstructs dense decision grids, and trains Disagreement Decision Trees
     to extract geometric boundary shift explanations.
 
@@ -149,8 +150,14 @@ class DecisionBoundaryDriftAnalyzer:
             try:
                 from stride.xai.boundary.ssnp import SSNP
 
+                # One projection trained on both windows: a projection trained on the before window
+                # alone decodes only before-like points, so the post-drift map loses fidelity when
+                # the after data moves away from them.
                 ssnp = SSNP(epochs=ssnp_epochs, patience=ssnp_patience, verbose=0)
-                ssnp.fit(X_before_scaled, self.y_before)
+                ssnp.fit(
+                    np.vstack([X_before_scaled, X_after_scaled]),
+                    np.concatenate([self.y_before, self.y_after]),
+                )
             except Exception as err:
                 raise OptionalDependencyError(
                     package_name="tensorflow",

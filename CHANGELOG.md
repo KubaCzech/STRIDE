@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cluster IDs**: clusters of the reference window are numbered `0 … n-1` and clusters found only in the detection window from `n` on, instead of interleaving new clusters with the reference clusters of the following classes.
 - Dashboard Data Comparison tab: removed the relative change column of the descriptive statistics, which exploded for values near zero.
 - **Datasets**: multi-window datasets use string feature names (`x0, x1, ...`) instead of integer column names.
+- **Decision Boundary Analysis** (`DecisionBoundaryDriftAnalyzer`): the SSNP projection is trained on the before and after windows together instead of the before window alone; both maps still share one projection. On Linear Weight Inversion the post-drift map now matches the post-drift classifier on 92% of points instead of 52%, and the boundary rotation becomes visible. On SEA the post-drift match rises from 91% to 97%; on Random Tree it falls from 96–97% to 75–79%; RBF is unchanged and Hyperplane (2 features, no SSNP) is unaffected.
 
 ### Added
 - `ClusterBasedDriftDetector`: `p_value`, `null_strengths`, `alpha` (optional size-aware significance tests), `xmeans_repeat`, `novelty_quantile` and `n_jobs` (parallel permutations).
