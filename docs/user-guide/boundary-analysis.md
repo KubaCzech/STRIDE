@@ -47,6 +47,8 @@ $$\mathcal{L}(\theta, \phi) = \mathcal{L}_{\text{recon}} + \lambda_{\text{nbr}} 
 * **Neighbor Distance Loss**: Preserves pairwise distances among local $k$-nearest neighbors:
   $$\mathcal{L}_{\text{nbr}} = \sum_{i=1}^N \sum_{j \in \mathcal{N}_k(i)} \left( \left\| p_\theta(x_i) - p_\theta(x_j) \right\|_2 - d(x_i, x_j) \right)^2$$
 
+STRIDE trains one SSNP projection on the reference and detection windows together, and both decision maps use it, so the two maps share the same 2D coordinates. A projection trained on the reference window alone decodes only reference-like points: when drift moves the data, the post-drift map then shows the projection's error more than the post-drift classifier.
+
 Once trained, STRIDE generates a regular $M \times M$ grid in $[-1, 1]^2$, decodes all grid coordinates back to $\mathbb{R}^D$ via $q_\phi$, and queries the pre-drift and post-drift classifiers to generate Supervised Decision Boundary Maps (SDBM).
 
 ---
