@@ -84,7 +84,8 @@ def _format_rule_bounds(path_tuples, feature_mins, feature_maxs):
         lower_str = "(-∞" if lower == -np.inf else f"[{lower:.2f}"
         upper_str = "+∞)" if upper == np.inf else f"{upper:.2f}]"
         range_strings.append(f"{name} ∈ {lower_str}, {upper_str}")
-    return ",  ".join(range_strings)
+    # A tree without splits (the classifiers disagree everywhere) yields one rule with no conditions
+    return ",  ".join(range_strings) or "All points"
 
 
 def _recurse_rules(
@@ -98,13 +99,12 @@ def _recurse_rules(
     feature_mins,
     feature_maxs,
     unscalers,
-    real_leaf_counts,
-    total_real_samples,
-    total_grid_samples,
+    leaf_metrics,
 ):
     # Check if leaf node
     if tree_.feature[node] == -2:
-        # We use tree_.value (weighted) to determine if this is a "Drift" region
+        # The class-weighted leaf value selects drift regions: with balanced class weights it exceeds
+        # 0.5 exactly when the leaf's disagreement rate is above the overall rate.
         val_weighted = tree_.value[node][0]
         node_weight_total = val_weighted.sum()
 
@@ -121,22 +121,15 @@ def _recurse_rules(
         if class_prob > 0.5:
             readable_rule = _format_rule_bounds(path_tuples, feature_mins, feature_maxs)
 
-            # --- REAL DATA METRICS ---
-            # Count how many actual data points fell into this leaf
-            n_real = real_leaf_counts.get(node, 0)
-            cov_real = n_real / total_real_samples if total_real_samples > 0 else 0.0
-
-            # --- VISUAL GRID METRICS ---
-            n_grid = tree_.n_node_samples[node]
-            cov_grid = n_grid / total_grid_samples if total_grid_samples > 0 else 0.0
+            n_real, cov_real, disagree_rate, visual_area = leaf_metrics(node, class_prob)
 
             rules_data.append(
                 {
                     "Rule": readable_rule,
-                    "Drift Conf.": f"{class_prob:.1%}",
+                    "Drift Conf.": f"{disagree_rate:.1%}",  # Share of real points in the rule that disagree
                     "Samples": int(n_real),  # Actual Data Points
                     "Coverage": f"{cov_real:.1%}",  # Real Data Coverage
-                    "Visual Area": f"{cov_grid:.1%}",  # Size on the plot
+                    "Visual Area": f"{visual_area:.1%}",  # Size on the plot
                     "Leaf_ID": node,
                 }
             )
@@ -165,9 +158,7 @@ def _recurse_rules(
         feature_mins,
         feature_maxs,
         unscalers,
-        real_leaf_counts,
-        total_real_samples,
-        total_grid_samples,
+        leaf_metrics,
     )
     _recurse_rules(
         tree_.children_right[node],
@@ -180,13 +171,11 @@ def _recurse_rules(
         feature_mins,
         feature_maxs,
         unscalers,
-        real_leaf_counts,
-        total_real_samples,
-        total_grid_samples,
+        leaf_metrics,
     )
 
 
-def get_disagreement_table(tree, feature_names, X_raw=None, X_scaled=None, scaler=None):
+def get_disagreement_table(tree, feature_names, X_raw=None, X_scaled=None, scaler=None, y_disagree=None, X_grid=None):
     tree_ = tree.tree_
     tree_classes = tree.classes_
     rules_data = []
@@ -201,17 +190,24 @@ def get_disagreement_table(tree, feature_names, X_raw=None, X_scaled=None, scale
     elif X_raw is not None and X_scaled is not None:
         unscalers = _get_unscaler_map(feature_names, X_raw, X_scaled)
 
-    # 1. Calculate Grid Totals (Training Data for Tree)
-    total_grid_samples = tree_.n_node_samples[0]
+    # Real data per leaf: point count and, given disagreement labels, the disagreement rate
+    real_leaves = tree.apply(X_scaled) if X_scaled is not None else None
+    # Plot area per leaf: share of the decoded grid; without a grid, share of the tree's training data
+    grid_leaves = tree.apply(X_grid) if X_grid is not None else None
 
-    # 2. Calculate Real Data Distribution (Evaluation Data)
-    real_leaf_counts = {}
-    total_real_samples = 0
-    if X_scaled is not None:
-        leaf_indices = tree.apply(X_scaled)
-        unique_leaves, counts = np.unique(leaf_indices, return_counts=True)
-        real_leaf_counts = dict(zip(unique_leaves, counts))
-        total_real_samples = len(X_scaled)
+    def leaf_metrics(node, weighted_prob):
+        n_real, cov_real, disagree_rate = 0, 0.0, weighted_prob
+        if real_leaves is not None:
+            in_leaf = real_leaves == node
+            n_real = int(in_leaf.sum())
+            cov_real = n_real / len(real_leaves) if len(real_leaves) else 0.0
+            if y_disagree is not None and n_real:
+                disagree_rate = float(np.asarray(y_disagree)[in_leaf].mean())
+        if grid_leaves is not None:
+            visual_area = float(np.mean(grid_leaves == node))
+        else:
+            visual_area = tree_.n_node_samples[node] / tree_.n_node_samples[0]
+        return n_real, cov_real, disagree_rate, visual_area
 
     _recurse_rules(
         0,
@@ -224,9 +220,7 @@ def get_disagreement_table(tree, feature_names, X_raw=None, X_scaled=None, scale
         feature_mins,
         feature_maxs,
         unscalers,
-        real_leaf_counts,
-        total_real_samples,
-        total_grid_samples,
+        leaf_metrics,
     )
 
     if not rules_data:
@@ -254,9 +248,12 @@ def get_disagreement_table(tree, feature_names, X_raw=None, X_scaled=None, scale
 def compute_disagreement_analysis(
     clf_pre, clf_post, X_eval_raw, X_eval_scaled, X_grid_high_scaled=None, feature_names=None, scaler=None
 ):
-    """
-    Computes disagreement using the Inverse-Projected Grid (SDBM approach) to ensure
-    visual consistency between the table and the plot.
+    """Find where the pre-drift and post-drift classifiers disagree and describe it as rules.
+
+    The rule tree is trained on the real evaluation points, not on the decoded grid: a projection's
+    decoder can tie features to map position (a noise feature then looks informative on the grid),
+    so grid-trained rules describe the projection rather than the data. The grid, when given, only
+    measures each rule's area on the plot.
     """
     if feature_names is None:
         if hasattr(X_eval_raw, "columns"):
@@ -273,26 +270,19 @@ def compute_disagreement_analysis(
     if drift_rate_real == 0:
         return {"drift_rate": 0.0, "disagreement_table": None, "drift_leaf_ids": [], "viz_tree": None}
 
-    # 2. Train Visualization Tree
-    if X_grid_high_scaled is not None:
-        grid_pred_pre = clf_pre.predict(X_grid_high_scaled)
-        grid_pred_post = clf_post.predict(X_grid_high_scaled)
-        y_delta_grid = (grid_pred_pre != grid_pred_post).astype(int)
-
-        X_train_tree = X_grid_high_scaled
-        y_train_tree = y_delta_grid
-    else:
-        # Fallback to data if grid not provided
-        X_train_tree = X_eval_scaled
-        y_train_tree = y_delta_real
-
-    # Train Tree
+    # 2. Train the rule tree on the real points
     viz_tree = DecisionTreeClassifier(max_depth=4, min_samples_leaf=0.01, class_weight="balanced", random_state=42)
-    viz_tree.fit(X_train_tree, y_train_tree)
+    viz_tree.fit(X_eval_scaled, y_delta_real)
 
     # 3. Generate Rules
     df_rules, drift_leaf_ids = get_disagreement_table(
-        viz_tree, feature_names, X_raw=X_eval_raw, X_scaled=X_eval_scaled, scaler=scaler
+        viz_tree,
+        feature_names,
+        X_raw=X_eval_raw,
+        X_scaled=X_eval_scaled,
+        scaler=scaler,
+        y_disagree=y_delta_real,
+        X_grid=X_grid_high_scaled,
     )
 
     return {

@@ -55,7 +55,7 @@ Once trained, STRIDE generates a regular $M \times M$ grid in $[-1, 1]^2$, decod
 
 ## Disagreement Analysis & Decision Rules
 
-To translate visual boundary differences into human-readable explanations, STRIDE evaluates predictions across the decoded grid points and identifies the **disagreement region**:
+To translate visual boundary differences into human-readable explanations, STRIDE evaluates both classifiers on the real detection-window points and identifies the **disagreement region**:
 
 $$\mathcal{D} = \left\{ x \in \mathbb{R}^D : f_{\text{pre}}(x) \neq f_{\text{post}}(x) \right\}$$
 
@@ -64,6 +64,8 @@ STRIDE fits a shallow, interpretable **Disagreement Decision Tree** to classify 
 $$y_{\text{disagree}} = \mathbb{I}\left( f_{\text{pre}}(x) \neq f_{\text{post}}(x) \right)$$
 
 Extracting the decision paths from this tree yields explicit bounding-box rules describing where the classifiers diverge (for example: `Feature 1 > 0.45 AND Feature 3 <= -0.12`).
+
+The tree is trained on the real points, not on the decoded grid. The decoder can tie a feature to the position on the map, so on the grid a pure-noise feature can look informative, and rules learned there would describe the projection rather than the data. The grid only colours the disagreement map with the same tree and measures each rule's share of the plot (**Visual Area**). **Drift Conf.** is the share of real points inside the rule on which the two classifiers disagree.
 
 ---
 
