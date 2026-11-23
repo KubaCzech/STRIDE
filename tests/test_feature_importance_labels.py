@@ -16,9 +16,7 @@ class TestStringLabels(unittest.TestCase):
         y_before = species[rng.integers(0, 3, size=120)]
         y_after = species[rng.integers(0, 3, size=120)]
 
-        analyzer = FeatureImportanceDriftAnalyzer(
-            X_before, y_before, X_after, y_after, feature_names=["f0", "f1", "f2"]
-        )
+        analyzer = FeatureImportanceDriftAnalyzer(X_before, y_before, X_after, y_after, feature_names=["f0", "f1", "f2"])
         result = analyzer.compute_drift_importance(include_target=True)
 
         self.assertEqual(result["feature_names"], ["f0", "f1", "f2"])
