@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard Statistical Tests tab: Kolmogorov-Smirnov, Anderson-Darling, Wasserstein and Jensen-Shannon per feature and class with configurable significance level and thresholds, the share of flagged pairs per test, and a feature table with highlighted flags. The tab explains which features changed; it does not report a drift decision.
 
 ### Fixed
+- **Feature Importance** (`FeatureImportanceDriftAnalyzer.compute_drift_importance`): concept-drift analysis no longer fails with `could not convert string to float` on datasets with text class labels (e.g. INSECTS); the label column is encoded as integer codes over both windows.
 - `run_xmeans` was not reproducible for a given `random_state` and changed the global `random` state (#31).
 - Cluster labels were mixed up between classes when class labels were not sorted in set order (e.g. text labels), and the detector crashed on classes missing from a window or smaller than `k_init` (#32).
 - Dashboard clustering tab: the "average distance to center change" table and the per-class contribution table (3+ classes) raised errors; the centroid-shift plot failed with more than 20 clusters; class-wise plots failed for text labels.

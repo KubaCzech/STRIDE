@@ -72,7 +72,9 @@ class FeatureImportanceDriftAnalyzer:
         if include_target:
             X_combined = np.concatenate([self.X_before, self.X_after])
             y_combined = np.concatenate([self.y_before, self.y_after])
-            X_features = np.column_stack([X_combined, y_combined])
+            # Labels can be strings (e.g. INSECTS species): use their index among the labels of both windows
+            _, y_codes = np.unique(y_combined, return_inverse=True)
+            X_features = np.column_stack([X_combined, y_codes])
         else:
             X_features = np.concatenate([self.X_before, self.X_after])
 
