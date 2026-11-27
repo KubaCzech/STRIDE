@@ -28,6 +28,13 @@ MODEL_SETTINGS_SCHEMAS = {
             "format": "%.5f",
             "help": "L2 penalty (regularization term) parameter.",
         },
+        {
+            "name": "scale_features",
+            "type": "bool",
+            "label": "Standardize Features",
+            "default": True,
+            "help": "Apply StandardScaler before MLPClassifier so features on different scales contribute equally.",
+        },
     ],
     "random_forest": [
         {
@@ -67,11 +74,13 @@ MODEL_PRESETS = {
             "hidden_layer_sizes": [10, 10],
             "max_iter": 500,
             "alpha": 0.00001,
+            "scale_features": True,
         },
         "Deep Network": {
             "hidden_layer_sizes": [50, 50, 50],
             "max_iter": 1000,
             "alpha": 0.0001,
+            "scale_features": True,
         },
     },
     "random_forest": {
