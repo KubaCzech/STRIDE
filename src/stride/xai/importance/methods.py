@@ -85,16 +85,23 @@ def _calculate_shap(model, X, feature_names):
 
     shap_values = explainer.shap_values(X_sample)
 
-    # For binary classification, SHAP returns a list
-    # [class_0_values, class_1_values]
-    # We use class 1 (positive class) for binary classification
-    # For multiclass, this logic would need to adapt
-    if isinstance(shap_values, list) and len(shap_values) == 2:
-        shap_values = shap_values[1]
+    # Handle list outputs from KernelExplainer across binary, single-class, and multiclass tasks
+    if isinstance(shap_values, list):
+        if len(shap_values) == 2:
+            shap_values = shap_values[1]
+        elif len(shap_values) == 1:
+            shap_values = shap_values[0]
+        else:
+            shap_values = np.mean([np.abs(sv) for sv in shap_values], axis=0)
 
-    # Handle possible 3D array for some model types
+    # Handle possible 3D array (n_samples, n_features, n_classes)
     if shap_values.ndim == 3:
-        shap_values = shap_values[:, :, 1]
+        if shap_values.shape[2] == 2:
+            shap_values = shap_values[:, :, 1]
+        elif shap_values.shape[2] == 1:
+            shap_values = shap_values[:, :, 0]
+        else:
+            shap_values = np.mean(np.abs(shap_values), axis=2)
 
     # Ensure shap_values is 2D: (n_samples, n_features)
     if shap_values.ndim == 1:
@@ -137,9 +144,21 @@ def _calculate_lime(model, X, y, feature_names, random_state=42):
 
     np.random.seed(random_state)
 
+    # Derive class names dynamically from the fitted estimator or target array
+    raw_classes = getattr(model, "classes_", None)
+    if raw_classes is None:
+        raw_classes = getattr(getattr(model, "model_", None), "classes_", None)
+
+    if raw_classes is not None:
+        class_names = [str(c) for c in raw_classes]
+    elif y is not None:
+        class_names = [str(c) for c in np.unique(y)]
+    else:
+        class_names = ["Class 0", "Class 1"]
+
     # Create LIME explainer
     explainer = LimeTabularExplainer(
-        X, feature_names=feature_names, class_names=["Class 0", "Class 1"], mode="classification", random_state=random_state
+        X, feature_names=feature_names, class_names=class_names, mode="classification", random_state=random_state
     )
 
     # Calculate LIME explanations for a sample of instances
@@ -147,12 +166,13 @@ def _calculate_lime(model, X, y, feature_names, random_state=42):
     sample_indices = np.random.choice(len(X), sample_size, replace=False)
 
     all_importances = []
+    explain_label = 0 if len(class_names) == 1 else 1
 
     for idx in sample_indices:
-        exp = explainer.explain_instance(X[idx], model.predict_proba, num_features=len(feature_names))
+        exp = explainer.explain_instance(X[idx], model.predict_proba, num_features=len(feature_names), labels=(explain_label,))
 
         # Extract feature importances (absolute values)
-        importance_dict = dict(exp.as_list())
+        importance_dict = dict(exp.as_list(label=explain_label))
         importances = []
         for feat_name in feature_names:
             # Find matching feature (LIME may modify feature names)

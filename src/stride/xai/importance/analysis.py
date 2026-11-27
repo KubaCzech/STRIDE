@@ -4,6 +4,7 @@ from typing import Any
 import warnings
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 from .base import AbstainStrategy
 from .methods import calculate_feature_importance
@@ -70,11 +71,15 @@ class FeatureImportanceDriftAnalyzer:
 
     def _prepare_drift_data(self, include_target: bool) -> tuple[np.ndarray, np.ndarray, list[str]]:
         if include_target:
-            X_combined = np.concatenate([self.X_before, self.X_after])
+            X_combined = np.asarray(np.concatenate([self.X_before, self.X_after]), dtype=float)
             y_combined = np.concatenate([self.y_before, self.y_after])
-            X_features = np.column_stack([X_combined, y_combined])
+            if not np.issubdtype(y_combined.dtype, np.number):
+                y_encoded = LabelEncoder().fit_transform(y_combined.astype(str))
+            else:
+                y_encoded = y_combined
+            X_features = np.column_stack([X_combined, np.asarray(y_encoded, dtype=float)])
         else:
-            X_features = np.concatenate([self.X_before, self.X_after])
+            X_features = np.asarray(np.concatenate([self.X_before, self.X_after]), dtype=float)
 
         n_samples_before = len(self.X_before)
         n_samples_after = len(self.X_after)
