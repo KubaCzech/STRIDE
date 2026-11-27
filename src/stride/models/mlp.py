@@ -1,16 +1,29 @@
-from sklearn.neural_network import MLPClassifier
 import ast
+from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from .base import BaseModel
 
 
 class MLPModel(BaseModel):
-    """Wrapper for MLPClassifier."""
+    """Wrapper for MLPClassifier with optional feature standardization."""
 
-    def __init__(self, hidden_layer_sizes=(10, 10), max_iter=500, alpha=1e-5, random_state=42):
+    def __init__(self, hidden_layer_sizes=(10, 10), max_iter=500, alpha=1e-5, random_state=42, scale_features=True):
+        """Initialize the MLP classifier wrapper.
+
+        Args:
+            hidden_layer_sizes: Number of neurons in each hidden layer.
+            max_iter: Maximum number of training iterations.
+            alpha: Strength of the L2 regularization term.
+            random_state: Random seed for weight initialization and shuffling.
+            scale_features: Whether to standardize input features with `StandardScaler`
+                before fitting and predicting with `MLPClassifier`.
+        """
         self.hidden_layer_sizes = hidden_layer_sizes
         self.max_iter = max_iter
         self.alpha = alpha
         self.random_state = random_state
+        self.scale_features = scale_features
         self.model_ = None
 
     @property
@@ -22,6 +35,7 @@ class MLPModel(BaseModel):
         return "MLP Classifier"
 
     def get_model(self):
+        """Return the configured MLP estimator, optionally wrapped with a StandardScaler."""
         # Parse hidden_layer_sizes if it's a string
         hidden_layers = self.hidden_layer_sizes
         if isinstance(hidden_layers, str):
@@ -32,10 +46,13 @@ class MLPModel(BaseModel):
                 # For now, let's assume valid input or default to (10, 10)
                 hidden_layers = (10, 10)
 
-        return MLPClassifier(
+        mlp = MLPClassifier(
             hidden_layer_sizes=hidden_layers,
             max_iter=self.max_iter,
             alpha=self.alpha,
             random_state=self.random_state,
             solver="adam",
         )
+        if self.scale_features:
+            return make_pipeline(StandardScaler(), mlp)
+        return mlp

@@ -1,6 +1,8 @@
 import unittest
 import numpy as np
-from stride.models import MODELS
+from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import Pipeline
+from stride.models import MODELS, MLPModel
 
 
 class TestModels(unittest.TestCase):
@@ -22,6 +24,26 @@ class TestModels(unittest.TestCase):
                     self.assertLessEqual(score, 1.0)
                 except Exception as e:
                     self.fail(f"Model {name} failed with error: {e}")
+
+    def test_mlp_standardization_enabled_and_disabled(self):
+        """Verify MLPModel wraps MLPClassifier in StandardScaler Pipeline by default and supports disabling."""
+        rng = np.random.RandomState(42)
+        n = 200
+        # Feature 0 is pure noise at large scale (1e3); Feature 1 is informative at small scale (1e-2)
+        noise_large = rng.normal(loc=0.0, scale=1000.0, size=n)
+        signal_small = rng.normal(loc=0.0, scale=0.01, size=n)
+        y = (signal_small > 0.0).astype(int)
+        X_multi_scale = np.column_stack([noise_large, signal_small])
+
+        scaled_mlp = MLPModel(hidden_layer_sizes=(16,), max_iter=300, random_state=42, scale_features=True)
+        scaled_mlp.fit(X_multi_scale, y)
+        self.assertIsInstance(scaled_mlp.model_, Pipeline)
+        self.assertGreater(scaled_mlp.score(X_multi_scale, y), 0.90)
+
+        unscaled_mlp = MLPModel(hidden_layer_sizes=(16,), max_iter=300, random_state=42, scale_features=False)
+        unscaled_mlp.fit(X_multi_scale, y)
+        self.assertIsInstance(unscaled_mlp.model_, MLPClassifier)
+        self.assertLessEqual(unscaled_mlp.score(X_multi_scale, y), 1.0)
 
 
 if __name__ == "__main__":
